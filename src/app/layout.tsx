@@ -33,7 +33,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Whitespace — before you ship, find out who it's actually for",
+  title: "Whitespace: before you ship, find out who it is actually for",
   description:
     "Whitespace tells you which audience your idea fits, how strongly, and where to find those people.",
 };
