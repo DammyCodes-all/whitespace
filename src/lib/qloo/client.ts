@@ -19,6 +19,7 @@
 import type { QlooCall } from "@/lib/types";
 
 export interface QlooFetchOk {
+  /** Decoded JSON body, or null when the 200 response had no JSON body. */
   data: unknown;
   trace: QlooCall;
 }
@@ -50,17 +51,24 @@ export interface QlooConfig {
 export function getQlooConfig(): QlooConfig {
   const timeoutRaw = readEnv("QLOO_TIMEOUT_MS", "10000");
   const retriesRaw = readEnv("QLOO_MAX_RETRIES", "2");
-  const timeoutMs = Number.parseInt(timeoutRaw, 10);
-  const maxRetries = Number.parseInt(retriesRaw, 10);
+  const timeoutParsed = Number.parseInt(timeoutRaw, 10);
+  const retriesParsed = Number.parseInt(retriesRaw, 10);
+  const rawKey = process.env.QLOO_API_KEY;
 
   return {
     baseUrl: readEnv("QLOO_BASE_URL", "https://hackathon.api.qloo.com").replace(
       /\/$/,
       "",
     ),
-    apiKey: process.env.QLOO_API_KEY ?? null,
-    timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : 10000,
-    maxRetries: Number.isFinite(maxRetries) ? Math.max(0, maxRetries) : 2,
+    // Empty string means unconfigured, same as unset: mock mode stays on.
+    apiKey: rawKey === undefined || rawKey === "" ? null : rawKey,
+    timeoutMs:
+      Number.isFinite(timeoutParsed) && timeoutParsed > 0
+        ? timeoutParsed
+        : 10000,
+    maxRetries: Number.isFinite(retriesParsed)
+      ? Math.min(5, Math.max(0, retriesParsed))
+      : 2,
   };
 }
 
@@ -121,10 +129,9 @@ export async function qlooFetch(
   const query = new URLSearchParams(params).toString();
   const url = `${config.baseUrl}${path}${query ? `?${query}` : ""}`;
 
-  let attempt = 0;
   let lastStatus = 0;
 
-  while (true) {
+  for (let attempt = 0; attempt <= config.maxRetries; attempt += 1) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), config.timeoutMs);
     try {
@@ -136,6 +143,7 @@ export async function qlooFetch(
         },
         signal: controller.signal,
       });
+      clearTimeout(timer);
       lastStatus = res.status;
       const durationMs = Date.now() - started;
 
@@ -152,22 +160,18 @@ export async function qlooFetch(
         };
       }
 
-      if (isRetryableStatus(res.status) && attempt < config.maxRetries) {
-        attempt += 1;
-        await sleep(300 * 2 ** (attempt - 1) + Math.floor(Math.random() * 100));
-        continue;
+      if (!isRetryableStatus(res.status) || attempt === config.maxRetries) {
+        throw new QlooError(
+          `Qloo ${path} failed with status ${res.status}.`,
+          {
+            ...traceBase,
+            status: res.status,
+            durationMs,
+            fromCache: false,
+          },
+          isRetryableStatus(res.status),
+        );
       }
-
-      throw new QlooError(
-        `Qloo ${path} failed with status ${res.status}.`,
-        {
-          ...traceBase,
-          status: res.status,
-          durationMs,
-          fromCache: false,
-        },
-        isRetryableStatus(res.status),
-      );
     } catch (err) {
       clearTimeout(timer);
       if (err instanceof QlooError) throw err;
@@ -175,20 +179,32 @@ export async function qlooFetch(
         err instanceof Error &&
         (err.name === "AbortError" || err.message.includes("abort"));
       const durationMs = Date.now() - started;
-      if (attempt < config.maxRetries && (!aborted || attempt === 0)) {
-        attempt += 1;
-        await sleep(300 * 2 ** (attempt - 1) + Math.floor(Math.random() * 100));
-        continue;
+      // Timeouts retry only on the first attempt; other network errors
+      // retry until the budget is spent. Otherwise fall through to the
+      // backoff sleep below.
+      const canRetry =
+        attempt < config.maxRetries && (!aborted || attempt === 0);
+      if (!canRetry) {
+        throw new QlooError(
+          aborted
+            ? `Qloo ${path} timed out after ${config.timeoutMs}ms.`
+            : `Qloo ${path} request failed.`,
+          { ...traceBase, status: lastStatus, durationMs, fromCache: false },
+          true,
+        );
       }
-      throw new QlooError(
-        aborted
-          ? `Qloo ${path} timed out after ${config.timeoutMs}ms.`
-          : `Qloo ${path} request failed.`,
-        { ...traceBase, status: lastStatus, durationMs, fromCache: false },
-        true,
-      );
-    } finally {
-      clearTimeout(timer);
     }
+    await sleep(300 * 2 ** attempt + Math.floor(Math.random() * 100));
   }
+
+  throw new QlooError(
+    `Qloo ${path} retries exhausted.`,
+    {
+      ...traceBase,
+      status: lastStatus,
+      durationMs: Date.now() - started,
+      fromCache: false,
+    },
+    true,
+  );
 }
