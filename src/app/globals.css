@@ -1,26 +1,144 @@
 @import "tailwindcss";
 
+/* Whitespace design tokens. Source of truth: docs/design-direction.md.
+   Light-first is deliberate (design-direction.md §1, §3). Do not add
+   per-screen colors; if a screen needs a new one, add it here first. */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* neutrals */
+  --paper: #f7f6f2; /* 4.9:1 is --ink-3's floor on this canvas */
+  --surface: #ffffff;
+  --rule: #e2dfd6; /* hairlines, borders */
+  --ink: #191814; /* 16.4:1 */
+  --ink-2: #56534a; /* 7.1:1, secondary */
+  --ink-3: #6e6b60; /* 4.9:1, labels and the readable-text floor */
+
+  /* the accent. Means "this value was measured", nothing else. */
+  --measured: #0e6a5f; /* 6.0:1 */
+  --measured-soft: #dceae7;
+
+  /* verdict semantics */
+  --split: #8f5e12; /* 5.1:1, ochre */
+  --weak: #6e6b60; /* deliberately equal to --ink-3 */
+  --nodata: #edebe4;
+  --nodata-hatch: #c9c5b8;
+  --clay: #8a5636; /* 5.6:1, "not found in Qloo" only */
+}
+
+.dark {
+  --paper: #131311;
+  --surface: #1b1b18;
+  --rule: #2c2b27;
+  --ink: #ededed; /* 15.6:1 */
+  --ink-2: #a5a196; /* 7.2:1 */
+  --ink-3: #8a8578; /* 5.1:1 */
+  --measured: #4fbfae; /* 8.3:1 */
+  --measured-soft: #16211f;
+  --split: #d9a441; /* 8.3:1 */
+  --weak: #8a8578;
+  --nodata: #1e1e1a;
+  --nodata-hatch: #33322c;
+  --clay: #c08563;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-rule: var(--rule);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-measured: var(--measured);
+  --color-measured-soft: var(--measured-soft);
+  --color-split: var(--split);
+  --color-weak: var(--weak);
+  --color-nodata: var(--nodata);
+  --color-nodata-hatch: var(--nodata-hatch);
+  --color-clay: var(--clay);
+
+  --font-sans:
+    var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    background: var(--paper);
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family:
+      var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Every number in the app stops jittering while a run streams. */
+  :where([data-numeric], .tnum) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--measured);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--measured-soft);
+    color: var(--ink);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* The third state. Absence gets texture, never a number (§6.6, App. B). */
+  .nodata {
+    background-color: var(--nodata);
+    background-image: repeating-linear-gradient(
+      45deg,
+      var(--nodata-hatch) 0,
+      var(--nodata-hatch) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+    border: 1px dashed var(--nodata-hatch);
+  }
+
+  /* Evidence markers are citations, not buttons (§6.12). */
+  .cite {
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    vertical-align: super;
+    color: var(--ink-3);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--rule);
+  }
+
+  .cite:hover {
+    color: var(--measured);
+    text-decoration-color: currentcolor;
+  }
+}
+
+/* The audience case must print legible in black on white with the accent
+   removed (§6.10, design-direction.md §5). */
+@media print {
+  html,
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  .cite {
+    color: #000000;
+  }
 }
