@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const principles = [
   {
     title: "Your guess is a hypothesis, not a fact",
@@ -30,8 +32,17 @@ export default function Home() {
 
         <p className="mt-6 max-w-prose text-body text-ink-2">
           Paste an idea. We tell you which audience it fits, how strongly, and
-          where to find those people &mdash; and we show our work at every step.
+          where to find those people, and we show our work at every step.
         </p>
+
+        <div className="mt-8">
+          <Link
+            href="/run"
+            className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+          >
+            See a sample run
+          </Link>
+        </div>
 
         <div className="mt-16 border-t border-rule">
           {principles.map((principle) => (
@@ -56,7 +67,7 @@ export default function Home() {
 
         <p className="mt-12 text-sm text-ink-3">
           Results are a hypothesis built from group-level taste data. They do
-          not predict outcomes, and they replace talking to real people.
+          not predict outcomes, and they never replace talking to real people.
         </p>
       </div>
     </main>
