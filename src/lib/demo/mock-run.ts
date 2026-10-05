@@ -83,6 +83,7 @@ export const mockAudiences: Audience[] = [
         type: "urn:entity:movie",
       },
     ],
+    notFoundTitles: ["Dune"],
   },
   {
     id: "rival-lit",
@@ -97,6 +98,7 @@ export const mockAudiences: Audience[] = [
         type: "urn:entity:book",
       },
     ],
+    notFoundTitles: [],
   },
   {
     id: "rival-amb",
@@ -111,6 +113,7 @@ export const mockAudiences: Audience[] = [
         type: "urn:entity:artist",
       },
     ],
+    notFoundTitles: [],
   },
 ];
 

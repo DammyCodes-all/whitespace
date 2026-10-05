@@ -107,6 +107,11 @@ export default function RunPage() {
                       </span>
                     )}
                   </p>
+                  {audience.notFoundTitles.length > 0 && (
+                    <p className="mt-1 font-mono text-xs text-clay">
+                      not found in Qloo: {audience.notFoundTitles.join(", ")}
+                    </p>
+                  )}
                 </div>
               );
             })}

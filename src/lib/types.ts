@@ -40,7 +40,7 @@ export interface QlooCall {
   fromCache: boolean;
 }
 
-/** §6.2: a title Qloo resolved. Unresolved queries live in `notFound`. */
+/** §6.2: a title Qloo resolved. Queries it could not find live in `notFoundTitles`. */
 export interface ResolvedTitle {
   query: string;
   qlooId: string;
@@ -62,6 +62,8 @@ export interface Audience {
   /** §6.3: one-sentence reason for rival readings only. */
   reason?: string;
   titles: ResolvedTitle[];
+  /** §6.2: queries Qloo could not find, dropped and listed as "not found". */
+  notFoundTitles: string[];
 }
 
 /**
