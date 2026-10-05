@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { PitchForm } from "@/components/pitch-form";
+import { mockAudiences } from "@/lib/demo/mock-run";
 
 const principles = [
   {
@@ -19,6 +20,7 @@ const principles = [
 ];
 
 export default function Home() {
+  const hypothesis = mockAudiences.find((a) => a.kind === "hypothesis");
   return (
     <main className="flex flex-1 flex-col">
       <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-24 sm:px-8">
@@ -35,14 +37,10 @@ export default function Home() {
           where to find those people, and we show our work at every step.
         </p>
 
-        <div className="mt-8">
-          <Link
-            href="/run"
-            className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
-          >
-            See a sample run
-          </Link>
-        </div>
+        <PitchForm
+          found={hypothesis?.titles ?? []}
+          notFound={hypothesis?.notFoundTitles ?? []}
+        />
 
         <div className="mt-16 border-t border-rule">
           {principles.map((principle) => (
