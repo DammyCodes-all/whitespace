@@ -16,12 +16,19 @@ import {
  */
 
 export const metadata = {
-  title: "Sample run — Whitespace",
+  title: "Sample run: Whitespace",
   description:
     "A sample audience run on mocks. Live Qloo wiring lands with the Day 6 seam.",
 };
 
 const CONTROL_CEILING = 0.44;
+
+/** Day 1 mock citation per audience; Day 6 replaces these with real traces. */
+const AUDIENCE_CALL_IDS: Record<string, string> = {
+  hyp: "call-search-1",
+  "rival-lit": "call-insights-1",
+  "rival-amb": "call-search-2",
+};
 
 export default function RunPage() {
   const top = mockAudiences.find((a) => a.id === mockVerdict.topAudienceId);
@@ -75,7 +82,7 @@ export default function RunPage() {
                     <p data-numeric className="tnum font-mono text-sm text-ink">
                       {score.score.toFixed(2)}
                       <a
-                        href="#call-insights-1"
+                        href={`#${AUDIENCE_CALL_IDS[score.audienceId] ?? "call-insights-1"}`}
                         className="cite ml-1"
                         aria-label={`Evidence for ${audience.name}`}
                       >
@@ -84,7 +91,7 @@ export default function RunPage() {
                     </p>
                   </div>
                   <div
-                    className="relative mt-2 h-2 bg-nodata"
+                    className="relative mt-2 h-2 bg-rule"
                     role="img"
                     aria-label={`${audience.name} scores ${score.score}, control ceiling ${CONTROL_CEILING}`}
                   >
