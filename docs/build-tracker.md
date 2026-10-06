@@ -51,3 +51,4 @@ Format:
 | 2026-10-06 | Wire pitch form through propose plus confirm to /run ?input= | §6.1 | biome+tsc clean; node24 strip-types 48 pass; next build pass |
 | 2026-10-06 | Add pinned must-have words UI with pinnedWords through scoring | §6.6 | biome+tsc clean; pinned mock-path smoke; next build pass |
 | 2026-10-06 | Fix review findings: single-decode run parser, client defaults split, proposed badge, pinned normalize | §6.1, §6.2, §6.6 | biome+tsc clean; node24 strip-types 62 pass; next build pass; pct/pinned smoke |
+| 2026-10-06 | Run Qloo coverage live, fix taste/tag params plus namespace scopes, lock film | §11, §6.4, §6.6 | live: resolve 20/20 both, tastes 20/20, tags 8/10 scoped; 62 pass; discrimination probe hyp 0.156 vs control 0.122 |
