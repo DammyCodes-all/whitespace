@@ -290,7 +290,7 @@ export default async function RunPage({
               />
               <button
                 type="submit"
-                className="shrink-0 bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+                className="shrink-0 bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
               >
                 Check change
               </button>
@@ -335,7 +335,7 @@ export default async function RunPage({
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <Link
             href="/"
-            className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+            className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
           >
             Back to start
           </Link>
