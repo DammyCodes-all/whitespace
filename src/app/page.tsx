@@ -6,8 +6,8 @@ export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
       <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-24 sm:px-8">
-        <p className="font-mono text-sm tracking-tight text-ink-3">
-          Whitespace
+        <p className="font-mono text-sm tracking-tight text-ink-2">
+          Audience fit for creative work
         </p>
 
         <h1 className="mt-6 font-serif text-4xl leading-tight tracking-tight text-balance sm:text-5xl">

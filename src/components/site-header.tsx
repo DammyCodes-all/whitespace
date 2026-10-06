@@ -19,13 +19,13 @@ export function SiteHeader() {
             href="/"
             className="text-sm text-ink-2 transition-colors hover:text-ink"
           >
-            Start
+            New fit
           </Link>
           <Link
             href="/run"
             className="text-sm text-ink-2 transition-colors hover:text-ink"
           >
-            Sample run
+            Read a sample result
           </Link>
         </nav>
       </div>
