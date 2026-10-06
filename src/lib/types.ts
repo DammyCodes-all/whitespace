@@ -110,6 +110,12 @@ export interface VerdictResult {
   clearsControl: boolean;
   /** True when top is not the hypothesis and beats it clearly (§6.7). */
   surprise: boolean;
+  /**
+   * Day 9 S: why an Inconclusive verdict was returned (case limits
+   * section, §6.10). Absent on decisive verdicts. Additive optional
+   * field — types unfreeze noted in docs/build-tracker.md.
+   */
+  inconclusiveReason?: "coverage" | "nodata" | "top-unjudgeable" | "empty";
 }
 
 /** §8 grounding check: every title/tag in output came from Qloo. */
