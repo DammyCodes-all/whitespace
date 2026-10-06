@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { RunSteps } from "@/components/run-steps";
+import { RunStream } from "@/components/run-stream";
 import {
   mockAudiences,
   mockCalls,
@@ -58,7 +58,7 @@ export default function RunPage() {
         </p>
 
         <div className="mt-8">
-          <RunSteps steps={mockSteps} />
+          <RunStream steps={mockSteps} />
         </div>
 
         <section aria-label="Ranked audiences" className="mt-12">
