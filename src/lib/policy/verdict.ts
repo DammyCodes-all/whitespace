@@ -69,7 +69,10 @@ function bestScore(scores: FitScore[]): number {
   return best;
 }
 
-function inconclusive(scores: FitScore[]): VerdictResult {
+function inconclusive(
+  scores: FitScore[],
+  reason: "coverage" | "nodata" | "top-unjudgeable" | "empty",
+): VerdictResult {
   const ranked = sortedByScore(scores);
   const top = ranked[0] ?? null;
   return {
@@ -79,6 +82,7 @@ function inconclusive(scores: FitScore[]): VerdictResult {
     marginTopVsControl: 0,
     clearsControl: false,
     surprise: false,
+    inconclusiveReason: reason,
   };
 }
 
@@ -100,23 +104,23 @@ export function decideVerdict(
 
   const { hypothesisId, scores, controlScores, coverage } = input;
   if (scores.length === 0) {
-    return inconclusive(scores);
+    return inconclusive(scores, "empty");
   }
 
   // §6.7 Inconclusive first: coverage floor, then no-data share. Either
   // means the app cannot say anything reliable, so no other branch runs.
   if (coverage < coverageFloor) {
-    return inconclusive(scores);
+    return inconclusive(scores, "coverage");
   }
   const unjudgeable = scores.filter((s) => isUnjudgeable(s)).length;
   if (unjudgeable / scores.length > maxUnjudgeableShare) {
-    return inconclusive(scores);
+    return inconclusive(scores, "nodata");
   }
 
   const ranked = sortedByScore(scores);
   const top = ranked[0];
   if (top === undefined) {
-    return inconclusive(scores);
+    return inconclusive(scores, "empty");
   }
 
   // §10 #4: an unjudgeable top carries a placeholder 0. It must never
@@ -129,6 +133,7 @@ export function decideVerdict(
       marginTopVsControl: 0,
       clearsControl: false,
       surprise: false,
+      inconclusiveReason: "top-unjudgeable",
     };
   }
 
