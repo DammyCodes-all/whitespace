@@ -18,6 +18,7 @@
 
 export type { ControlSeed } from "@/lib/qloo/control-seeds";
 export type { BuildControlsResult } from "@/lib/qloo/controls";
+export type { MarkTitlesResult } from "@/lib/qloo/mark";
 export type { ResolveTagsResult } from "@/lib/qloo/resolve-tags";
 export type { ResolveTitlesResult } from "@/lib/qloo/resolve-titles";
 export type { BuildRivalsResult, RivalProposal } from "@/lib/qloo/rivals";
@@ -32,6 +33,7 @@ export {
   CONTROL_COUNT,
   MAX_TITLES_PER_CONTROL,
 } from "./controls.ts";
+export { MAX_MARK_TITLES, markChatbotTitles } from "./mark.ts";
 export { MAX_TAG_WORDS, resolvePitchTags } from "./resolve-tags.ts";
 export {
   MAX_TITLE_QUERIES,
