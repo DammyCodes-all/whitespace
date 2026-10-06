@@ -13,6 +13,7 @@
  * (src/lib/fixtures/taste-lists.ts); renaming one breaks that fetch.
  */
 
+import type { ChangedRun } from "@/lib/pipeline/change";
 import type { RelatedResult } from "@/lib/qloo/related";
 import type { GapItem } from "@/lib/scoring/gaps";
 import type {
@@ -320,3 +321,45 @@ export const mockGaps: GapItem[] = [
 ];
 
 export const mockUnlabeledCount = 2;
+
+/**
+ * Day 8 U: mock change runs for eye-verifying every outcome state.
+ * One accepted plus one withheld per failed condition (§10 #5).
+ */
+function mockChanged(
+  failedCondition: ChangedRun["check"]["failedCondition"],
+  after: number,
+): ChangedRun {
+  return {
+    constraint: "Lower budget",
+    proposedPitch:
+      "A quiet science-fiction film, within lower budget: solitude.",
+    usedGapLabels: ["solitude"],
+    bar: { minRise: 0.05, requireControl: true },
+    check:
+      failedCondition === undefined
+        ? { accepted: true, before: 0.61, after }
+        : { accepted: false, failedCondition, before: 0.61, after },
+    after:
+      failedCondition === undefined
+        ? {
+            audienceId: "rival-lit",
+            score: after,
+            matchedTags: ["solitude", "slow-burn"],
+            zeroTags: [],
+            noDataTags: [],
+          }
+        : null,
+    coverageAfter: 0.8,
+    calls: [mockCalls[2]],
+  };
+}
+
+export const mockChangedAccepted: ChangedRun = mockChanged(undefined, 0.72);
+
+export const mockChangedWithheld: Record<string, ChangedRun> = {
+  rise: mockChanged("rise", 0.62),
+  coverage: mockChanged("coverage", 0.7),
+  grounding: mockChanged("grounding", 0.7),
+  control: mockChanged("control", 0.7),
+};
