@@ -141,7 +141,10 @@ export default async function RunPage({
   const reachCalls: QlooCall[] = [];
   if (live && targets.length > 0) {
     const excludeIds = result.hypothesis.titles.map((t) => t.qlooId);
-    const { all: tasteLists } = await fetchAllAudienceTastes(targets);
+    const { all: tasteLists } = await fetchAllAudienceTastes(
+      targets,
+      result.input.workType,
+    );
     // Targets are independent: fetch concurrently, then assemble in
     // order so the evidence list stays deterministic (§10 #7).
     const relatedLists = await Promise.all(

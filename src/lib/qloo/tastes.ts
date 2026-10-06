@@ -7,11 +7,13 @@
  * Fixtures first: without a key `qlooFetch` returns a mock payload, so
  * this resolves to failed tastes and the pipeline reports no-data (§6.6).
  *
- * Endpoint (provisional, fixtures first): `GET /v2/insights` with
+ * Endpoint (confirmed on the live spike per docs.qloo.com Taste
+ * Analysis): `GET /v2/insights` with `filter.type=urn:tag` plus
  * `signal.interests.entities` set to the audience's Qloo entity ids joined
- * by comma. The Day 1 mock uses a single id (`moon-id`); multi-title join
- * is the natural extension and gets confirmed on the live spike. `take`
- * caps the list length so quota stays bounded (§11).
+ * by comma. `filter.type` is required: without it the API silently
+ * ignores the signal and returns empty results. The Day 1 mock uses a
+ * single id (`moon-id`); multi-title join is the natural extension.
+ * `take` caps the list length so quota stays bounded (§11).
  *
  * Spec ref: §6.6 (one taste list per audience, strongest first, short or
  * failed lists are no-data), §8 (one miss never fails the batch), §6.12
@@ -20,8 +22,9 @@
  */
 
 import type { AudienceTastes } from "@/lib/scoring/fit";
-import type { Audience, QlooCall } from "@/lib/types";
+import type { Audience, QlooCall, WorkType } from "@/lib/types";
 import { QlooError, qlooFetch } from "./client.ts";
+import { TAG_SCOPES } from "./tag-scopes.ts";
 
 /** Covers hypothesis + 3 rivals + 20 controls + exclusion with headroom. */
 export const MAX_TASTE_AUDIENCES = 25;
@@ -89,6 +92,7 @@ function extractTagIds(data: unknown): string[] {
  */
 export async function fetchAudienceTastes(
   audience: Audience,
+  workType?: WorkType,
 ): Promise<FetchTastesResult> {
   if (typeof window !== "undefined") {
     throw new Error(
@@ -107,8 +111,14 @@ export async function fetchAudienceTastes(
   }
   try {
     const { data, trace } = await qlooFetch("/v2/insights", {
+      "filter.type": "urn:tag",
       "signal.interests.entities": ids.join(","),
       take: INSIGHTS_TAKE,
+      // Scoped namespaces per domain (see ./tag-scopes.ts); absent
+      // workType keeps the legacy unscoped call (tests, old callers).
+      ...(workType === undefined
+        ? {}
+        : { "filter.tag.types": TAG_SCOPES[workType] }),
     });
     return {
       tastes: { audienceId: audience.id, tagIds: extractTagIds(data) },
@@ -131,6 +141,7 @@ export async function fetchAudienceTastes(
  */
 export async function fetchAllAudienceTastes(
   audiences: Audience[],
+  workType?: WorkType,
 ): Promise<FetchAllTastesResult> {
   if (typeof window !== "undefined") {
     throw new Error(
@@ -140,7 +151,7 @@ export async function fetchAllAudienceTastes(
   const all: AudienceTastes[] = [];
   const calls: QlooCall[] = [];
   for (const audience of audiences.slice(0, MAX_TASTE_AUDIENCES)) {
-    const { tastes, call } = await fetchAudienceTastes(audience);
+    const { tastes, call } = await fetchAudienceTastes(audience, workType);
     all.push(tastes);
     if (call !== null) calls.push(call);
   }
