@@ -27,12 +27,22 @@ export function PitchFlow({
   const exampleHref = `/run?input=${encodeURIComponent(
     JSON.stringify(EXAMPLE_RUN_INPUT),
   )}`;
+  const skipHref = `/run?input=${encodeURIComponent(
+    JSON.stringify({
+      pitchText: pitch.trim(),
+      workType: "film",
+      nothingLike: [],
+      similarTitles: [],
+      candidateWords: [],
+      rivalProposals: [],
+    }),
+  )}`;
 
   if (step === "sharpen") {
     return (
       <section className="mt-8 border-t border-rule pt-8">
         <p className="font-mono text-xs tracking-tight text-ink-3">
-          Step 2 · help us sharpen this
+          Step 2 · optional context
         </p>
         <h2 className="mt-2 font-serif text-2xl tracking-tight text-ink">
           Optional context that sharpens the fit.
@@ -42,13 +52,21 @@ export function PitchFlow({
           optional; the run uses whatever you confirm.
         </p>
         <PitchForm found={found} notFound={notFound} initialPitch={pitch} />
-        <button
-          type="button"
-          onClick={() => setStep("idea")}
-          className="mt-4 font-mono text-xs text-ink-3 underline underline-offset-4 hover:text-ink"
-        >
-          Back to the idea
-        </button>
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <Link
+            href={skipHref}
+            className="border border-rule px-4 py-2 text-sm text-ink transition-colors hover:border-ink-3 hover:bg-surface"
+          >
+            Skip and run
+          </Link>
+          <button
+            type="button"
+            onClick={() => setStep("idea")}
+            className="font-mono text-xs text-ink-2 underline underline-offset-4 hover:text-ink"
+          >
+            Back to the idea
+          </button>
+        </div>
       </section>
     );
   }
@@ -71,13 +89,13 @@ export function PitchFlow({
           type="button"
           onClick={() => setStep("sharpen")}
           disabled={pitch.trim() === ""}
-          className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
+          className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-rule disabled:text-ink-3"
         >
-          Help us sharpen this
+          Find my audience
         </button>
         <Link
           href={exampleHref}
-          className="font-mono text-xs text-ink-2 underline underline-offset-4 hover:text-ink"
+          className="border border-rule px-4 py-2.5 text-sm text-ink transition-colors hover:border-ink-3 hover:bg-surface"
         >
           Try an example
         </Link>
