@@ -22,22 +22,33 @@ export function EvidenceCalls({ calls }: { calls: QlooCall[] }) {
       <h2 className="text-lg tracking-tight text-ink">Evidence calls</h2>
       <div className="mt-4 border-t border-rule">
         {calls.map((call) => (
-          <div
+          <details
             key={call.id}
             id={call.id}
             className="border-b border-rule py-3 font-mono text-xs text-ink-2"
           >
-            <p data-numeric>
+            <summary className="cursor-pointer list-none" data-numeric>
               {call.method} {call.endpoint} · {call.status} · {call.durationMs}
               ms
               {call.fromCache ? " · saved" : ""}
-            </p>
-            <p className="mt-1 break-all text-ink-3">
-              {Object.entries(call.params)
-                .map(([k, v]) => `${k}=${v}`)
-                .join(" ")}
-            </p>
-          </div>
+            </summary>
+            <div className="mt-2 pl-3 text-ink-3">
+              <p>Call ID: {call.id}</p>
+              <p>At: {call.at}</p>
+              <p className="mt-1 break-all">
+                Parameters:{" "}
+                {Object.entries(call.params)
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join(" ") || "none"}
+              </p>
+              <p className="mt-1">
+                Response status: {call.status === 200 ? "ok" : "not ok"}
+              </p>
+              <p className="mt-1 break-all">
+                Response: {call.responseSummary ?? "not captured"}
+              </p>
+            </div>
+          </details>
         ))}
       </div>
     </section>
