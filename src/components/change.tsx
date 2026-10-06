@@ -31,7 +31,8 @@ export function ChangeView({ changed }: { changed: ChangedRun }) {
     return (
       <div className="border-b border-rule py-4">
         <p className="font-serif text-base text-ink">Change withheld</p>
-        <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-3">
+        <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-2">
+          not measured:{" "}
           {check.failedCondition !== undefined
             ? changeReason(check.failedCondition)
             : "The change did not clear the bar."}

@@ -135,7 +135,7 @@ export function buildCase(result: PipelineResult): CaseModel {
   }
   if (result.coverage < 1) {
     limits.push(
-      `Only ${Math.round(result.coverage * 100)}% of pitch words matched Qloo tags; the rest are no data, not low scores.`,
+      `Only ${Math.round(result.coverage * 100)}% of pitch words matched Qloo tags; the rest are not measured, not low scores.`,
     );
   }
   const contenderIds = new Set(audiences.map((a) => a.id));
@@ -143,7 +143,7 @@ export function buildCase(result: PipelineResult): CaseModel {
     if (!contenderIds.has(score.audienceId) || !isUnjudgeable(score)) continue;
     const name = audiences.find((a) => a.id === score.audienceId)?.name;
     limits.push(
-      `${name ?? score.audienceId} had no taste data — shown as no data, never as a low score.`,
+      `${name ?? score.audienceId} had no taste data — shown as not measured, never as a low score.`,
     );
   }
   if (result.grounding.ok === false) {

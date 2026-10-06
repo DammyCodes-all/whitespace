@@ -15,8 +15,8 @@ One-line read: **this product is an instrument, not a wizard.** Its pitch is "we
 | **Measured, not magical.** The run (§5.4) is a protocol executing, not a genie thinking. Steps get timestamps and counts, e.g. "21 titles checked · 19 found · 2 not found", set in mono. No sparkle, no typing dots, no shimmer. | §5.4, §6.12 |
 | **Skepticism is the brand.** The loudest styling goes to the surprise ("Your best fit is not the audience you named") and the refusal (a withheld change). Those are the two moments no other hackathon entry will have. Never style the happy path loudly. | §6.7, §6.9 |
 | **Absence is a first-class visual state.** Three states, not two: measured-high, measured-low, unmeasured. No-data gets texture plus a dashed border plus never a number. System rule, not a per-screen decision, so "no data" never quietly ships as a zero. | §6.6, App. B |
-| **Links look like citations, not buttons.** Superscript markers, hairline underline on hover, opens a drawer with the request and response in mono. A colored "View Qloo call" button out-shouts our own verdict. | §6.12 |
-| **Paper, not neon.** Light-first, warm neutral, no shadows, no glass, no gradients. The output is a printable one-pager and the demo will likely be projected, while every other entry will be dark. The print stylesheet is a free win. | §6.10, §9 |
+| **Links look like citations, not buttons.** Superscript markers, a 24px minimum touch target, and an underline on hover and focus; on touch, the hit area remains visible without relying on hover. Opens a drawer with the request and response in mono. | §6.12 |
+| **Paper, not neon.** Light-first, warm neutral, no shadows, no glass, no gradients. Judges use the demo on their own screens, and the output is a printable one-pager. The print stylesheet is a free win. | §6.10, §9 |
 | **One accent, spent only on measurement.** The accent means "this value was measured." Everything else is neutral. Inconclusive and withheld get no accent at all, because an honest "I don't know" must not be tinted like a result. | §6.7 |
 
 Motion, briefly: fit scores counting up at ~200ms with no bounce, the ranked list re-ordering with FLIP so the margin change is visible, and the control line sliding if it moves. Nothing else animates.
@@ -79,6 +79,8 @@ Note `--ink-3` moves to `#8A8578` in dark, not `#7A7669`: that one is 4.1:1 on t
 
 One typeface per function, no font doing two jobs.
 
+Instrument Serif stays regular (and italic where needed); never request a heavier weight that would make the browser synthesize one. Use it for editorial display text at roughly 28px and up. Longer sentences stay in Instrument Sans. Scores use IBM Plex Mono, whose tabular numerals are explicit and reliable.
+
 Fallback if we would rather have a single superfamily: IBM Plex Sans + Plex Serif + Plex Mono. Bulletproof and cohesive, less distinctive.
 
 The Geist wiring that shipped with `create-next-app` has been removed. It read as an untouched scaffold in about half a second.
@@ -103,6 +105,15 @@ Wired Oct 5. Do not re-declare these in a component.
 | Print rules | `globals.css`, `@media print` |
 
 There is no automatic dark mode. `.dark` holds the optional dark values but nothing sets the class, because the design is light-first. Add a toggle only if a screen needs it.
+
+### Responsive rules
+
+- At the mobile breakpoint (`640px`), primary and secondary actions wrap as full-width or content-width rows; no action depends on hover.
+- Ranked bars remain horizontal and use the full available width. The control line is `--ink`, 1.5px wide, so it remains a semantic mark at narrow widths.
+- Citation markers retain a minimum 24px hit area even though their glyph is visually small.
+- Evidence is a bottom sheet on mobile and an anchored drawer on larger screens; its mono request/response content scrolls independently.
+
+No-data is always written as **“not measured”** alongside the hatch. The hatch is supporting texture, not the semantic signal. Meaning-carrying dashed borders use `--ink-3`; hairline rules remain decorative.
 
 ## 6. Rules for whoever builds a screen
 

@@ -7,7 +7,7 @@ import Link from "next/link";
 export function SiteHeader() {
   return (
     <header className="border-b border-rule bg-paper print:hidden">
-      <div className="mx-auto flex h-[68px] w-full max-w-3xl items-center justify-between px-6 sm:px-8">
+      <div className="mx-auto flex h-[68px] w-full max-w-6xl items-center justify-between px-6 sm:px-8">
         <Link
           href="/"
           className="font-mono text-sm tracking-tight text-ink transition-colors hover:text-measured"
@@ -19,13 +19,13 @@ export function SiteHeader() {
             href="/"
             className="text-sm text-ink-2 transition-colors hover:text-ink"
           >
-            Start
+            New fit
           </Link>
           <Link
             href="/run"
             className="text-sm text-ink-2 transition-colors hover:text-ink"
           >
-            Sample run
+            Read a sample result
           </Link>
         </nav>
       </div>

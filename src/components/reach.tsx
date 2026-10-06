@@ -43,8 +43,8 @@ function CategoryShelf({ group }: { group: RelatedResult }) {
         {KIND_LABELS[group.kind]}
       </h3>
       {group.items.length === 0 ? (
-        <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-3">
-          no data
+        <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-2">
+          not measured
         </p>
       ) : (
         <ul className="mt-2">
@@ -92,8 +92,8 @@ function GapList({
         What {audienceName} loves that your pitch doesn&apos;t mention yet
       </h3>
       {gaps.length === 0 ? (
-        <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-3">
-          no data
+        <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-2">
+          not measured
         </p>
       ) : (
         <ul className="mt-2">
@@ -137,8 +137,8 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
     return (
       <section aria-label="Reach plan" className="mt-12">
         <h2 className="text-lg tracking-tight text-ink">Reach plan</h2>
-        <p className="nodata mt-4 px-2 py-2 font-mono text-xs text-ink-3">
-          no reliable fit, no reach plan
+        <p className="nodata mt-4 px-2 py-2 font-mono text-xs text-ink-2">
+          not measured: no reliable fit, no reach plan
         </p>
       </section>
     );

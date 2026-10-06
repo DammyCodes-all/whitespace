@@ -9,6 +9,8 @@
  *   romcom set omits it; mood words resolve 8/10 in-scope.
  * - music genre:music+keyword/media: pop set ranks `pop` #1, ambient set
  *   ranks `ambient` #2; mood words resolve 8/10 in-scope.
+ * - Day 10 calibration widened all domains to also include mood/theme/setting
+ *   so taste-shaped pitch words share a namespace with audience tastes.
  * Book/game reuse the film set untested — Day 10 calibration revisits.
  */
 
@@ -16,8 +18,9 @@ import type { WorkType } from "@/lib/types";
 
 /** Comma-separated `filter.tag.types` value per domain. */
 export const TAG_SCOPES: Record<WorkType, string> = {
-  film: "urn:tag:genre:media,urn:tag:keyword:media",
-  music: "urn:tag:genre:music,urn:tag:keyword:media",
-  book: "urn:tag:genre:media,urn:tag:keyword:media",
-  game: "urn:tag:genre:media,urn:tag:keyword:media",
+  film: "urn:tag:genre:media,urn:tag:keyword:media,urn:tag:mood:media,urn:tag:theme:media,urn:tag:setting:media",
+  music:
+    "urn:tag:genre:music,urn:tag:keyword:media,urn:tag:mood:media,urn:tag:theme:media,urn:tag:setting:media",
+  book: "urn:tag:genre:media,urn:tag:keyword:media,urn:tag:mood:media,urn:tag:theme:media,urn:tag:setting:media",
+  game: "urn:tag:genre:media,urn:tag:keyword:media,urn:tag:mood:media,urn:tag:theme:media,urn:tag:setting:media",
 };

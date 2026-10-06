@@ -43,7 +43,7 @@ export default async function CasePage({
   } catch {
     return (
       <main className="flex flex-1 flex-col">
-        <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 sm:px-8">
+        <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 sm:px-8">
           <p className="font-mono text-xs tracking-tight text-ink-3">
             Audience case
           </p>
@@ -53,7 +53,7 @@ export default async function CasePage({
           <div className="mt-8">
             <Link
               href="/run"
-              className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+              className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
             >
               Back to the run
             </Link>
@@ -78,7 +78,7 @@ export default async function CasePage({
 
   return (
     <main className="flex flex-1 flex-col">
-      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 sm:px-8">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 sm:px-8">
         <p className="font-mono text-xs tracking-tight text-ink-3">
           Audience case
         </p>
@@ -141,8 +141,8 @@ export default async function CasePage({
         ) : (
           <section aria-label="Reach plan" className="mt-12">
             <h2 className="text-lg tracking-tight text-ink">Reach plan</h2>
-            <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-3">
-              no data
+            <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-2">
+              not measured
             </p>
           </section>
         )}
@@ -176,7 +176,7 @@ export default async function CasePage({
           <CasePrintButton />
           <Link
             href={backHref}
-            className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+            className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
           >
             Back to the run
           </Link>

@@ -50,13 +50,15 @@ export interface ConfirmInput {
 export function PitchForm({
   found,
   notFound,
+  initialPitch = "",
   onConfirm,
 }: {
   found: ResolvedTitle[];
   notFound: string[];
+  initialPitch?: string;
   onConfirm?: (audience: Audience, input: ConfirmInput) => void;
 }) {
-  const [pitch, setPitch] = useState("");
+  const [pitch, setPitch] = useState(initialPitch);
   const [workType, setWorkType] = useState<WorkType>("film");
   const [nothingLike, setNothingLike] = useState<string[]>([""]);
   const [wasTrimmed, setWasTrimmed] = useState(false);
@@ -337,7 +339,7 @@ export function PitchForm({
           type="button"
           onClick={confirm}
           disabled={pitch.trim() === "" || suggestions.length === 0}
-          className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97] disabled:opacity-40"
+          className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-rule disabled:text-ink-3"
         >
           Confirm hypothesis audience
         </button>

@@ -33,8 +33,8 @@ export function ChatbotPreview({
         Same pitch, same model, no taste data. Every title checked in Qloo.
       </p>
       {chatbot === null ? (
-        <p className="nodata mt-4 px-2 py-2 font-mono text-xs text-ink-3">
-          {error ?? "Chatbot comparison unavailable."}
+        <p className="nodata mt-4 px-2 py-2 font-mono text-xs text-ink-2">
+          not measured: {error ?? "Chatbot comparison unavailable."}
         </p>
       ) : (
         <div className="mt-4">

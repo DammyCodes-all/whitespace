@@ -51,7 +51,7 @@ export function RankedList({
                     {audience.name}
                   </p>
                   <p className="font-mono text-sm text-ink-3">
-                    no data
+                    not measured
                     <a
                       href={`#${callId}`}
                       className="cite ml-1"
@@ -65,7 +65,7 @@ export function RankedList({
                   {audience.kind} · not enough Qloo data to judge
                   {score.noDataTags.length > 0 && (
                     <span className="nodata ml-2 px-1">
-                      no data: {score.noDataTags.join(", ")}
+                      not measured: {score.noDataTags.join(", ")}
                     </span>
                   )}
                 </p>
@@ -98,7 +98,7 @@ export function RankedList({
                   style={{ width: `${pct}%` }}
                 />
                 <div
-                  className="absolute inset-y-[-4px] w-px bg-ink"
+                  className="control-line absolute inset-y-[-4px]"
                   style={{ left: `${Math.round(controlCeiling * 100)}%` }}
                   aria-hidden="true"
                 />
@@ -108,7 +108,7 @@ export function RankedList({
                 {score.matchedTags.join(", ") || "none"}
                 {score.noDataTags.length > 0 && (
                   <span className="nodata ml-2 px-1">
-                    no data: {score.noDataTags.join(", ")}
+                    not measured: {score.noDataTags.join(", ")}
                   </span>
                 )}
               </p>
