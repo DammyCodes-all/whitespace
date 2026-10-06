@@ -50,13 +50,15 @@ export interface ConfirmInput {
 export function PitchForm({
   found,
   notFound,
+  initialPitch = "",
   onConfirm,
 }: {
   found: ResolvedTitle[];
   notFound: string[];
+  initialPitch?: string;
   onConfirm?: (audience: Audience, input: ConfirmInput) => void;
 }) {
-  const [pitch, setPitch] = useState("");
+  const [pitch, setPitch] = useState(initialPitch);
   const [workType, setWorkType] = useState<WorkType>("film");
   const [nothingLike, setNothingLike] = useState<string[]>([""]);
   const [wasTrimmed, setWasTrimmed] = useState(false);

@@ -64,3 +64,4 @@ Format:
 | 2026-10-06 | Fix post-merge import sort in Day 8 propose-stub | n/a | biome --write one file; check+typecheck clean; 98 pass; build pass; /run+/case smoke 200 |
 | 2026-10-06 | Reset Qloo quota per run plus settle mock steps to done | §11, §5.4 | quota counter never reset so 2nd live run tripped 150 cap (QlooQuotaError) into mock fallback; live double-run 99+99 calls both resolve; mock score/verdict were active/pending; 103 pass; check+typecheck+build clean |
 | 2026-10-06 | Improve LLM word prompt plus widen tag scopes to mood/theme/setting | §6.5, §6.6, §6.7 | propose prompt now prefers taste-level genre/theme/mood/setting and avoids logistics; tag scopes extended; focused tests 12 pass; full 103 pass; check+typecheck+build clean |
+| 2026-10-06 | Revamp first screen into idea-only pitch flow | §6.1 | giant idea input above the fold, optional similar-to/nothing-like on step 2, example goes straight to /run, 103 pass; check+typecheck+build clean |
