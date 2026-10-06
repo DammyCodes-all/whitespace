@@ -13,6 +13,8 @@
  * (src/lib/fixtures/taste-lists.ts); renaming one breaks that fetch.
  */
 
+import type { RelatedResult } from "@/lib/qloo/related";
+import type { GapItem } from "@/lib/scoring/gaps";
 import type {
   Audience,
   FitScore,
@@ -195,3 +197,126 @@ export const mockCalls: QlooCall[] = [
     fromCache: true,
   },
 ];
+
+/**
+ * Day 7 U: mock reach data for the fallback render. Five podcasts show
+ * the full shelf; fewer people and brands show trimming; places are
+ * empty with a real trace, demonstrating the no-data state (§10 #4).
+ */
+export const mockRelated: RelatedResult[] = [
+  {
+    kind: "podcast",
+    items: [
+      {
+        entityId: "p01",
+        name: "Deep Dive Podcast",
+        kind: "podcast",
+        affinityRank: 1,
+        callId: "call-search-1",
+      },
+      {
+        entityId: "p02",
+        name: "Slow Burn Audio",
+        kind: "podcast",
+        affinityRank: 2,
+        callId: "call-search-1",
+      },
+      {
+        entityId: "p05",
+        name: "Quiet Minds",
+        kind: "podcast",
+        affinityRank: 3,
+        callId: "call-search-1",
+      },
+      {
+        entityId: "p07",
+        name: "Static Bloom",
+        kind: "podcast",
+        affinityRank: 4,
+        callId: "call-search-1",
+      },
+      {
+        entityId: "p08",
+        name: "Night Signal",
+        kind: "podcast",
+        affinityRank: 5,
+        callId: "call-search-1",
+      },
+    ],
+    call: mockCalls[0],
+  },
+  {
+    kind: "person",
+    items: [
+      {
+        entityId: "pe01",
+        name: "Mara Voss",
+        kind: "person",
+        affinityRank: 1,
+        callId: "call-search-2",
+      },
+      {
+        entityId: "pe02",
+        name: "Jonas Feld",
+        kind: "person",
+        affinityRank: 2,
+        callId: "call-search-2",
+      },
+      {
+        entityId: "pe03",
+        name: "Ayo Balogun",
+        kind: "person",
+        affinityRank: 3,
+        callId: "call-search-2",
+      },
+      {
+        entityId: "pe04",
+        name: "Suki Tanaka",
+        kind: "person",
+        affinityRank: 4,
+        callId: "call-search-2",
+      },
+    ],
+    call: mockCalls[1],
+  },
+  {
+    kind: "brand",
+    items: [
+      {
+        entityId: "b01",
+        name: "Field Notes",
+        kind: "brand",
+        affinityRank: 1,
+        callId: "call-search-3",
+      },
+      {
+        entityId: "b02",
+        name: "Teenage Engineering",
+        kind: "brand",
+        affinityRank: 2,
+        callId: "call-search-3",
+      },
+      {
+        entityId: "b04",
+        name: "Muji",
+        kind: "brand",
+        affinityRank: 3,
+        callId: "call-search-3",
+      },
+    ],
+    call: mockCalls[3],
+  },
+  {
+    kind: "place",
+    items: [],
+    call: mockCalls[2],
+  },
+];
+
+export const mockGaps: GapItem[] = [
+  { tagId: "urn:tag:theme:media:solitude", label: "solitude", rank: 1 },
+  { tagId: "urn:tag:mood:media:quiet", label: "quiet", rank: 2 },
+  { tagId: "urn:tag:theme:media:grief", label: "grief", rank: 3 },
+];
+
+export const mockUnlabeledCount = 2;
