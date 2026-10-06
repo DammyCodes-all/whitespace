@@ -2,17 +2,16 @@
  * Day 4 Q: control audiences. Owned by Q.
  *
  * Controls show what a meaningless match looks like (§6.4): about 20
- * audiences from unrelated material in the same domain. The verdict
- * clears only when a contender beats the best control by a clear margin
- * (§6.7), so controls must be genuinely unrelated to any pitch — spread
- * across genres, famous enough that Qloo is likely to hold them.
+ * audiences from unrelated material in the same domain (seeds live in
+ * `./control-seeds.ts`). The verdict clears only when a contender beats
+ * the best control by a clear margin (§6.7).
  *
- * Each seed lists three well-known titles. Every title is checked via
- * Day 2 `resolveTitles`; misses are dropped, and a control with nothing
- * resolved is reported (not kept): an empty control would score a
- * placeholder 0 and drag the ceiling down to meaninglessness. Without an
- * API key every seed lands there — fixtures first, the live spike fills
- * the coverage doc (`docs/qloo-coverage.md`) and picks the domain.
+ * Every seed title is checked via Day 2 `resolveTitles`; misses are
+ * dropped, and a control with nothing resolved is reported (not kept):
+ * an empty control would score a placeholder 0 and drag the ceiling down
+ * to meaninglessness. Without an API key every seed lands there —
+ * fixtures first, the live spike fills the coverage doc
+ * (`docs/qloo-coverage.md`) and picks the domain.
  *
  * Quota note (§11): 20 controls × 3 titles = up to 60 `/search` calls per
  * run. Day 8 adds the cache guard; until then prefer saved runs for the
@@ -22,8 +21,12 @@
  * miss never fails the batch), §6.12 (every call traced).
  */
 
+import { CONTROL_SEEDS } from "@/lib/qloo/control-seeds";
 import { resolveTitles } from "@/lib/qloo/resolve";
 import type { Audience, QlooCall, WorkType } from "@/lib/types";
+
+export type { ControlSeed } from "@/lib/qloo/control-seeds";
+export { CONTROL_SEEDS } from "@/lib/qloo/control-seeds";
 
 /** §6.4: about 20 controls per run. */
 export const CONTROL_COUNT = 20;
@@ -31,169 +34,12 @@ export const CONTROL_COUNT = 20;
 /** Titles resolved per control: enough to signal, few enough for quota. */
 export const MAX_TITLES_PER_CONTROL = 3;
 
-export interface ControlSeed {
-  name: string;
-  titles: string[];
-}
-
 export interface BuildControlsResult {
   controls: Audience[];
   /** Seeds with nothing resolved in Qloo: reported, not kept. */
   droppedControls: string[];
   calls: QlooCall[];
 }
-
-/**
- * Seed material per domain: unrelated on purpose, famous on purpose.
- * Film and music carry the full 20; book and game carry a fallback 6
- * until the coverage test picks the demo domain.
- */
-export const CONTROL_SEEDS: Record<WorkType, ControlSeed[]> = {
-  film: [
-    {
-      name: "Blockbuster action",
-      titles: ["Die Hard", "Mad Max: Fury Road", "John Wick"],
-    },
-    {
-      name: "Prestige drama",
-      titles: ["The Godfather", "Schindler's List", "12 Years a Slave"],
-    },
-    {
-      name: "Romantic comedy",
-      titles: ["Notting Hill", "When Harry Met Sally", "Crazy Rich Asians"],
-    },
-    {
-      name: "Horror",
-      titles: ["Halloween", "A Nightmare on Elm Street", "Get Out"],
-    },
-    {
-      name: "Documentary",
-      titles: ["March of the Penguins", "Free Solo", "13th"],
-    },
-    { name: "Animation", titles: ["Toy Story", "Spirited Away", "Shrek"] },
-    {
-      name: "Western",
-      titles: ["The Good, the Bad and the Ugly", "Unforgiven", "True Grit"],
-    },
-    {
-      name: "Musical",
-      titles: ["Singin' in the Rain", "La La Land", "Mamma Mia!"],
-    },
-    {
-      name: "Thriller",
-      titles: ["Se7en", "Gone Girl", "The Silence of the Lambs"],
-    },
-    { name: "Sci-fi epic", titles: ["Star Wars", "Avatar", "Interstellar"] },
-    {
-      name: "Fantasy",
-      titles: ["The Lord of the Rings", "Harry Potter", "Pan's Labyrinth"],
-    },
-    { name: "Crime", titles: ["Goodfellas", "Pulp Fiction", "The Departed"] },
-    { name: "Indie drama", titles: ["Lady Bird", "Moonlight", "Nomadland"] },
-    { name: "War film", titles: ["Saving Private Ryan", "1917", "Dunkirk"] },
-    { name: "Sports", titles: ["Rocky", "Remember the Titans", "Moneyball"] },
-    { name: "Family", titles: ["E.T.", "Home Alone", "Paddington"] },
-    {
-      name: "Silent classic",
-      titles: ["Metropolis", "Modern Times", "The General"],
-    },
-    {
-      name: "Foreign drama",
-      titles: ["Parasite", "Amélie", "Cinema Paradiso"],
-    },
-    {
-      name: "Superhero",
-      titles: ["The Dark Knight", "Black Panther", "Spider-Man"],
-    },
-    {
-      name: "Holiday",
-      titles: ["It's a Wonderful Life", "Elf", "Love Actually"],
-    },
-  ],
-  music: [
-    { name: "Pop", titles: ["Taylor Swift", "Michael Jackson", "ABBA"] },
-    { name: "Hip-hop", titles: ["Kendrick Lamar", "Jay-Z", "Missy Elliott"] },
-    { name: "Rock", titles: ["The Beatles", "Queen", "Nirvana"] },
-    {
-      name: "Country",
-      titles: ["Johnny Cash", "Dolly Parton", "Chris Stapleton"],
-    },
-    {
-      name: "Jazz",
-      titles: ["Miles Davis", "John Coltrane", "Ella Fitzgerald"],
-    },
-    { name: "Classical", titles: ["Beethoven", "Mozart", "Yo-Yo Ma"] },
-    { name: "Electronic", titles: ["Daft Punk", "Kraftwerk", "Aphex Twin"] },
-    { name: "R&B", titles: ["Beyoncé", "Marvin Gaye", "Alicia Keys"] },
-    { name: "Metal", titles: ["Metallica", "Black Sabbath", "Iron Maiden"] },
-    {
-      name: "Folk",
-      titles: ["Bob Dylan", "Joni Mitchell", "Simon & Garfunkel"],
-    },
-    { name: "Punk", titles: ["The Clash", "Ramones", "Patti Smith"] },
-    {
-      name: "Reggae",
-      titles: ["Bob Marley", "Toots and the Maytals", "Burning Spear"],
-    },
-    { name: "Blues", titles: ["B.B. King", "Muddy Waters", "Etta James"] },
-    {
-      name: "Soul",
-      titles: ["Aretha Franklin", "Otis Redding", "Stevie Wonder"],
-    },
-    { name: "Disco", titles: ["Bee Gees", "Donna Summer", "Chic"] },
-    {
-      name: "Indie rock",
-      titles: ["Radiohead", "Arctic Monkeys", "The Strokes"],
-    },
-    { name: "K-pop", titles: ["BTS", "BLACKPINK", "IU"] },
-    {
-      name: "Latin",
-      titles: ["Bad Bunny", "Shakira", "Buena Vista Social Club"],
-    },
-    {
-      name: "Ambient",
-      titles: ["Brian Eno", "Stars of the Lid", "Aphex Twin"],
-    },
-    {
-      name: "Gospel",
-      titles: ["Mahalia Jackson", "Kirk Franklin", "The Staple Singers"],
-    },
-  ],
-  book: [
-    {
-      name: "Classic novel",
-      titles: ["Pride and Prejudice", "Moby Dick", "Jane Eyre"],
-    },
-    {
-      name: "Mystery",
-      titles: ["Agatha Christie", "Arthur Conan Doyle", "Tana French"],
-    },
-    {
-      name: "Science fiction",
-      titles: ["Dune", "Neuromancer", "Ursula K. Le Guin"],
-    },
-    {
-      name: "Fantasy",
-      titles: ["J.R.R. Tolkien", "Brandon Sanderson", "N.K. Jemisin"],
-    },
-    { name: "Memoir", titles: ["Educated", "Becoming", "Born a Crime"] },
-    { name: "Poetry", titles: ["Mary Oliver", "Rumi", "Ocean Vuong"] },
-  ],
-  game: [
-    {
-      name: "Platformer",
-      titles: ["Super Mario Bros.", "Celeste", "Hollow Knight"],
-    },
-    { name: "RPG", titles: ["The Witcher 3", "Skyrim", "Final Fantasy VII"] },
-    { name: "Shooter", titles: ["Halo", "Call of Duty", "Half-Life 2"] },
-    { name: "Puzzle", titles: ["Tetris", "Portal", "The Witness"] },
-    { name: "Strategy", titles: ["Civilization VI", "StarCraft", "XCOM 2"] },
-    {
-      name: "Horror game",
-      titles: ["Resident Evil", "Silent Hill 2", "Amnesia"],
-    },
-  ],
-};
 
 /**
  * §6.4: build control audiences for one domain. Resolves each seed's
