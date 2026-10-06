@@ -17,9 +17,10 @@ import {
   mockUnlabeledCount,
   mockVerdict,
 } from "@/lib/demo/mock-run";
+import { parseRunInput } from "@/lib/demo/parse-run-input";
 import { selectReachTargets } from "@/lib/demo/reach-targets";
 import { TAG_LABELS } from "@/lib/fixtures/tag-labels";
-import { demoPipelineInput, runPipeline } from "@/lib/pipeline/run";
+import { runPipeline } from "@/lib/pipeline/run";
 import { fetchRelated } from "@/lib/qloo/related";
 import { fetchAllAudienceTastes } from "@/lib/qloo/tastes";
 import { countUnlabeled, findGaps } from "@/lib/scoring/gaps";
@@ -27,18 +28,24 @@ import type { PipelineResult, QlooCall } from "@/lib/types";
 
 /**
  * Day 6 U: run page on the live seam with saved-run fallback. Owned by U.
+ * Day 6.5 U: accepts `?input=` (encoded `PipelineInput` from the pitch
+ * form's propose plus confirm step); absent or invalid input falls back
+ * to `demoPipelineInput` (§6.1).
  *
  * Server Component: awaits `runPipeline()` (server-only) and renders the
  * result through the Day 3 to Day 5 views. The pipeline never throws on
  * Qloo failure, so the catch below only fires on programming errors —
  * then the Day 1 mocks render with an honest "on mocks" label (§9).
  * A save-only island stores live runs for replay (§6.12, §10 #6);
- * loading them back is later demo work. Static prerender: the build-time
- * run takes the mock path and is cheap.
+ * loading them back is later demo work. Dynamic: `searchParams` make
+ * this request-time; without `?input=` it runs the demo pitch (mock path
+ * when keyless, cheap).
  *
- * Spec ref: §5.4 (watch the agent work), §6.7 (verdict), §6.12
- * (evidence trace), §9 (saved runs as fallback).
+ * Spec ref: §5.4 (watch the agent work), §6.1 (form to run), §6.7
+ * (verdict), §6.12 (evidence trace), §9 (saved runs as fallback).
  */
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Run: Whitespace",
@@ -75,11 +82,17 @@ const MOCK_AUDIENCE_CALL_IDS: Record<string, string> = {
   "rival-amb": "call-search-2",
 };
 
-export default async function RunPage() {
+export default async function RunPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ input?: string | string[] }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const pipelineInput = parseRunInput(params.input);
   let result: PipelineResult;
   let live = true;
   try {
-    result = await runPipeline(demoPipelineInput);
+    result = await runPipeline(pipelineInput);
   } catch {
     result = mockResult();
     live = false;
