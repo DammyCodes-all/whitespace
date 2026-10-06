@@ -12,6 +12,10 @@
  * Stored payloads are validated on load — a shape that is not a
  * `PipelineResult` reads back as null, never as a half run.
  *
+ * Client-only: never call these functions during SSR/prerender. The
+ * in-memory fallback is process-global, so server-side use would leak
+ * saved runs across requests.
+ *
  * Spec ref: §6.12 (saved runs), §10 #6 (10s saved demo), §9 (saved runs
  * as live-service fallback).
  */

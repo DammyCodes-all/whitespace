@@ -1,15 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { TASTE_FIXTURES } from "../fixtures/taste-lists.ts";
+import { reportCoverage } from "../policy/grounding.ts";
 import type { AudienceTastes } from "./fit.ts";
-import {
-  coverage,
-  isUnjudgeable,
-  rankStrength,
-  scoreAll,
-  scoreAudience,
-} from "./fit.ts";
-import { SAMPLE_PITCH_TAGS, SAMPLE_SUGGESTED_COUNT } from "./fixtures.ts";
+import { isUnjudgeable, rankStrength, scoreAll, scoreAudience } from "./fit.ts";
+import { SAMPLE_PITCH_TAGS } from "./fixtures.ts";
 
 /** Fixture tag ids in affinity order: position is the rank. */
 function tagIdsFor(audienceId: string): string[] {
@@ -125,19 +120,18 @@ describe("scoreAll", () => {
   });
 });
 
-describe("coverage", () => {
-  it("reports matched over suggested", () => {
-    assert.equal(
-      coverage(SAMPLE_PITCH_TAGS.length, SAMPLE_SUGGESTED_COUNT),
-      4 / 6,
+describe("coverage via reportCoverage", () => {
+  it("reports matched over suggested with the word lists", () => {
+    const report = reportCoverage(
+      SAMPLE_PITCH_TAGS.map((t) => t.tag),
+      ["unmatched-a", "unmatched-b"],
     );
+    assert.equal(report.suggested, 6);
+    assert.equal(report.matched, 4);
+    assert.equal(report.coverage, 4 / 6);
   });
 
-  it("returns 0 when nothing was suggested", () => {
-    assert.equal(coverage(0, 0), 0);
-  });
-
-  it("clamps above-1 input", () => {
-    assert.equal(coverage(9, 6), 1);
+  it("treats empty input as vacuous, not failure", () => {
+    assert.equal(reportCoverage([], []).coverage, 1);
   });
 });

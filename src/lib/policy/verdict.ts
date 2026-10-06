@@ -25,8 +25,8 @@
  * unjudgeable top can never be Strong or Split), §7 (our code ranks).
  */
 
-import { isUnjudgeable } from "@/lib/scoring/fit";
-import type { FitScore, VerdictResult } from "@/lib/types";
+import { isUnjudgeable } from "../scoring/fit.ts";
+import type { FitScore, VerdictResult } from "../types.ts";
 
 /**
  * Provisional stubs. §6.7 sets these by testing on real pitches; Day 10
@@ -115,7 +115,6 @@ export function decideVerdict(
 
   const ranked = sortedByScore(scores);
   const top = ranked[0];
-  const second = ranked[1] ?? null;
   if (top === undefined) {
     return inconclusive(scores);
   }
@@ -133,9 +132,18 @@ export function decideVerdict(
     };
   }
 
-  const controlBest = bestScore(controlScores);
+  // Margins measure against real contenders only: unjudgeable
+  // placeholder 0s must neither inflate the margin nor mask a close real
+  // runner-up further down the ranking. measured[0] is top (judgeable
+  // here), so measured[1] is the runner-up.
+  const measured = ranked.filter((s) => !isUnjudgeable(s));
+  const second = measured[1] ?? null;
+
+  // No control baseline means nothing can clear it: Weak, not Strong.
+  const hasControls = controlScores.length > 0;
+  const controlBest = hasControls ? bestScore(controlScores) : 0;
   const marginTopVsControl = top.score - controlBest;
-  const clearsControl = marginTopVsControl >= controlMargin;
+  const clearsControl = hasControls && marginTopVsControl >= controlMargin;
   if (!clearsControl) {
     return {
       verdict: "Weak",

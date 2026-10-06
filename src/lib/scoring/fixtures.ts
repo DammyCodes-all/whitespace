@@ -18,5 +18,3 @@ export const SAMPLE_PITCH_TAGS: PitchTag[] = [
   { tag: "solitude", qlooTagId: "urn:tag:theme:media:solitude", pinned: false },
   { tag: "quiet", qlooTagId: "urn:tag:mood:media:quiet", pinned: false },
 ];
-
-export const SAMPLE_SUGGESTED_COUNT = 6;

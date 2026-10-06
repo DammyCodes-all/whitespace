@@ -180,13 +180,3 @@ export function isUnjudgeable(fit: FitScore): boolean {
     fit.zeroTags.length === 0
   );
 }
-
-/**
- * §6.5 coverage: share of suggested words that matched a real Qloo tag.
- * Takes counts, not lists: tag-matching supplies the denominator.
- * Clamped to 0..1; zero suggested is 0.
- */
-export function coverage(matchedCount: number, suggestedCount: number): number {
-  if (suggestedCount <= 0) return 0;
-  return Math.min(1, Math.max(0, matchedCount / suggestedCount));
-}
