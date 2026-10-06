@@ -41,12 +41,18 @@ export function SimilarToConfirm({
               {s.name}{" "}
               <span
                 className={
-                  s.found
-                    ? "font-mono text-xs text-measured"
-                    : "font-mono text-xs text-clay"
+                  s.proposed === true
+                    ? "font-mono text-xs text-ink-3"
+                    : s.found
+                      ? "font-mono text-xs text-measured"
+                      : "font-mono text-xs text-clay"
                 }
               >
-                {s.found ? "found" : "not found in Qloo"}
+                {s.proposed === true
+                  ? "proposed · check at run"
+                  : s.found
+                    ? "found"
+                    : "not found in Qloo"}
               </span>
             </p>
             <button
