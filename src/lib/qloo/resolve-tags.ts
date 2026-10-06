@@ -1,8 +1,10 @@
 /**
  * Day 2 Q: tag lookup with not-found list. Owned by Q.
  *
- * Endpoint (per docs.qloo.com): `GET /v2/tags?query=&take=` returns
- * `{ success, results: { tags: [{ tag_id, tag_value, id, name }] } }`.
+ * Endpoint (per docs.qloo.com Search Tags, confirmed live):
+ * `GET /v2/tags?filter.query=&take=` returns
+ * `{ success, results: { tags: [{ name, id, tag_id?, tag_value? }] } }`.
+ * The query param is `filter.query`, not `query` (bare `query` 400s).
  * The `/v2/tags/search` variant 404s in the hackathon env, so this file
  * calls `/v2/tags` by default, overridable via QLOO_TAGS_PATH for the
  * live spike. Payload parsing is defensive against both `results.tags`
@@ -13,9 +15,10 @@
  * §11 (caps guard quota).
  */
 
-import type { PitchTag, QlooCall } from "@/lib/types";
+import type { PitchTag, QlooCall, WorkType } from "@/lib/types";
 import { QlooError, qlooFetch } from "./client.ts";
 import { cleanQueries, normalizeKey } from "./resolve-shared.ts";
+import { TAG_SCOPES } from "./tag-scopes.ts";
 
 /** Grilled Day 2 decision: caps guard quota (§11). */
 export const MAX_TAG_WORDS = 20;
@@ -82,10 +85,14 @@ function toPitchTag(word: string, hit: TagEntry): PitchTag | null {
 /**
  * §6.5: check each suggested word against Qloo tags. Matches become
  * `PitchTag`s (`pinned: false`; pinning is a later U/S decision).
- * Unmatched words are no-data and stay out of scoring.
+ * Unmatched words are no-data and stay out of scoring. Pass `workType`
+ * to scope the search to the domain's namespaces (`./tag-scopes.ts`) so
+ * resolved ids share a namespace with audience tastes (§6.6 scoring
+ * compares ids); absent scopes nothing (tests, old callers).
  */
 export async function resolvePitchTags(
   words: string[],
+  workType?: WorkType,
 ): Promise<ResolveTagsResult> {
   if (typeof window !== "undefined") {
     throw new Error(
@@ -104,8 +111,11 @@ export async function resolvePitchTags(
   for (const word of cleaned) {
     try {
       const { data, trace } = await qlooFetch(tagsPath(), {
-        query: word,
+        "filter.query": word,
         take: TAG_TAKE,
+        ...(workType === undefined
+          ? {}
+          : { "filter.tag.types": TAG_SCOPES[workType] }),
       });
       calls.push(trace);
       const hit = pickTag(word, extractTagEntries(data));
