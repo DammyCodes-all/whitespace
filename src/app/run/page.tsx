@@ -1,19 +1,29 @@
 import Link from "next/link";
 import { EvidenceCalls } from "@/components/evidence";
 import { RankedList } from "@/components/ranked-list";
+import type { ReachAudience } from "@/components/reach";
+import { ReachPlan } from "@/components/reach";
 import { RunSaver } from "@/components/run-saver";
 import { RunStream } from "@/components/run-stream";
 import { VerdictHeadline } from "@/components/verdict";
 import {
   mockAudiences,
   mockCalls,
+  mockGaps,
   mockInput,
+  mockRelated,
   mockScores,
   mockSteps,
+  mockUnlabeledCount,
   mockVerdict,
 } from "@/lib/demo/mock-run";
+import { selectReachTargets } from "@/lib/demo/reach-targets";
+import { TAG_LABELS } from "@/lib/fixtures/tag-labels";
 import { demoPipelineInput, runPipeline } from "@/lib/pipeline/run";
-import type { PipelineResult } from "@/lib/types";
+import { fetchRelated } from "@/lib/qloo/related";
+import { fetchAllAudienceTastes } from "@/lib/qloo/tastes";
+import { countUnlabeled, findGaps } from "@/lib/scoring/gaps";
+import type { PipelineResult, QlooCall } from "@/lib/types";
 
 /**
  * Day 6 U: run page on the live seam with saved-run fallback. Owned by U.
@@ -108,6 +118,47 @@ export default async function RunPage() {
 
   const context = live ? "live" : "on mocks";
 
+  // Day 7 U: reach plan for the verdict's targets. Tastes are refetched
+  // for the top audience only until the pipeline exposes them; related
+  // calls join the evidence list so every citation resolves (§10 #8).
+  const targets = live
+    ? selectReachTargets(result.verdict, result.scores, audiences)
+    : [];
+  const reachGroups: ReachAudience[] = [];
+  const reachCalls: QlooCall[] = [];
+  if (live && targets.length > 0) {
+    const excludeIds = result.hypothesis.titles.map((t) => t.qlooId);
+    const { all: tasteLists } = await fetchAllAudienceTastes(targets);
+    for (const [index, audience] of targets.entries()) {
+      const related = await fetchRelated(audience, excludeIds);
+      const tastes = tasteLists.find((t) => t.audienceId === audience.id);
+      const gaps = tastes ? findGaps(tastes, result.tags, TAG_LABELS) : [];
+      const unlabeledCount = tastes
+        ? countUnlabeled(tastes, result.tags, TAG_LABELS)
+        : 0;
+      for (const group of related) {
+        if (group.call !== null) reachCalls.push(group.call);
+      }
+      reachGroups.push({
+        audience,
+        headline: index === 0 ? "Best fit" : "Runner-up · Split verdict",
+        related,
+        gaps,
+        unlabeledCount,
+        tastesCallId: stepCallId("tastes"),
+      });
+    }
+  } else if (!live && top) {
+    reachGroups.push({
+      audience: top,
+      headline: "Best fit",
+      related: mockRelated,
+      gaps: mockGaps,
+      unlabeledCount: mockUnlabeledCount,
+      tastesCallId: "call-insights-1",
+    });
+  }
+
   return (
     <main className="flex flex-1 flex-col">
       <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 sm:px-8">
@@ -132,7 +183,9 @@ export default async function RunPage() {
           topName={top ? `${top.name}${live ? "" : " (on mocks)"}` : undefined}
         />
 
-        <EvidenceCalls calls={result.calls} />
+        <ReachPlan groups={reachGroups} />
+
+        <EvidenceCalls calls={[...result.calls, ...reachCalls]} />
 
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <Link
