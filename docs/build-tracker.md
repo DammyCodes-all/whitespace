@@ -42,5 +42,6 @@ Format:
 | 2026-10-06 | Add Qloo public seam barrel for pipeline wiring | §7 | biome+tsc clean on new file; tsx seam smoke 17/17; next build pass |
 | 2026-10-06 | Wire runPipeline from Qloo seam to score to verdict on fixtures | §5.4, §6, §7, §8 | biome+tsc clean; tsx --test 4/4 (shape, Inconclusive, repeatability, empty); next build pass |
 | 2026-10-06 | Wire run page to seam with step evidence plus save-only island | §5.4, §6.12, §10 #6 | biome+tsc clean; next build pass; tsx step check 7/7 |
+| 2026-10-06 | Add missing LLM seam, form-to-run wiring, coverage run to plan | §7, §6.1 | markdown only, no build needed |
 | 2026-10-06 | Add Day 7 U reach plan UI with gaps on pipeline result | §6.8 | biome scoped clean; node:test 48 pass; typecheck+build pass |
 | 2026-10-06 | Add Day 7 S gap finder with tests | §6.8 | biome scoped clean; node:test pass; typecheck+build pass |

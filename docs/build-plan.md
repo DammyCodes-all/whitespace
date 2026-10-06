@@ -64,6 +64,13 @@ U's Day 1 mock run page (`src/app/run/page.tsx`) already renders the run-steps v
 | S | Wire `runPipeline()` from Qloo to score to verdict on fixtures | `src/lib/pipeline/run.ts` | WAIT: Day 2 to Day 5 Q and S functions. Blocks Day 7 to Day 10 |
 | U | Wire run page to seam plus saved-run fallback | `src/app/run/page.tsx` | WAIT: Day 6 S seam merged that morning |
 
+### Day 6.5: LLM proposals plus live wiring (the missing seam)
+| Dev | Task | Files | Depends |
+|---|---|---|---|
+| U | LLM seam: Groq primary plus OpenRouter fallback, server-only propose step for similar titles, candidate words, 3 rival readings (JSON only, grounded downstream) | `src/lib/agent/propose.ts`, `.env.example` (`GROQ_API_KEY`, `OPENROUTER_API_KEY`) | WAIT: Day 6 S `PipelineInput` shapes (§7, §6.2/§6.3/§6.5) |
+| U | Form to run wiring: home pitch posts to `/run` through propose plus confirm, replaces demo-input hardcode | `src/app/page.tsx`, `src/app/run/page.tsx` | WAIT: LLM seam above (§6.1) |
+| Q | Run coverage test live and lock demo domain, film versus music | `docs/qloo-coverage.md` | API key present (§11, §6.4). Blocks Day 10 S margins |
+
 ### Day 7: reach plan (§6.8)
 | Dev | Task | Files | Depends |
 |---|---|---|---|
