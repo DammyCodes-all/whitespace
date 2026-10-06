@@ -14,9 +14,11 @@ import type { Audience } from "@/lib/types";
 export function ConfirmedAudience({
   audience,
   nothingLike,
+  runHref = "/run",
 }: {
   audience: Audience;
   nothingLike: string[];
+  runHref?: string;
 }) {
   return (
     <div className="mt-6 border border-rule bg-surface p-4">
@@ -39,10 +41,10 @@ export function ConfirmedAudience({
         </p>
       )}
       <Link
-        href="/run"
+        href={runHref}
         className="mt-3 inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
       >
-        See a sample run
+        {runHref === "/run" ? "See a sample run" : "Run this pitch"}
       </Link>
     </div>
   );
