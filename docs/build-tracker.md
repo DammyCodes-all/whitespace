@@ -61,3 +61,4 @@ Format:
 | 2026-10-06 | Add plain chatbot answer seam plus /api/chatbot plus /run preview with Qloo marks | §6.11 | biome+tsc clean; 16 pass (chatbot+propose refactor); build pass; /run 200 with preview, keyless 503 path tested |
 | 2026-10-06 | Add audience case builder plus /case page plus shared reach assembly plus print styles | §6.10, §6.12 | biome+tsc clean; 79 pass full suite; build pass; /case 200 with evidence, reach, limits, footer |
 | 2026-10-06 | Refresh LLM default models (both old slugs dead) plus live shape verify | §7 | live lists: groq has no llama-3.3, or has no llama-3.3-free; picked gpt-oss-120b + nemotron-ultra-550b-free, both JSON-verified; propose 5/9/3 + chatbot 437ch/2 live; biome+tsc clean; 16 pass |
+| 2026-10-06 | Fix post-merge import sort in Day 8 propose-stub | n/a | biome --write one file; check+typecheck clean; 98 pass; build pass; /run+/case smoke 200 |

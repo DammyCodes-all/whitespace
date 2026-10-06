@@ -1,5 +1,5 @@
-import type { GapItem } from "../scoring/gaps.ts";
 import type { ProposeFn } from "../pipeline/change.ts";
+import type { GapItem } from "../scoring/gaps.ts";
 
 /**
  * Day 8 deterministic proposal stub. Owned by U (demo flow).
