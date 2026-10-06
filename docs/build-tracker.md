@@ -45,6 +45,7 @@ Format:
 | 2026-10-06 | Add missing LLM seam, form-to-run wiring, coverage run to plan | §7, §6.1 | markdown only, no build needed |
 | 2026-10-06 | Add Day 7 U reach plan UI with gaps on pipeline result | §6.8 | biome scoped clean; node:test 48 pass; typecheck+build pass |
 | 2026-10-06 | Add Day 7 S gap finder with tests | §6.8 | biome scoped clean; node:test pass; typecheck+build pass |
+| 2026-10-06 | Fix review findings: parallel reach fetch, unique shelf keys | §6.8, §10 #6 | biome scoped clean; typecheck+build pass |
 | 2026-10-06 | Add pinned-tags UI and chatbot no-tools answer rows to plan | §6.6, §6.11 | markdown only, no build needed |
 | 2026-10-06 | Add LLM proposal seam Groq-first OpenRouter-fallback plus propose API | §7, §6.2, §6.3, §6.5 | biome+tsc clean; node24 strip-types 48 pass; next build pass; keyless 503 smoke |
 | 2026-10-06 | Wire pitch form through propose plus confirm to /run ?input= | §6.1 | biome+tsc clean; node24 strip-types 48 pass; next build pass |
