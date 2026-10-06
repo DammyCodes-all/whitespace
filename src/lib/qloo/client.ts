@@ -1,9 +1,16 @@
 /**
  * Qloo network boundary. Owned by Q.
  *
- * Day 1 scope only: authenticated GET + retry + timeout + evidence trace.
- * No taste logic, no rival logic, no scoring. Those land Day 2 to Day 5
- * in resolve.ts / tastes.ts / rivals.ts and build on this function.
+ * Authenticated GET + retry + timeout + evidence trace, plus a Day 8
+ * response cache and quota guard. Every Qloo call already passes
+ * through `qlooFetch`, so the guard lives here rather than in a
+ * wrapper nobody will remember to use.
+ *
+ * Cache contract: data only, never traces. Each call (hit or miss)
+ * emits a fresh trace; hits carry `fromCache: true` so the evidence
+ * drawer stays complete (§6.12). Stored payloads are cloned on the
+ * way out: a caller mutating a response must never poison later runs.
+ * `resetQuota` clears entries too, or run N inherits run 1's data.
  *
  * Real API shape per docs.qloo.com:
  * - base defaults to https://hackathon.api.qloo.com (override via env)
@@ -34,6 +41,70 @@ export class QlooError extends Error {
     this.trace = trace;
     this.retryable = retryable;
   }
+}
+
+/**
+ * Quota breach. Deliberately NOT a QlooError: callers translate
+ * QlooError into not-found/no-data, and a quota blowout must never
+ * degrade into fake missing data. It propagates.
+ */
+export class QlooQuotaError extends Error {
+  readonly trace: QlooCall;
+  readonly usage: QuotaUsage;
+
+  constructor(message: string, trace: QlooCall, usage: QuotaUsage) {
+    super(message);
+    this.name = "QlooQuotaError";
+    this.trace = trace;
+    this.usage = usage;
+  }
+}
+
+/**
+ * Generous ceiling, not a finding: above today's worst case (controls
+ * alone warn 60+ calls), below absurdity. Counts network fetches only;
+ * cache hits never trip it.
+ */
+export const MAX_CALLS_PER_RUN = 150;
+
+export interface QuotaUsage {
+  /** Network fetches performed. */
+  calls: number;
+  /** Invocations served from cache. */
+  cached: number;
+}
+
+interface CacheEntry {
+  data: unknown;
+  status: number;
+}
+
+const responseCache = new Map<string, CacheEntry>();
+let networkCalls = 0;
+let cacheHits = 0;
+
+function cacheKey(path: string, params: Record<string, string>): string {
+  const query = Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join("&");
+  return `${path}?${query}`;
+}
+
+/** Quota accounting snapshot. */
+export function getQuotaUsage(): QuotaUsage {
+  return { calls: networkCalls, cached: cacheHits };
+}
+
+/**
+ * Zero the counters and drop cached payloads. The pipeline calls this
+ * at run start: entries are keyed by request, not by run, so without
+ * the clear, run N would silently reuse run 1's data.
+ */
+export function resetQuota(): void {
+  networkCalls = 0;
+  cacheHits = 0;
+  responseCache.clear();
 }
 
 function readEnv(name: string, fallback: string): string {
@@ -126,6 +197,35 @@ export async function qlooFetch(
     };
   }
 
+  const key = cacheKey(path, params);
+  const hit = responseCache.get(key);
+  if (hit !== undefined) {
+    cacheHits += 1;
+    return {
+      data: structuredClone(hit.data),
+      trace: {
+        ...traceBase,
+        status: hit.status,
+        durationMs: Date.now() - started,
+        fromCache: true,
+      },
+    };
+  }
+
+  if (networkCalls >= MAX_CALLS_PER_RUN) {
+    throw new QlooQuotaError(
+      `Qloo quota exceeded: ${networkCalls} network calls (cap ${MAX_CALLS_PER_RUN}).`,
+      {
+        ...traceBase,
+        status: 0,
+        durationMs: Date.now() - started,
+        fromCache: false,
+      },
+      getQuotaUsage(),
+    );
+  }
+  networkCalls += 1;
+
   const query = new URLSearchParams(params).toString();
   const url = `${config.baseUrl}${path}${query ? `?${query}` : ""}`;
 
@@ -149,8 +249,10 @@ export async function qlooFetch(
 
       if (res.ok) {
         const data: unknown = await res.json().catch(() => null);
+        const stored = structuredClone(data);
+        responseCache.set(key, { data: stored, status: res.status });
         return {
-          data,
+          data: structuredClone(stored),
           trace: {
             ...traceBase,
             status: res.status,
