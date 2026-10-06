@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { saveRun } from "@/lib/demo/store";
 import type { PipelineResult } from "@/lib/types";
 
@@ -20,9 +20,13 @@ export function RunSaver({
   result: PipelineResult;
   id: string;
 }) {
+  const [runId] = useState(() =>
+    id !== "latest" ? id : `run-${Date.now()}-${Math.random()}`,
+  );
+
   useEffect(() => {
-    saveRun(id, result);
-  }, [id, result]);
+    saveRun(runId, result);
+  }, [result, runId]);
 
   return <p className="font-mono text-xs text-ink-3">Saved for replay.</p>;
 }
