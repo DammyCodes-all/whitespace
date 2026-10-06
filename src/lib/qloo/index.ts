@@ -16,36 +16,36 @@
  * guard quota).
  */
 
-export { QlooError } from "@/lib/qloo/client";
 export type { ControlSeed } from "@/lib/qloo/control-seeds";
-export { CONTROL_SEEDS } from "@/lib/qloo/control-seeds";
 export type { BuildControlsResult } from "@/lib/qloo/controls";
-export {
-  buildControls,
-  CONTROL_COUNT,
-  MAX_TITLES_PER_CONTROL,
-} from "@/lib/qloo/controls";
 export type { ResolveTagsResult } from "@/lib/qloo/resolve-tags";
-export { MAX_TAG_WORDS, resolvePitchTags } from "@/lib/qloo/resolve-tags";
 export type { ResolveTitlesResult } from "@/lib/qloo/resolve-titles";
-export {
-  MAX_TITLE_QUERIES,
-  resolveTitles,
-  WORK_TYPE_TO_SEARCH_TYPES,
-} from "@/lib/qloo/resolve-titles";
 export type { BuildRivalsResult, RivalProposal } from "@/lib/qloo/rivals";
-export {
-  buildRivals,
-  MAX_TITLES_PER_RIVAL,
-  MIN_VALID_RIVALS,
-} from "@/lib/qloo/rivals";
 export type {
   FetchAllTastesResult,
   FetchTastesResult,
 } from "@/lib/qloo/tastes";
+export { QlooError } from "./client.ts";
+export { CONTROL_SEEDS } from "./control-seeds.ts";
+export {
+  buildControls,
+  CONTROL_COUNT,
+  MAX_TITLES_PER_CONTROL,
+} from "./controls.ts";
+export { MAX_TAG_WORDS, resolvePitchTags } from "./resolve-tags.ts";
+export {
+  MAX_TITLE_QUERIES,
+  resolveTitles,
+  WORK_TYPE_TO_SEARCH_TYPES,
+} from "./resolve-titles.ts";
+export {
+  buildRivals,
+  MAX_TITLES_PER_RIVAL,
+  MIN_VALID_RIVALS,
+} from "./rivals.ts";
 export {
   fetchAllAudienceTastes,
   fetchAudienceTastes,
   MAX_ENTITIES_PER_AUDIENCE,
   MAX_TASTE_AUDIENCES,
-} from "@/lib/qloo/tastes";
+} from "./tastes.ts";

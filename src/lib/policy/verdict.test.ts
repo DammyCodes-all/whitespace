@@ -1,7 +1,7 @@
-import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { decideVerdict } from "./verdict.ts";
+import { describe, it } from "node:test";
 import type { FitScore } from "../types.ts";
+import { decideVerdict } from "./verdict.ts";
 
 function judged(
   audienceId: string,

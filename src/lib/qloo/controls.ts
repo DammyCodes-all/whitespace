@@ -21,12 +21,12 @@
  * miss never fails the batch), §6.12 (every call traced).
  */
 
-import { CONTROL_SEEDS } from "@/lib/qloo/control-seeds";
-import { resolveTitles } from "@/lib/qloo/resolve";
 import type { Audience, QlooCall, WorkType } from "@/lib/types";
+import { CONTROL_SEEDS } from "./control-seeds.ts";
+import { resolveTitles } from "./resolve.ts";
 
 export type { ControlSeed } from "@/lib/qloo/control-seeds";
-export { CONTROL_SEEDS } from "@/lib/qloo/control-seeds";
+export { CONTROL_SEEDS } from "./control-seeds.ts";
 
 /** §6.4: about 20 controls per run. */
 export const CONTROL_COUNT = 20;

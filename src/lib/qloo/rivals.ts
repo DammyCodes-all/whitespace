@@ -16,10 +16,10 @@
  * guard quota).
  */
 
-import { resolveTitles } from "@/lib/qloo/resolve";
 import type { DroppedRival } from "@/lib/scoring/overlap";
-import { MAX_BUILDS, MAX_RIVALS, selectRivals } from "@/lib/scoring/overlap";
 import type { Audience, QlooCall, WorkType } from "@/lib/types";
+import { MAX_BUILDS, MAX_RIVALS, selectRivals } from "../scoring/overlap.ts";
+import { resolveTitles } from "./resolve.ts";
 
 /** §6.3: three to five candidate titles per rival. */
 export const MAX_TITLES_PER_RIVAL = 5;

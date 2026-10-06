@@ -21,20 +21,8 @@
  * (deterministic: same input, same verdict).
  */
 
-import { checkGrounding } from "@/lib/policy/grounding";
-import { decideVerdict } from "@/lib/policy/verdict";
 import type { RivalProposal } from "@/lib/qloo/index";
-import {
-  buildControls,
-  buildRivals,
-  CONTROL_COUNT,
-  fetchAllAudienceTastes,
-  resolvePitchTags,
-  resolveTitles,
-} from "@/lib/qloo/index";
-import { subtractExclusionFromAll } from "@/lib/scoring/exclusion";
 import type { AudienceTastes } from "@/lib/scoring/fit";
-import { scoreAll } from "@/lib/scoring/fit";
 import type {
   Audience,
   PipelineResult,
@@ -42,6 +30,18 @@ import type {
   QlooCall,
   RunStep,
 } from "@/lib/types";
+import { checkGrounding } from "../policy/grounding.ts";
+import { decideVerdict } from "../policy/verdict.ts";
+import {
+  buildControls,
+  buildRivals,
+  CONTROL_COUNT,
+  fetchAllAudienceTastes,
+  resolvePitchTags,
+  resolveTitles,
+} from "../qloo/index.ts";
+import { subtractExclusionFromAll } from "../scoring/exclusion.ts";
+import { scoreAll } from "../scoring/fit.ts";
 
 /**
  * What the pipeline needs beyond the frozen `PitchInput`. Titles, words,
