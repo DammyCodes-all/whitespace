@@ -129,8 +129,13 @@ export default async function RunPage() {
   if (live && targets.length > 0) {
     const excludeIds = result.hypothesis.titles.map((t) => t.qlooId);
     const { all: tasteLists } = await fetchAllAudienceTastes(targets);
-    for (const [index, audience] of targets.entries()) {
-      const related = await fetchRelated(audience, excludeIds);
+    // Targets are independent: fetch concurrently, then assemble in
+    // order so the evidence list stays deterministic (§10 #7).
+    const relatedLists = await Promise.all(
+      targets.map((audience) => fetchRelated(audience, excludeIds)),
+    );
+    targets.forEach((audience, index) => {
+      const related = relatedLists[index] ?? [];
       const tastes = tasteLists.find((t) => t.audienceId === audience.id);
       const gaps = tastes ? findGaps(tastes, result.tags, TAG_LABELS) : [];
       const unlabeledCount = tastes
@@ -147,7 +152,7 @@ export default async function RunPage() {
         unlabeledCount,
         tastesCallId: stepCallId("tastes"),
       });
-    }
+    });
   } else if (!live && top) {
     reachGroups.push({
       audience: top,

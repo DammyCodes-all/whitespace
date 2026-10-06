@@ -45,3 +45,4 @@ Format:
 | 2026-10-06 | Add missing LLM seam, form-to-run wiring, coverage run to plan | §7, §6.1 | markdown only, no build needed |
 | 2026-10-06 | Add Day 7 U reach plan UI with gaps on pipeline result | §6.8 | biome scoped clean; node:test 48 pass; typecheck+build pass |
 | 2026-10-06 | Add Day 7 S gap finder with tests | §6.8 | biome scoped clean; node:test pass; typecheck+build pass |
+| 2026-10-06 | Fix review findings: parallel reach fetch, unique shelf keys | §6.8, §10 #6 | biome scoped clean; typecheck+build pass |

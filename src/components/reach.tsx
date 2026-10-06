@@ -155,8 +155,8 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
             </span>
           </p>
           <div className="mt-2 border-t border-rule">
-            {[...group.related].sort(byKindOrder).map((related) => (
-              <CategoryShelf key={related.kind} group={related} />
+            {[...group.related].sort(byKindOrder).map((related, index) => (
+              <CategoryShelf key={`${related.kind}-${index}`} group={related} />
             ))}
             <GapList
               audienceName={group.audience.name}
