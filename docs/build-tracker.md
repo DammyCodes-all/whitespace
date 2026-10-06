@@ -56,3 +56,8 @@ Format:
 | 2026-10-06 | Add pinned must-have words UI with pinnedWords through scoring | §6.6 | biome+tsc clean; pinned mock-path smoke; next build pass |
 | 2026-10-06 | Fix review findings: single-decode run parser, client defaults split, proposed badge, pinned normalize | §6.1, §6.2, §6.6 | biome+tsc clean; node24 strip-types 62 pass; next build pass; pct/pinned smoke |
 | 2026-10-06 | Run Qloo coverage live, fix taste/tag params plus namespace scopes, lock film | §11, §6.4, §6.6 | live: resolve 20/20 both, tastes 20/20, tags 8/10 scoped; 62 pass; discrimination probe hyp 0.156 vs control 0.122 |
+| 2026-10-06 | Add inconclusiveReason to verdict plus boundary tests (types unfreeze: additive optional field only) | §6.7, §6.10 | biome+tsc clean; node24 strip-types verdict 7 pass |
+| 2026-10-06 | Add chatbot title-mark helper on resolve plus seam export | §6.11 | biome+tsc clean; node24 strip-types mark 3 pass |
+| 2026-10-06 | Add plain chatbot answer seam plus /api/chatbot plus /run preview with Qloo marks | §6.11 | biome+tsc clean; 16 pass (chatbot+propose refactor); build pass; /run 200 with preview, keyless 503 path tested |
+| 2026-10-06 | Add audience case builder plus /case page plus shared reach assembly plus print styles | §6.10, §6.12 | biome+tsc clean; 79 pass full suite; build pass; /case 200 with evidence, reach, limits, footer |
+| 2026-10-06 | Refresh LLM default models (both old slugs dead) plus live shape verify | §7 | live lists: groq has no llama-3.3, or has no llama-3.3-free; picked gpt-oss-120b + nemotron-ultra-550b-free, both JSON-verified; propose 5/9/3 + chatbot 437ch/2 live; biome+tsc clean; 16 pass |
