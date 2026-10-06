@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EvidenceCalls } from "@/components/evidence";
 import { RankedList } from "@/components/ranked-list";
 import { RunSteps } from "@/components/run-steps";
 import { VerdictHeadline } from "@/components/verdict";
@@ -59,29 +60,7 @@ export default function RunPage() {
           topName={top ? `${top.name} (on mocks)` : undefined}
         />
 
-        <section aria-label="Evidence calls" className="mt-12">
-          <h2 className="text-lg tracking-tight text-ink">Evidence calls</h2>
-          <div className="mt-4 border-t border-rule">
-            {mockCalls.map((call) => (
-              <div
-                key={call.id}
-                id={call.id}
-                className="border-b border-rule py-3 font-mono text-xs text-ink-2"
-              >
-                <p data-numeric>
-                  {call.method} {call.endpoint} · {call.status} ·{" "}
-                  {call.durationMs}ms
-                  {call.fromCache ? " · saved" : ""}
-                </p>
-                <p className="mt-1 break-all text-ink-3">
-                  {Object.entries(call.params)
-                    .map(([k, v]) => `${k}=${v}`)
-                    .join(" ")}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <EvidenceCalls calls={mockCalls} />
 
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <Link

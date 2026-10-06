@@ -31,3 +31,6 @@ Format:
 | 2026-10-06 | Add control test plus verdict with tunable margins stub | §6.7 | biome+tsc clean; tsx smoke 8/8 branches; next build pass |
 | 2026-10-06 | Add rival retry and replace grounded on resolve plus overlap | §6.3 | biome+tsc clean; tsx mock-path smoke; next build pass |
 | 2026-10-06 | Add verdict headline plus ranked list, lift /run onto them | §6.7 | biome+tsc clean; next build pass |
+| 2026-10-06 | Add exclusion subtract plus grounding check plus coverage report | §6.6, §8 | biome+tsc clean; tsx smoke 8/8; next build pass |
+| 2026-10-06 | Add 20 control seeds plus coverage test protocol doc | §6.4 | biome+tsc clean; tsx smoke 60 calls traced; next build pass |
+| 2026-10-06 | Add evidence calls component plus saved-run store, lift /run | §6.12 | biome+tsc clean; tsx round-trip smoke; next build pass |
