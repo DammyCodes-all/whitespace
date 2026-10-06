@@ -44,8 +44,8 @@ import type { PipelineResult, QlooCall } from "@/lib/types";
  * then the Day 1 mocks render with an honest "on mocks" label (§9).
  * A save-only island stores live runs for replay (§6.12, §10 #6);
  * loading them back is later demo work. Dynamic: `searchParams` make
- * this request-time; without `?input=` it runs the demo pitch (mock path
- * when keyless, cheap).
+ * this request-time; without `?input=` it serves the cached demo pitch so the
+ * first judge run is deterministic and complete.
  *
  * Spec ref: §5.4 (watch the agent work), §6.1 (form to run), §6.7
  * (verdict), §6.12 (evidence trace), §9 (saved runs as fallback).
@@ -107,23 +107,26 @@ export default async function RunPage({
     typeof params.input === "string"
       ? `&input=${encodeURIComponent(params.input)}`
       : "";
+  const hasInput = typeof params.input === "string" && params.input !== "";
   // Day 9 U: the chatbot answers in parallel with the pipeline — it needs
   // no Qloo, so serializing it would only spend the 90s budget (§10 #6).
   // Either side may fail independently; the run never depends on the bot.
-  const [pipeRes, chatRes] = await Promise.allSettled([
-    runPipeline(pipelineInput),
-    answerChatbot({
-      pitchText: pipelineInput.pitchText,
-      workType: pipelineInput.workType,
-    }),
-  ]);
+  const [pipeRes, chatRes] = hasInput
+    ? await Promise.allSettled([
+        runPipeline(pipelineInput),
+        answerChatbot({
+          pitchText: pipelineInput.pitchText,
+          workType: pipelineInput.workType,
+        }),
+      ])
+    : [null, null];
   let result: PipelineResult;
-  let live = true;
-  if (pipeRes.status === "fulfilled") {
+  let live = false;
+  if (pipeRes?.status === "fulfilled") {
     result = pipeRes.value;
+    live = true;
   } else {
     result = mockResult();
-    live = false;
   }
 
   // §6.11 marks: every chatbot title checked in Qloo. Keyless the bot
@@ -132,7 +135,7 @@ export default async function RunPage({
   let chatbot: ChatbotView | null = null;
   let chatbotCalls: QlooCall[] = [];
   let chatbotError: string | null = null;
-  if (live && chatRes.status === "fulfilled") {
+  if (live && chatRes?.status === "fulfilled") {
     try {
       const marks = await markChatbotTitles(
         chatRes.value.titles,
@@ -147,7 +150,7 @@ export default async function RunPage({
     } catch {
       chatbotError = "Chatbot titles could not be checked in Qloo.";
     }
-  } else if (chatRes.status === "rejected") {
+  } else if (live && chatRes?.status === "rejected") {
     const reason = chatRes.reason;
     chatbotError =
       reason instanceof LlmError && reason.configured === false
