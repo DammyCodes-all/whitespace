@@ -141,8 +141,8 @@ export default async function CasePage({
         ) : (
           <section aria-label="Reach plan" className="mt-12">
             <h2 className="text-lg tracking-tight text-ink">Reach plan</h2>
-            <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-3">
-              no data
+            <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-2">
+              not measured
             </p>
           </section>
         )}
