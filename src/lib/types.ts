@@ -38,6 +38,8 @@ export interface QlooCall {
   at: string;
   /** True when served from the saved-run store without hitting Qloo. */
   fromCache: boolean;
+  /** Bounded, key-free summary of the returned payload for evidence review. */
+  responseSummary?: string;
 }
 
 /** §6.2: a title Qloo resolved. Queries it could not find live in `notFoundTitles`. */
