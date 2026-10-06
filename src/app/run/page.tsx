@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChangeView } from "@/components/change";
 import { EvidenceCalls } from "@/components/evidence";
 import { RankedList } from "@/components/ranked-list";
 import type { ReachAudience } from "@/components/reach";
@@ -9,6 +10,8 @@ import { VerdictHeadline } from "@/components/verdict";
 import {
   mockAudiences,
   mockCalls,
+  mockChangedAccepted,
+  mockChangedWithheld,
   mockGaps,
   mockInput,
   mockRelated,
@@ -18,8 +21,11 @@ import {
   mockVerdict,
 } from "@/lib/demo/mock-run";
 import { parseRunInput } from "@/lib/demo/parse-run-input";
+import { proposeDeterministic } from "@/lib/demo/propose-stub";
 import { selectReachTargets } from "@/lib/demo/reach-targets";
 import { TAG_LABELS } from "@/lib/fixtures/tag-labels";
+import type { ChangedRun } from "@/lib/pipeline/change";
+import { proposeChange } from "@/lib/pipeline/change";
 import { runPipeline } from "@/lib/pipeline/run";
 import { fetchRelated } from "@/lib/qloo/related";
 import { fetchAllAudienceTastes } from "@/lib/qloo/tastes";
@@ -85,10 +91,22 @@ const MOCK_AUDIENCE_CALL_IDS: Record<string, string> = {
 export default async function RunPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ input?: string | string[] }>;
+  searchParams?: Promise<{
+    input?: string | string[];
+    constraint?: string | string[];
+    preview?: string | string[];
+  }>;
 }) {
   const params = (await searchParams) ?? {};
   const pipelineInput = parseRunInput(params.input);
+  const rawConstraint = Array.isArray(params.constraint)
+    ? params.constraint[0]
+    : params.constraint;
+  const constraint = (rawConstraint ?? "").trim().slice(0, 140);
+  const inputParam =
+    typeof params.input === "string"
+      ? `&input=${encodeURIComponent(params.input)}`
+      : "";
   let result: PipelineResult;
   let live = true;
   try {
@@ -180,6 +198,34 @@ export default async function RunPage({
     });
   }
 
+  // Day 8 U: constrained recheck. The constraint arrives as a query
+  // param so the URL stays shareable; the deterministic stub proposes
+  // until the LLM rewrite lands (same ProposeFn seam, no caller change).
+  // Rescore calls join the evidence list so every citation resolves.
+  // `?preview=` renders a mock outcome for rehearsing states that are
+  // hard to reach interactively (e.g. accepted on the mock path).
+  const rawPreview = Array.isArray(params.preview)
+    ? params.preview[0]
+    : params.preview;
+  const previewChanged =
+    rawPreview === "accepted"
+      ? mockChangedAccepted
+      : rawPreview !== undefined
+        ? (mockChangedWithheld[rawPreview] ?? null)
+        : null;
+  let changed: ChangedRun | null = previewChanged;
+  let changeFailed = false;
+  const changeCalls: QlooCall[] = [...(changed?.calls ?? [])];
+  if (constraint !== "" && changed === null) {
+    try {
+      changed = await proposeChange(result, constraint, proposeDeterministic);
+      changeCalls.push(...changed.calls);
+    } catch {
+      changed = null;
+      changeFailed = true;
+    }
+  }
+
   return (
     <main className="flex flex-1 flex-col">
       <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 sm:px-8">
@@ -206,7 +252,68 @@ export default async function RunPage({
 
         <ReachPlan groups={reachGroups} />
 
-        <EvidenceCalls calls={[...result.calls, ...reachCalls]} />
+        <section aria-label="Try a limit" className="mt-12">
+          <h2 className="text-lg tracking-tight text-ink">Try a limit</h2>
+          <form action="/run" method="get" className="mt-4">
+            {typeof params.input === "string" && (
+              <input type="hidden" name="input" value={params.input} />
+            )}
+            <label
+              htmlFor="constraint"
+              className="block text-sm tracking-tight text-ink"
+            >
+              Add a limit, such as a smaller budget or a shorter format
+            </label>
+            <p className="mt-1 text-sm text-ink-3">
+              The pitch is rewritten under your limit and rechecked against the
+              same bar.
+            </p>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <input
+                id="constraint"
+                name="constraint"
+                type="text"
+                defaultValue={constraint}
+                maxLength={140}
+                placeholder="Lower budget"
+                className="min-w-0 flex-1 border border-rule bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-3"
+              />
+              <button
+                type="submit"
+                className="shrink-0 bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+              >
+                Check change
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {["Lower budget", "Shorter format", "Smaller cast"].map(
+                (preset) => (
+                  <Link
+                    key={preset}
+                    href={`/run?constraint=${encodeURIComponent(preset)}${inputParam}`}
+                    className="border border-rule px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:text-ink"
+                  >
+                    {preset}
+                  </Link>
+                ),
+              )}
+            </div>
+          </form>
+          {changed !== null && (
+            <div className="mt-4 border-t border-rule">
+              <ChangeView changed={changed} />
+            </div>
+          )}
+          {changeFailed && (
+            <p className="mt-4 text-sm text-ink-3">
+              The recheck failed. The run above is unaffected.
+            </p>
+          )}
+        </section>
+
+        <EvidenceCalls
+          calls={[...result.calls, ...reachCalls, ...changeCalls]}
+        />
 
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <Link
