@@ -18,6 +18,10 @@
 
 export type { ControlSeed } from "@/lib/qloo/control-seeds";
 export type { BuildControlsResult } from "@/lib/qloo/controls";
+export type {
+  LocationPlace,
+  LocationResult,
+} from "@/lib/qloo/location";
 export type { MarkTitlesResult } from "@/lib/qloo/mark";
 export type { ResolveTagsResult } from "@/lib/qloo/resolve-tags";
 export type { ResolveTitlesResult } from "@/lib/qloo/resolve-titles";
@@ -38,6 +42,11 @@ export {
   CONTROL_COUNT,
   MAX_TITLES_PER_CONTROL,
 } from "./controls.ts";
+export {
+  fetchLocation,
+  guardLocationData,
+  MIN_PLACES_FOR_MAP,
+} from "./location.ts";
 export { MAX_MARK_TITLES, markChatbotTitles } from "./mark.ts";
 export { MAX_TAG_WORDS, resolvePitchTags } from "./resolve-tags.ts";
 export {

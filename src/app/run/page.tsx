@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { ChangeView } from "@/components/change";
-import { ChatbotPreview, type ChatbotView } from "@/components/chatbot-preview";
+import type { ChatbotView } from "@/components/chatbot-preview";
+import { CompareView } from "@/components/compare";
 import { EvidenceCalls } from "@/components/evidence";
 import { RankedList } from "@/components/ranked-list";
 import type { ReachAudience } from "@/components/reach";
 import { ReachPlan } from "@/components/reach";
 import { RunSaver } from "@/components/run-saver";
 import { RunStream } from "@/components/run-stream";
+import { SavedRunPanel } from "@/components/saved-run-panel";
 import { VerdictHeadline } from "@/components/verdict";
 import { answerChatbot } from "@/lib/agent/chatbot";
 import { LlmError } from "@/lib/agent/llm-client";
@@ -324,7 +326,19 @@ export default async function RunPage({
           )}
         </section>
 
-        <ChatbotPreview chatbot={chatbot} error={chatbotError} />
+        <CompareView
+          chatbot={chatbot}
+          error={chatbotError}
+          audiences={audiences}
+          scores={result.scores}
+          verdict={result.verdict}
+          topCallId={
+            result.verdict.topAudienceId === null
+              ? undefined
+              : audienceCallIds[result.verdict.topAudienceId]
+          }
+          chatbotCallId={chatbotCalls[0]?.id}
+        />
 
         <EvidenceCalls
           calls={[
@@ -358,6 +372,7 @@ export default async function RunPage({
             </p>
           )}
         </div>
+        <SavedRunPanel />
       </div>
     </main>
   );

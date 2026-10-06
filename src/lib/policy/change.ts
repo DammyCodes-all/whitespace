@@ -26,6 +26,12 @@ export interface ChangeBar {
  * STUB: provisional rise bar. §6.9 sets real cutoffs by testing;
  * calibration week owns this number. The Q-lane withheld fixture is
  * tuned against ≈0.05 — if this moves, that fixture moves with it.
+ *
+ * Calibration protocol (Day 10 S): `node scripts/calibrate-margins.ts`
+ * with QLOO_API_KEY set; the recorded margins in docs/qloo-coverage.md
+ * own this number, not eyeballing one pitch. Invariant: MIN_RISE must
+ * stay >= SPLIT_MARGIN in policy/verdict.ts, or the change bar would
+ * accept a move smaller than the verdict policy calls a tie.
  */
 export const MIN_RISE = 0.05;
 

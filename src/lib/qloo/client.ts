@@ -83,6 +83,18 @@ const responseCache = new Map<string, CacheEntry>();
 let networkCalls = 0;
 let cacheHits = 0;
 
+function summarizeResponse(data: unknown): string {
+  if (data === null) return "null";
+  if (Array.isArray(data)) return `array(${data.length})`;
+  if (typeof data !== "object") return String(data);
+  try {
+    const json = JSON.stringify(data);
+    return json.length > 500 ? `${json.slice(0, 500)}…` : json;
+  } catch {
+    return "unserializable response";
+  }
+}
+
 function cacheKey(path: string, params: Record<string, string>): string {
   const query = Object.keys(params)
     .sort()
@@ -193,6 +205,11 @@ export async function qlooFetch(
         status: 0,
         durationMs: Date.now() - started,
         fromCache: true,
+        responseSummary: summarizeResponse({
+          success: true,
+          mock: true,
+          results: [],
+        }),
       },
     };
   }
@@ -208,6 +225,7 @@ export async function qlooFetch(
         status: hit.status,
         durationMs: Date.now() - started,
         fromCache: true,
+        responseSummary: summarizeResponse(hit.data),
       },
     };
   }
@@ -258,6 +276,7 @@ export async function qlooFetch(
             status: res.status,
             durationMs,
             fromCache: false,
+            responseSummary: summarizeResponse(stored),
           },
         };
       }
