@@ -63,6 +63,34 @@ verdict and scores (§10 #7).
   ("Fast franchise action") resolves fuzzily and distorts exclusion; Day 8
   fixtures must use real titles.
 
+## Day 10 Q status (2026-10-06)
+
+1. **Location call: ship the guard, hide the map.** No live key in the
+   working tree for a city probe, and the hackathon developer guide
+   lists no city-concentration signal or filter for `/v2/insights` —
+   so `src/lib/qloo/location.ts` ships the §6.8 thin-data guard
+   (`MIN_PLACES_FOR_MAP = 5`), but `fetchLocation` fails closed and always returns `hidden` with a
+   machine-readable reason until a verified city-scoping parameter
+   exists. The map UI stays unwired; per §12 city map is cut first, so
+   "hidden with reason" is the shipped state, not a TODO. When a key
+   verifies a real city filter, the candidate-word probe is:
+   `/v2/insights?filter.type=urn:entity:place&signal.interests.entities=...`
+   plus the city filter — if results do not attribute to the city,
+   keep hiding.
+2. **Margins v1 stay stubbed.** No live key is available in this
+   working tree, so the §6.7 calibration protocol has not run. The
+   protocol is ready: run 4+ pitches (the Day 8 pack) through
+   `runPipeline` in one process — the new cache and quota guard
+   (§11) make the call counts meaningful — and record the observed
+   hypothesis-vs-control and hypothesis-vs-rival margins as S's
+   constants in `src/lib/policy/verdict.ts`. Until a key lands, the
+   tracker row must not claim margins are set; `verdict.ts` keeps its
+   explicit stub comments (§6.7: exact margins are decided week 1 on
+   real pitches, they are not findings).
+3. **`resetQuota()` per run** is wired (teammate, same day): the
+   pipeline resets the quota counter at the start of each live run so
+   the 150-call cap is per-run, not per-process.
+
 ## Seeds
 
 `CONTROL_SEEDS` in `src/lib/qloo/controls.ts`: 20 genre-spread controls
