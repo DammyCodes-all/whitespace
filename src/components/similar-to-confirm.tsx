@@ -28,8 +28,8 @@ export function SimilarToConfirm({
         Similar to — confirm the list
       </h3>
       <p className="mt-1 font-mono text-xs text-ink-3">
-        Checked against fixture data for Day 2; live Qloo check lands with the
-        Day 6 seam.
+        AI-proposed or fixture titles; every title is checked against Qloo at
+        run time.
       </p>
       <ul className="mt-3 border-t border-rule">
         {suggestions.map((s) => (
