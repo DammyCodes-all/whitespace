@@ -26,7 +26,12 @@ export type {
   FetchAllTastesResult,
   FetchTastesResult,
 } from "@/lib/qloo/tastes";
-export { QlooError } from "./client.ts";
+export {
+  getQuotaUsage,
+  MAX_CALLS_PER_RUN,
+  QlooError,
+  resetQuota,
+} from "./client.ts";
 export { CONTROL_SEEDS } from "./control-seeds.ts";
 export {
   buildControls,

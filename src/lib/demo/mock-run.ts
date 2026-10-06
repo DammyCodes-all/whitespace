@@ -64,10 +64,15 @@ export const mockSteps: RunStep[] = [
   {
     id: "score",
     label: "Fit scores",
-    status: "active",
+    status: "done",
     detail: "rank-normalized 0 to 1",
   },
-  { id: "verdict", label: "Control test and verdict", status: "pending" },
+  {
+    id: "verdict",
+    label: "Control test and verdict",
+    status: "done",
+    detail: "Strong, top rival-lit",
+  },
 ];
 
 export const mockAudiences: Audience[] = [

@@ -37,6 +37,7 @@ import {
   buildRivals,
   CONTROL_COUNT,
   fetchAllAudienceTastes,
+  resetQuota,
   resolvePitchTags,
   resolveTitles,
 } from "../qloo/index.ts";
@@ -122,6 +123,11 @@ export async function runPipeline(
     rivalProposals,
     ...pitch
   } = input;
+  // Fresh quota + cache per run: the client counts network fetches in
+  // module state, so without this run N inherits run 1's usage and a
+  // second full run trips the per-run cap (§11). Reach/change/chatbot
+  // marks after the pipeline share this run's remaining budget.
+  resetQuota();
   const calls: QlooCall[] = [];
   const steps: RunStep[] = [];
 
