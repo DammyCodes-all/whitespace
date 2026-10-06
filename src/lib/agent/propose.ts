@@ -40,17 +40,17 @@ export interface ProposeResult {
   rivalProposals: ProposeRival[];
 }
 
-export class LlmError extends Error {
-  readonly provider: string;
-  readonly configured: boolean;
+export { LlmError } from "./llm-client.ts";
 
-  constructor(message: string, provider: string, configured = true) {
-    super(message);
-    this.name = "LlmError";
-    this.provider = provider;
-    this.configured = configured;
-  }
-}
+import {
+  type ChatMessage,
+  callChatCompletions,
+  extractJson,
+  GROQ_URL,
+  LlmError,
+  OPENROUTER_URL,
+  readEnv,
+} from "./llm-client.ts";
 
 /** Caps guard quota and prompt size (§11). */
 export const MAX_SIMILAR_TITLES = 5;
@@ -60,14 +60,6 @@ export const MIN_CANDIDATE_WORDS = 5;
 export const RIVAL_COUNT = 3;
 export const MAX_RIVAL_TITLES = 5;
 export const MIN_RIVAL_TITLES = 3;
-
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-
-function readEnv(name: string): string | null {
-  const value = process.env[name];
-  return value === undefined || value.trim() === "" ? null : value.trim();
-}
 
 export function isLlmConfigured(): boolean {
   return (
@@ -103,16 +95,6 @@ function systemPrompt(workType: WorkType): string {
     `candidateWords ${MIN_CANDIDATE_WORDS} to ${MAX_CANDIDATE_WORDS} single descriptive words (genre, mood, setting, theme, format), lowercase, no names.`,
     `rivalProposals exactly ${RIVAL_COUNT} genuinely different readings of the same pitch, each with ${MIN_RIVAL_TITLES} to ${MAX_RIVAL_TITLES} real titles. Reasons are one sentence. Titles are real titles only, never ids or numbers.`,
   ].join("\n");
-}
-
-/** Strip markdown fences the model sometimes adds despite JSON-only. */
-function extractJson(content: string): string {
-  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const raw = (fenced?.[1] ?? content).trim();
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return raw;
-  return raw.slice(start, end + 1);
 }
 
 /** Validated + capped; exported for unit tests (pure, no I/O). */
@@ -167,67 +149,6 @@ export function toResult(data: unknown): ProposeResult {
   return { similarTitles, candidateWords, rivalProposals };
 }
 
-interface ChatMessage {
-  role: "system" | "user";
-  content: string;
-}
-
-async function callChatCompletions(
-  url: string,
-  apiKey: string,
-  model: string,
-  messages: ChatMessage[],
-  provider: string,
-  extraHeaders: Record<string, string> = {},
-): Promise<string> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20000);
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        ...extraHeaders,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        response_format: { type: "json_object" },
-        temperature: 0.2,
-        max_tokens: 1200,
-      }),
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      throw new LlmError(
-        `${provider} failed with status ${res.status}.`,
-        provider,
-        true,
-      );
-    }
-    const data: unknown = await res.json().catch(() => null);
-    const content = (
-      data as { choices?: { message?: { content?: unknown } }[] }
-    )?.choices?.[0]?.message?.content;
-    if (typeof content !== "string" || content.trim() === "") {
-      throw new LlmError(`${provider} returned no content.`, provider, true);
-    }
-    return content;
-  } catch (err) {
-    if (err instanceof LlmError) throw err;
-    throw new LlmError(
-      err instanceof Error && err.name === "AbortError"
-        ? `${provider} timed out.`
-        : `${provider} request failed.`,
-      provider,
-      true,
-    );
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 /**
  * Propose similar titles, candidate words and rival readings for a pitch.
  * Tries Groq first, then OpenRouter. Throws `LlmError`; never returns
@@ -264,7 +185,7 @@ export async function proposeProposals(
   let lastError: unknown = null;
   if (groqKey !== null) {
     try {
-      const model = readEnv("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
+      const model = readEnv("GROQ_MODEL") ?? "openai/gpt-oss-120b";
       const content = await callChatCompletions(
         GROQ_URL,
         groqKey,
@@ -280,7 +201,7 @@ export async function proposeProposals(
   if (openRouterKey !== null) {
     try {
       const model =
-        readEnv("OPENROUTER_MODEL") ?? "meta-llama/llama-3.3-70b-instruct:free";
+        readEnv("OPENROUTER_MODEL") ?? "nvidia/nemotron-3-ultra-550b-a55b:free";
       const appUrl = readEnv("NEXT_PUBLIC_APP_URL") ?? "http://localhost:3000";
       const content = await callChatCompletions(
         OPENROUTER_URL,
@@ -288,7 +209,7 @@ export async function proposeProposals(
         model,
         messages,
         "openrouter",
-        { "HTTP-Referer": appUrl, "X-Title": "Whitespace" },
+        { extraHeaders: { "HTTP-Referer": appUrl, "X-Title": "Whitespace" } },
       );
       return toResult(JSON.parse(extractJson(content)));
     } catch (err) {
