@@ -16,6 +16,8 @@ The join point is `runPipeline()` in `src/lib/pipeline/run.ts`, owned by S. Q ex
 
 `WAIT:` means that day's work needs to land first. Do fixture-backed work until it does.
 
+U's Day 1 mock run page (`src/app/run/page.tsx`) already renders the run-steps view, the verdict, the ranked list with no-data flags, and the evidence calls inline on mocks. Day 3 to Day 5 lift those into their planned components instead of building from scratch, since the shapes are frozen in `src/lib/types.ts`; Day 5 still owns the drawer interaction the mocks lack. The Day 6 seam swaps the data source, not these views.
+
 ## Week 1: pipeline end to end
 
 ### Day 1: contracts
