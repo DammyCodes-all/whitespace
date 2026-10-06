@@ -31,6 +31,18 @@ import type { FitScore, VerdictResult } from "../types.ts";
 /**
  * Provisional stubs. §6.7 sets these by testing on real pitches; Day 10
  * records v1. Change them here and nothing else in the codebase moves.
+ *
+ * Calibration protocol (Day 10 S): `node scripts/calibrate-margins.ts`
+ * with QLOO_API_KEY set runs the Day 8 pack through the real pipeline
+ * and prints the margin distributions behind these numbers — hyp vs
+ * rival, hyp vs control, plus the quota line. The recorded run goes in
+ * docs/qloo-coverage.md and the constants move from there. Until that
+ * run exists, these stay the provisional defaults; do not tune them by
+ * eye against one pitch (§6.7: margins are findings, not defaults).
+ *
+ * Invariant: MIN_RISE (policy/change.ts) must stay >= SPLIT_MARGIN —
+ * otherwise the change bar would accept a move smaller than the verdict
+ * policy calls a tie. The Day 8 pack fixture note tracks this.
  */
 export const CONTROL_MARGIN = 0.1;
 export const SPLIT_MARGIN = 0.05;
