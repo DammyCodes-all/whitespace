@@ -4,16 +4,13 @@
  *
  * Pure function, exported for unit tests. Absent or invalid input falls
  * back to `demoPipelineInput` (§6.1, §9). Next.js already percent-decodes
- * `searchParams` once, so plain `JSON.parse` comes first: decoding again
- * corrupts pitches containing `%` (e.g. "100% improvised"). A single
- * decode is retried only for legacy double-encoded links.
+ * `searchParams` once, so this parses the raw value as-is: decoding again
+ * corrupts pitches containing `%` (e.g. "100% improvised"). Only
+ * single-encoded links (what the form emits) are accepted.
  */
 
-import {
-  demoPipelineInput,
-  type PipelineInput,
-} from "@/lib/pipeline/run";
 import type { WorkType } from "@/lib/types";
+import { demoPipelineInput, type PipelineInput } from "../pipeline/run.ts";
 
 const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
 
@@ -31,11 +28,7 @@ function decodeInput(raw: string): unknown {
   try {
     return JSON.parse(raw);
   } catch {
-    try {
-      return JSON.parse(decodeURIComponent(raw));
-    } catch {
-      return null;
-    }
+    return null;
   }
 }
 

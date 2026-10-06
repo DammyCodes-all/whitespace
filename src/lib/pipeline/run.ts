@@ -53,6 +53,8 @@ export interface PipelineInput extends PitchInput {
   similarTitles: string[];
   /** Suggested descriptive words to check against Qloo tags (§6.5). */
   candidateWords: string[];
+  /** Subset of candidateWords the user pinned; counts double (§6.6). */
+  pinnedWords?: string[];
   /** AI's alternative readings (§6.3); grounded by `buildRivals`. */
   rivalProposals: RivalProposal[];
 }
@@ -113,7 +115,13 @@ export async function runPipeline(
       "runPipeline is server-only and cannot run in the browser.",
     );
   }
-  const { similarTitles, candidateWords, rivalProposals, ...pitch } = input;
+  const {
+    similarTitles,
+    candidateWords,
+    pinnedWords = [],
+    rivalProposals,
+    ...pitch
+  } = input;
   const calls: QlooCall[] = [];
   const steps: RunStep[] = [];
 
@@ -137,6 +145,16 @@ export async function runPipeline(
 
   const tagRes = await resolvePitchTags(candidateWords);
   calls.push(...tagRes.calls);
+  // §6.6: pinned must-haves count double. resolvePitchTags returns
+  // pinned:false; the UI's pinnedWords list is applied here (S-owned).
+  // Local mirror of Q's normalizeKey (kept here per file ownership):
+  // "slow-burn" and "slow burn" are the same word for pinning.
+  const normalizeWord = (value: string): string =>
+    value.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  const pinnedSet = new Set(pinnedWords.map(normalizeWord).filter(Boolean));
+  const pitchTags = tagRes.tags.map((tag) =>
+    pinnedSet.has(normalizeWord(tag.tag)) ? { ...tag, pinned: true } : tag,
+  );
   const suggested = tagRes.tags.length + tagRes.notFoundWords.length;
   steps.push(
     doneStep(
@@ -223,8 +241,8 @@ export async function runPipeline(
   const controlTastes = controlRes.controls.map(
     (c) => tasteById.get(c.id) ?? missingTastes(c.id),
   );
-  const contenderScores = scoreAll(contenderTastes, tagRes.tags);
-  const controlScores = scoreAll(controlTastes, tagRes.tags);
+  const contenderScores = scoreAll(contenderTastes, pitchTags);
+  const controlScores = scoreAll(controlTastes, pitchTags);
   steps.push(doneStep("score", "Fit scores", "rank-normalized 0 to 1"));
 
   const verdict = decideVerdict({
@@ -243,14 +261,14 @@ export async function runPipeline(
 
   const knownTitleIds = audiences.flatMap((a) => a.titles.map((t) => t.qlooId));
   const knownTagIds = [
-    ...tagRes.tags.map((t) => t.qlooTagId),
+    ...pitchTags.map((t) => t.qlooTagId),
     ...all.flatMap((t) => t.tagIds),
   ];
   const grounding = checkGrounding(
     [hypothesis, ...rivalRes.rivals].flatMap((a) =>
       a.titles.map((t) => t.qlooId),
     ),
-    tagRes.tags.map((t) => t.qlooTagId),
+    pitchTags.map((t) => t.qlooTagId),
     knownTitleIds,
     knownTagIds,
   );
@@ -260,7 +278,7 @@ export async function runPipeline(
     hypothesis,
     rivals: rivalRes.rivals,
     controls: controlRes.controls,
-    tags: tagRes.tags,
+    tags: pitchTags,
     coverage: tagRes.coverage,
     scores: [...contenderScores, ...controlScores],
     verdict,
