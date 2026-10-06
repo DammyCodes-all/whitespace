@@ -28,3 +28,6 @@ Format:
 | 2026-10-06 | Add fit-score 0 to 1 with rank norm, pinned x2, zero vs no-data | §6.6 | biome+tsc clean; node strip-types smoke 7/7; next build pass |
 | 2026-10-06 | Add audience tastes fetch on /v2/insights with per-item never-throw | §6.6 | biome+tsc clean; next build pass (mock path yields no-data) |
 | 2026-10-06 | Add run-steps fake-stream player on fixtures | §5.4 | biome+tsc clean; next build pass |
+| 2026-10-06 | Add control test plus verdict with tunable margins stub | §6.7 | biome+tsc clean; tsx smoke 8/8 branches; next build pass |
+| 2026-10-06 | Add rival retry and replace grounded on resolve plus overlap | §6.3 | biome+tsc clean; tsx mock-path smoke; next build pass |
+| 2026-10-06 | Add verdict headline plus ranked list, lift /run onto them | §6.7 | biome+tsc clean; next build pass |
