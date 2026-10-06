@@ -1,0 +1,103 @@
+import assert from "node:assert/strict";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import {
+  getQuotaUsage,
+  MAX_CALLS_PER_RUN,
+  QlooError,
+  QlooQuotaError,
+  qlooFetch,
+  resetQuota,
+} from "./client.ts";
+
+const SAVED_KEY = process.env.QLOO_API_KEY;
+const SAVED_FETCH = globalThis.fetch;
+
+function stubFetch(payload: unknown, status = 200): void {
+  process.env.QLOO_API_KEY = "test-key";
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify(payload), { status })) as typeof fetch;
+}
+
+describe("qlooFetch cache", () => {
+  beforeEach(() => {
+    resetQuota();
+  });
+
+  afterEach(() => {
+    if (SAVED_KEY === undefined) delete process.env.QLOO_API_KEY;
+    else process.env.QLOO_API_KEY = SAVED_KEY;
+    globalThis.fetch = SAVED_FETCH;
+    resetQuota();
+  });
+
+  it("serves repeats from cache with fresh traces", async () => {
+    stubFetch({ success: true, results: [{ entity_id: "a" }] });
+    const first = await qlooFetch("/search", { query: "Moon" });
+    const second = await qlooFetch("/search", { query: "Moon" });
+    assert.equal(first.trace.fromCache, false);
+    assert.equal(second.trace.fromCache, true);
+    assert.notEqual(first.trace.id, second.trace.id);
+    assert.deepEqual(second.data, first.data);
+    assert.deepEqual(getQuotaUsage(), { calls: 1, cached: 1 });
+  });
+
+  it("keys cache entries by sorted params", async () => {
+    stubFetch({ success: true, results: [] });
+    await qlooFetch("/search", { query: "x" });
+    const other = await qlooFetch("/search", { query: "y" });
+    assert.equal(other.trace.fromCache, false);
+    assert.deepEqual(getQuotaUsage(), { calls: 2, cached: 0 });
+  });
+
+  it("isolates callers from cached payloads", async () => {
+    stubFetch({ success: true, results: [{ entity_id: "a" }] });
+    const first = await qlooFetch("/search", { query: "Moon" });
+    (first.data as { results: unknown[] }).results.push("poison");
+    const second = await qlooFetch("/search", { query: "Moon" });
+    assert.deepEqual((second.data as { results: unknown[] }).results, [
+      { entity_id: "a" },
+    ]);
+  });
+
+  it("resetQuota zeroes counters and drops entries", async () => {
+    stubFetch({ success: true, results: [] });
+    await qlooFetch("/search", { query: "x" });
+    await qlooFetch("/search", { query: "x" });
+    resetQuota();
+    assert.deepEqual(getQuotaUsage(), { calls: 0, cached: 0 });
+    const after = await qlooFetch("/search", { query: "x" });
+    assert.equal(after.trace.fromCache, false);
+  });
+});
+
+describe("qlooFetch quota", () => {
+  beforeEach(() => {
+    resetQuota();
+  });
+
+  afterEach(() => {
+    if (SAVED_KEY === undefined) delete process.env.QLOO_API_KEY;
+    else process.env.QLOO_API_KEY = SAVED_KEY;
+    globalThis.fetch = SAVED_FETCH;
+    resetQuota();
+  });
+
+  it("throws a non-QlooError breach past the cap, never a fake not-found", async () => {
+    stubFetch({ success: true, results: [] });
+    for (let i = 0; i < MAX_CALLS_PER_RUN; i += 1) {
+      await qlooFetch("/search", { query: `q${i}` });
+    }
+    await assert.rejects(
+      () => qlooFetch("/search", { query: "over" }),
+      (err) => {
+        assert.ok(err instanceof QlooQuotaError);
+        // Critical: never a QlooError, so callers cannot degrade a quota
+        // blowout into fake not-found/no-data.
+        assert.ok(!(err instanceof QlooError));
+        assert.match((err as Error).message, /quota exceeded/);
+        assert.equal((err as QlooQuotaError).usage.calls, MAX_CALLS_PER_RUN);
+        return true;
+      },
+    );
+  });
+});
