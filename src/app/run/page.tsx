@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EvidenceCalls } from "@/components/evidence";
 import { RankedList } from "@/components/ranked-list";
+import { RunSaver } from "@/components/run-saver";
 import { RunStream } from "@/components/run-stream";
 import { VerdictHeadline } from "@/components/verdict";
 import {
@@ -11,56 +12,127 @@ import {
   mockSteps,
   mockVerdict,
 } from "@/lib/demo/mock-run";
+import { demoPipelineInput, runPipeline } from "@/lib/pipeline/run";
+import type { PipelineResult } from "@/lib/types";
 
 /**
- * Day 1 /run skeleton on U-owned mocks (§5.4).
- * Live runPipeline() seam wires here Day 6; mocks stay as saved-run
- * fallback (§9, §10 #6). Server Component, light-only, static.
+ * Day 6 U: run page on the live seam with saved-run fallback. Owned by U.
+ *
+ * Server Component: awaits `runPipeline()` (server-only) and renders the
+ * result through the Day 3 to Day 5 views. The pipeline never throws on
+ * Qloo failure, so the catch below only fires on programming errors —
+ * then the Day 1 mocks render with an honest "on mocks" label (§9).
+ * A save-only island stores live runs for replay (§6.12, §10 #6);
+ * loading them back is later demo work. Static prerender: the build-time
+ * run takes the mock path and is cheap.
+ *
+ * Spec ref: §5.4 (watch the agent work), §6.7 (verdict), §6.12
+ * (evidence trace), §9 (saved runs as fallback).
  */
 
 export const metadata = {
-  title: "Sample run: Whitespace",
+  title: "Run: Whitespace",
   description:
-    "A sample audience run on mocks. Live Qloo wiring lands with the Day 6 seam.",
+    "A live audience run through the pipeline, with saved runs and mocks as fallback.",
 };
 
-const CONTROL_CEILING = 0.44;
+/** Mock ceiling from the Day 1 fixture scores; live runs derive it. */
+const MOCK_CONTROL_CEILING = 0.44;
 
-/** Day 1 mock citation per audience; Day 6 replaces these with real traces. */
-const AUDIENCE_CALL_IDS: Record<string, string> = {
+/** Day 1 mocks as a full PipelineResult for the fallback render. */
+function mockResult(): PipelineResult {
+  const hypothesis =
+    mockAudiences.find((a) => a.kind === "hypothesis") ?? mockAudiences[0];
+  return {
+    input: mockInput,
+    hypothesis,
+    rivals: mockAudiences.filter((a) => a.kind === "rival"),
+    controls: [],
+    tags: [],
+    coverage: 2 / 3,
+    scores: mockScores,
+    verdict: mockVerdict,
+    grounding: { ok: true, ungroundedTitles: [], ungroundedTags: [] },
+    calls: mockCalls,
+    steps: mockSteps,
+  };
+}
+
+/** Day 1 mock citation per audience; live runs derive these from steps. */
+const MOCK_AUDIENCE_CALL_IDS: Record<string, string> = {
   hyp: "call-search-1",
   "rival-lit": "call-insights-1",
   "rival-amb": "call-search-2",
 };
 
-export default function RunPage() {
-  const top = mockAudiences.find((a) => a.id === mockVerdict.topAudienceId);
+export default async function RunPage() {
+  let result: PipelineResult;
+  let live = true;
+  try {
+    result = await runPipeline(demoPipelineInput);
+  } catch {
+    result = mockResult();
+    live = false;
+  }
+
+  const audiences = [result.hypothesis, ...result.rivals];
+  const top = audiences.find((a) => a.id === result.verdict.topAudienceId);
+
+  const controlIds = new Set(result.controls.map((c) => c.id));
+  const controlBest = result.scores
+    .filter((s) => controlIds.has(s.audienceId))
+    .reduce((best, s) => Math.max(best, s.score), 0);
+  const controlCeiling = controlBest > 0 ? controlBest : MOCK_CONTROL_CEILING;
+
+  // Step-based evidence map (§6.12): each audience links the pipeline
+  // step that produced it. Keys stay absent when a phase made no calls,
+  // and the list falls back to its placeholder citation.
+  const stepCallId = (id: string) =>
+    result.steps.find((s) => s.id === id)?.callId;
+  const audienceCallIds: Record<string, string> = live
+    ? {}
+    : { ...MOCK_AUDIENCE_CALL_IDS };
+  if (live) {
+    const hypCall = stepCallId("hypothesis");
+    if (hypCall !== undefined) audienceCallIds[result.hypothesis.id] = hypCall;
+    const rivalCall = stepCallId("rivals");
+    if (rivalCall !== undefined) {
+      for (const rival of result.rivals) audienceCallIds[rival.id] = rivalCall;
+    }
+    const controlCall = stepCallId("controls") ?? stepCallId("tastes");
+    if (controlCall !== undefined) {
+      for (const control of result.controls)
+        audienceCallIds[control.id] = controlCall;
+    }
+  }
+
+  const context = live ? "live" : "on mocks";
 
   return (
     <main className="flex flex-1 flex-col">
       <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 sm:px-8">
         <p className="font-mono text-xs tracking-tight text-ink-3">
-          Sample run on mocks
+          {live ? "Live run" : "Sample run on mocks"}
         </p>
         <VerdictHeadline
-          verdict={mockVerdict}
-          pitchText={mockInput.pitchText}
-          context="on mocks"
+          verdict={result.verdict}
+          pitchText={result.input.pitchText}
+          context={context}
         />
 
         <div className="mt-8">
-          <RunStream steps={mockSteps} />
+          <RunStream steps={result.steps} />
         </div>
 
         <RankedList
-          audiences={mockAudiences}
-          scores={mockScores}
-          controlCeiling={CONTROL_CEILING}
-          audienceCallIds={AUDIENCE_CALL_IDS}
-          topName={top ? `${top.name} (on mocks)` : undefined}
+          audiences={audiences}
+          scores={result.scores}
+          controlCeiling={controlCeiling}
+          audienceCallIds={audienceCallIds}
+          topName={top ? `${top.name}${live ? "" : " (on mocks)"}` : undefined}
         />
 
-        <EvidenceCalls calls={mockCalls} />
+        <EvidenceCalls calls={result.calls} />
 
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <Link
@@ -69,9 +141,13 @@ export default function RunPage() {
           >
             Back to start
           </Link>
-          <p className="font-mono text-xs text-ink-3">
-            Live Qloo wiring lands with the Day 6 seam.
-          </p>
+          {live ? (
+            <RunSaver result={result} id="latest" />
+          ) : (
+            <p className="font-mono text-xs text-ink-3">
+              Live run failed, showing mocks.
+            </p>
+          )}
         </div>
       </div>
     </main>
