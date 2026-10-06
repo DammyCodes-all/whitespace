@@ -143,7 +143,7 @@ export async function runPipeline(
     ),
   );
 
-  const tagRes = await resolvePitchTags(candidateWords);
+  const tagRes = await resolvePitchTags(candidateWords, input.workType);
   calls.push(...tagRes.calls);
   // §6.6: pinned must-haves count double. resolvePitchTags returns
   // pinned:false; the UI's pinnedWords list is applied here (S-owned).
@@ -213,7 +213,10 @@ export async function runPipeline(
     ...controlRes.controls,
     exclusion,
   ];
-  const { all, calls: tasteCalls } = await fetchAllAudienceTastes(audiences);
+  const { all, calls: tasteCalls } = await fetchAllAudienceTastes(
+    audiences,
+    input.workType,
+  );
   calls.push(...tasteCalls);
   steps.push(
     doneStep(
