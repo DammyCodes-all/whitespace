@@ -92,7 +92,7 @@ function systemPrompt(workType: WorkType): string {
     '"candidateWords":["word1","word2","word3"],',
     `"rivalProposals":[{"id":"rival-1","name":"short reading","reason":"one sentence","titles":["t1","t2","t3"]}]}`,
     `Rules: similarTitles ${MIN_SIMILAR_TITLES} to ${MAX_SIMILAR_TITLES} real, well-known ${workType} titles close to the pitch.`,
-    `candidateWords ${MIN_CANDIDATE_WORDS} to ${MAX_CANDIDATE_WORDS} single descriptive words (genre, mood, setting, theme, format), lowercase, no names.`,
+    `candidateWords ${MIN_CANDIDATE_WORDS} to ${MAX_CANDIDATE_WORDS} single descriptive words (genre, mood, setting, theme, format), lowercase, no names. Avoid event logistics or production language (e.g. screening, archive, dj set, film screening); prefer terms that describe taste-level genre/theme/mood/setting.`,
     `rivalProposals exactly ${RIVAL_COUNT} genuinely different readings of the same pitch, each with ${MIN_RIVAL_TITLES} to ${MAX_RIVAL_TITLES} real titles. Reasons are one sentence. Titles are real titles only, never ids or numbers.`,
   ].join("\n");
 }
