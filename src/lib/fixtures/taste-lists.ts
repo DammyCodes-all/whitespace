@@ -9,6 +9,9 @@
  * zero) and two short lists (missing = no-data), plus one truncated
  * list flag exercised in tests.
  *
+ * Keys of TASTE_FIXTURES must match audience ids in
+ * src/lib/demo/mock-run.ts; fetchAudienceTastes throws loudly on a miss.
+ *
  * Plain objects and interfaces only: this file must stay runnable under
  * `node --test` type stripping (no enums, no namespaces).
  */

@@ -1,67 +1,103 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { TASTE_FIXTURES } from "../fixtures/taste-lists.ts";
-import type { AudienceTastes } from "../qloo/tastes.ts";
-import { parseTastesEnvelope } from "../qloo/tastes.ts";
-import { coverage, scoreFit, tagWeight } from "./fit.ts";
+import type { AudienceTastes } from "./fit.ts";
+import {
+  coverage,
+  isUnjudgeable,
+  rankStrength,
+  scoreAll,
+  scoreAudience,
+} from "./fit.ts";
 import { SAMPLE_PITCH_TAGS, SAMPLE_SUGGESTED_COUNT } from "./fixtures.ts";
 
-function tastesFor(audienceId: string): AudienceTastes {
+/** Fixture tag ids in affinity order: position is the rank. */
+function tagIdsFor(audienceId: string): string[] {
   const envelope = TASTE_FIXTURES[audienceId];
   assert.ok(envelope, `missing fixture ${audienceId}`);
-  return parseTastesEnvelope(audienceId, envelope, `test-${audienceId}`);
+  return [...envelope.results.entities]
+    .sort((a, b) => b.affinity - a.affinity)
+    .map((e) => e.tag_id);
 }
 
-describe("tagWeight", () => {
-  it("doubles pinned tags at the same rank", () => {
-    assert.equal(tagWeight(true, 2), 2 * tagWeight(false, 2));
-    assert.equal(tagWeight(true, 1), 2);
-    assert.equal(tagWeight(false, 1), 1);
+function tastesFor(audienceId: string): AudienceTastes {
+  return { audienceId, tagIds: tagIdsFor(audienceId) };
+}
+
+function approx(actual: number, expected: number): void {
+  assert.ok(
+    Math.abs(actual - expected) < 1e-9,
+    `expected ~${expected}, got ${actual}`,
+  );
+}
+
+describe("rankStrength", () => {
+  it("scores rank 1 of N as 1 and rank N as 1/N", () => {
+    assert.equal(rankStrength(1, 20), 1);
+    assert.equal(rankStrength(20, 20), 1 / 20);
+  });
+
+  it("scores out-of-range ranks as 0", () => {
+    assert.equal(rankStrength(0, 20), 0);
+    assert.equal(rankStrength(21, 20), 0);
+    assert.equal(rankStrength(1, 0), 0);
   });
 });
 
-describe("scoreFit on fixtures", () => {
+describe("scoreAudience on fixtures", () => {
   it("scores the full-list hypothesis with zero (not no-data) for missing tags", () => {
-    const result = scoreFit(SAMPLE_PITCH_TAGS, tastesFor("hyp"));
+    const result = scoreAudience(tastesFor("hyp"), SAMPLE_PITCH_TAGS);
     assert.deepEqual(result.matchedTags, ["slow-burn", "space"]);
     assert.deepEqual(result.zeroTags, ["solitude", "quiet"]);
     assert.deepEqual(result.noDataTags, []);
-    assert.ok(result.score > 0 && result.score < 1);
+    // Pinned slow-burn at rank 2 of 20: 2*19/20. Space at rank 5: 16/20.
+    approx(result.score, (2 * (19 / 20) + 16 / 20) / 5);
   });
 
-  it("scores the short-list rival with no-data (not zero) for missing tags", () => {
-    const result = scoreFit(SAMPLE_PITCH_TAGS, tastesFor("rival-lit"));
-    assert.ok(result.matchedTags.includes("solitude"));
-    assert.ok(result.noDataTags.includes("space"));
+  it("counts pinned must-haves double", () => {
+    const unpinned = SAMPLE_PITCH_TAGS.map((t) => ({ ...t, pinned: false }));
+    const pinned = scoreAudience(tastesFor("hyp"), SAMPLE_PITCH_TAGS).score;
+    const plain = scoreAudience(tastesFor("hyp"), unpinned).score;
+    assert.ok(pinned > plain);
+  });
+
+  it("reports every tag no-data on a short list", () => {
+    const result = scoreAudience(tastesFor("rival-lit"), SAMPLE_PITCH_TAGS);
+    assert.equal(result.score, 0);
+    assert.deepEqual(result.matchedTags, []);
     assert.deepEqual(result.zeroTags, []);
+    assert.deepEqual(result.noDataTags.map((t) => t).sort(), [
+      "quiet",
+      "slow-burn",
+      "solitude",
+      "space",
+    ]);
+    assert.equal(isUnjudgeable(result), true);
   });
 
-  it("treats a truncated long list as no-data", () => {
-    const full = tastesFor("hyp");
-    const truncated: AudienceTastes = { ...full, truncated: true };
-    const result = scoreFit(SAMPLE_PITCH_TAGS, truncated);
+  it("reports every tag no-data on a failed fetch", () => {
+    const result = scoreAudience(
+      { audienceId: "hyp", tagIds: [], failed: true },
+      SAMPLE_PITCH_TAGS,
+    );
+    assert.equal(result.score, 0);
     assert.deepEqual(result.zeroTags, []);
-    assert.deepEqual(result.noDataTags.sort(), ["solitude", "quiet"].sort());
+    assert.equal(result.noDataTags.length, SAMPLE_PITCH_TAGS.length);
+    assert.equal(isUnjudgeable(result), true);
   });
 
-  it("returns a perfect 1 when every tag matches at rank 1", () => {
-    const tastes: AudienceTastes = {
-      audienceId: "perfect",
-      tastes: SAMPLE_PITCH_TAGS.map((t, i) => ({
-        tag: t.tag,
-        rank: 1,
-        entityId: `x${i}`,
-      })),
-      totalReturned: 20,
-      truncated: false,
-      callId: "test",
-    };
-    // All four at rank 1 exceeds the possible weight, so it clamps to 1.
-    assert.equal(scoreFit(SAMPLE_PITCH_TAGS, tastes).score, 1);
+  it("honors a lowered judgement threshold", () => {
+    const result = scoreAudience(tastesFor("rival-lit"), SAMPLE_PITCH_TAGS, {
+      minTastesForJudgement: 5,
+    });
+    assert.deepEqual(result.matchedTags, ["slow-burn", "solitude", "quiet"]);
+    assert.deepEqual(result.zeroTags, ["space"]);
+    // Solitude rank 1 of 8, slow-burn rank 4 (pinned), quiet rank 5.
+    approx(result.score, (1 + 2 * (5 / 8) + 4 / 8) / 5);
   });
 
   it("returns 0 with empty evidence on empty pitch tags instead of throwing", () => {
-    const result = scoreFit([], tastesFor("hyp"));
+    const result = scoreAudience(tastesFor("hyp"), []);
     assert.equal(result.score, 0);
     assert.deepEqual(result.matchedTags, []);
     assert.deepEqual(result.zeroTags, []);
@@ -70,9 +106,22 @@ describe("scoreFit on fixtures", () => {
 
   it("keeps every score inside 0..1", () => {
     for (const id of ["hyp", "rival-lit", "rival-amb"]) {
-      const s = scoreFit(SAMPLE_PITCH_TAGS, tastesFor(id)).score;
+      const s = scoreAudience(tastesFor(id), SAMPLE_PITCH_TAGS).score;
       assert.ok(s >= 0 && s <= 1, `${id} out of bounds: ${s}`);
     }
+  });
+});
+
+describe("scoreAll", () => {
+  it("scores every audience against one shared tag list", () => {
+    const results = scoreAll(
+      ["hyp", "rival-lit", "rival-amb"].map(tastesFor),
+      SAMPLE_PITCH_TAGS,
+    );
+    assert.deepEqual(
+      results.map((r) => r.audienceId),
+      ["hyp", "rival-lit", "rival-amb"],
+    );
   });
 });
 

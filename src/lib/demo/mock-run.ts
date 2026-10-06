@@ -8,6 +8,9 @@
  *
  * Spec ref: §5.4 (watch the agent work), §6.7 (verdict + margins),
  * §6.12 (every claim opens its Qloo call).
+ *
+ * Audience ids here double as keys into the Q-owned taste fixtures
+ * (src/lib/fixtures/taste-lists.ts); renaming one breaks that fetch.
  */
 
 import type {
