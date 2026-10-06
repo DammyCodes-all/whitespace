@@ -98,7 +98,7 @@ export function RankedList({
                   style={{ width: `${pct}%` }}
                 />
                 <div
-                  className="absolute inset-y-[-4px] w-px bg-ink"
+                  className="control-line absolute inset-y-[-4px]"
                   style={{ left: `${Math.round(controlCeiling * 100)}%` }}
                   aria-hidden="true"
                 />

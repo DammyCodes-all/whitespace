@@ -108,14 +108,19 @@
       transparent 1px,
       transparent 4px
     );
-    border: 1px dashed var(--nodata-hatch);
+    border: 1px dashed var(--ink-3);
   }
 
   /* Evidence markers are citations, not buttons (§6.12). */
   .cite {
+    display: inline-flex;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    align-items: center;
+    justify-content: center;
     font-family: var(--font-plex-mono), ui-monospace, monospace;
     font-size: 0.6875rem;
-    vertical-align: super;
+    vertical-align: middle;
     color: var(--ink-3);
     text-decoration-line: underline;
     text-decoration-thickness: 1px;
@@ -126,6 +131,17 @@
   .cite:hover {
     color: var(--measured);
     text-decoration-color: currentcolor;
+  }
+
+  .control-line {
+    width: 1.5px;
+    background: var(--ink);
+  }
+}
+
+@media (max-width: 640px) {
+  .cite {
+    margin-inline: 0.125rem;
   }
 }
 
