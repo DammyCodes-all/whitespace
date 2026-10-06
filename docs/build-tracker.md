@@ -46,3 +46,4 @@ Format:
 | 2026-10-06 | Add Day 7 U reach plan UI with gaps on pipeline result | §6.8 | biome scoped clean; node:test 48 pass; typecheck+build pass |
 | 2026-10-06 | Add Day 7 S gap finder with tests | §6.8 | biome scoped clean; node:test pass; typecheck+build pass |
 | 2026-10-06 | Fix review findings: parallel reach fetch, unique shelf keys | §6.8, §10 #6 | biome scoped clean; typecheck+build pass |
+| 2026-10-06 | Add pinned-tags UI and chatbot no-tools answer rows to plan | §6.6, §6.11 | markdown only, no build needed |

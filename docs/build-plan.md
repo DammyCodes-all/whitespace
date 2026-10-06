@@ -69,6 +69,7 @@ U's Day 1 mock run page (`src/app/run/page.tsx`) already renders the run-steps v
 |---|---|---|---|
 | U | LLM seam: Groq primary plus OpenRouter fallback, server-only propose step for similar titles, candidate words, 3 rival readings (JSON only, grounded downstream) | `src/lib/agent/propose.ts`, `.env.example` (`GROQ_API_KEY`, `OPENROUTER_API_KEY`) | WAIT: Day 6 S `PipelineInput` shapes (§7, §6.2/§6.3/§6.5) |
 | U | Form to run wiring: home pitch posts to `/run` through propose plus confirm, replaces demo-input hardcode | `src/app/page.tsx`, `src/app/run/page.tsx` | WAIT: LLM seam above (§6.1) |
+| U | Pinned must-have tags UI: pin suggested words at confirm, pass `pinned` through to scoring (already counts double) | `src/components/pitch-form.tsx`, `src/app/run/page.tsx` | WAIT: LLM seam above (§6.6) |
 | Q | Run coverage test live and lock demo domain, film versus music | `docs/qloo-coverage.md` | API key present (§11, §6.4). Blocks Day 10 S margins |
 
 ### Day 7: reach plan (§6.8)
@@ -89,6 +90,7 @@ U's Day 1 mock run page (`src/app/run/page.tsx`) already renders the run-steps v
 | Dev | Task | Files | Depends |
 |---|---|---|---|
 | Q | Chatbot title-mark helper (found or not-found through resolve) | `src/lib/qloo/mark.ts` | WAIT: Day 2 Q resolve |
+| U | Chatbot answer call: same pitch to same model with no Qloo tools, plain request (§6.11) | `src/lib/agent/chatbot.ts` | WAIT: Day 6.5 LLM seam (§6.11) |
 | S | Inconclusive rules (coverage floor, no-data counts) | `src/lib/policy/verdict.ts` (own file) | None (§6.7) |
 | U | Audience case one-pager (printable, footer disclaimer) | `src/lib/case/build.ts`, `src/app/case/page.tsx` | WAIT: Day 6 seam; fixtures first |
 
