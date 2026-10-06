@@ -10,7 +10,7 @@
  */
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PitchForm } from "@/components/pitch-form";
 import { EXAMPLE_RUN_INPUT } from "@/lib/demo/example-run-input";
 import type { ResolvedTitle } from "@/lib/types";
@@ -24,6 +24,8 @@ export function PitchFlow({
 }) {
   const [pitch, setPitch] = useState("");
   const [step, setStep] = useState<"idea" | "sharpen">("idea");
+  const [emptyNudge, setEmptyNudge] = useState(false);
+  const ideaRef = useRef<HTMLTextAreaElement>(null);
   const exampleHref = `/run?input=${encodeURIComponent(
     JSON.stringify(EXAMPLE_RUN_INPUT),
   )}`;
@@ -72,34 +74,47 @@ export function PitchFlow({
   }
 
   return (
-    <section className="mt-10">
-      <label htmlFor="idea" className="block text-lg tracking-tight text-ink">
+    <section className="mt-12">
+      <label htmlFor="idea" className="sr-only">
         What are you making?
       </label>
       <textarea
         id="idea"
+        ref={ideaRef}
         value={pitch}
         onChange={(e) => setPitch(e.target.value)}
-        rows={6}
-        placeholder="A quiet science-fiction film about a lonely worker on a space station."
-        className="mt-3 w-full border border-rule bg-surface px-4 py-3 text-[15px] text-ink placeholder:text-ink-3"
+        onFocus={() => setEmptyNudge(false)}
+        rows={5}
+        placeholder="A tender sci-fi drama for people who like slow-burn stories, with a lonely and hopeful feel."
+        className="mt-3 min-h-40 w-full resize-y border border-ink-2 bg-surface px-5 py-4 text-left text-[15px] leading-relaxed text-ink placeholder:text-ink-3 transition-colors focus:border-ink focus:outline-none focus:ring-2 focus:ring-measured/30"
       />
-      <div className="mt-3 flex flex-wrap items-center gap-4">
+      <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
         <button
           type="button"
-          onClick={() => setStep("sharpen")}
-          disabled={pitch.trim() === ""}
-          className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97] disabled:cursor-not-allowed disabled:bg-rule disabled:text-ink-3"
+          onClick={() => {
+            if (pitch.trim() === "") {
+              setEmptyNudge(true);
+              ideaRef.current?.focus();
+              return;
+            }
+            setStep("sharpen");
+          }}
+          className="inline-flex min-h-11 items-center justify-center bg-ink px-6 py-3 text-sm text-white transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
         >
           Find my audience
         </button>
         <Link
           href={exampleHref}
-          className="border border-rule px-4 py-2.5 text-sm text-ink transition-colors hover:border-ink-3 hover:bg-surface"
+          className="inline-flex min-h-11 items-center justify-center border border-ink-2 px-6 py-3 text-sm text-ink transition-colors hover:border-ink hover:bg-surface"
         >
           Try an example
         </Link>
       </div>
+      {emptyNudge && (
+        <p role="alert" className="mt-3 text-center text-sm text-ink-2">
+          Start with a sentence about what you&apos;re making.
+        </p>
+      )}
     </section>
   );
 }

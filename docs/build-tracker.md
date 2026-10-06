@@ -68,3 +68,11 @@ Format:
 | 2026-10-06 | Refresh homepage CTA hierarchy, labels, eyebrow, and optional skip path | §5, §6.1 | pnpm check, typecheck, build pass; browser smoke confirms focus ring and skip link clean |
 | 2026-10-06 | Enforce measured-only accent, semantic no-data labels, mobile targets, and cached sample arc | §6.7, §6.12 | pnpm check, typecheck, build pass; cached /run smoke shows Strong surprise and not measured state |
 | 2026-10-06 | Widen shared page shells for desktop while preserving readable prose measures | n/a | pnpm check, typecheck, build pass |
+| 2026-10-06 | Center the full-width home surface around a 720px input-first hero | §5, §6.1 | pnpm check, typecheck, build pass; home smoke confirms page-width surface and hidden New fit link |
+| 2026-10-06 | Widen the centered home hero, remove the eyebrow, and sharpen the headline copy | §1, §5 | pnpm check, typecheck, build pass |
+| 2026-10-06 | Add more top breathing room to the centered home hero | n/a | pnpm check, typecheck, build pass |
+| 2026-10-06 | Refine home input hierarchy, CTA empty state, copy, and spacing | §5, §6.1 | pnpm check, typecheck, build pass; eyebrow intentionally omitted |
+| 2026-10-06 | Remove the bottom border from the site navigation header | n/a | pnpm check, typecheck pass |
+| 2026-10-06 | Remove the visible homepage textarea label while preserving accessible naming | n/a | pnpm check, typecheck pass |
+| 2026-10-06 | Remove the shared footer disclaimer and separator from the page shell | n/a | pnpm check, typecheck, build pass |
+| 2026-10-06 | Redesign the homepage input surface and action row | §5, §6.1 | pnpm check, typecheck, build pass; browser smoke confirms 720px input and ink CTA |

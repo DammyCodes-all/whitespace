@@ -5,7 +5,6 @@ import {
   Instrument_Serif,
 } from "next/font/google";
 import type { ReactNode } from "react";
-import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -49,7 +48,6 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col font-sans text-ink antialiased">
         <SiteHeader />
         {children}
-        <SiteFooter />
       </body>
     </html>
   );
