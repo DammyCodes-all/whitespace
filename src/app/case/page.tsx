@@ -43,7 +43,7 @@ export default async function CasePage({
   } catch {
     return (
       <main className="flex flex-1 flex-col">
-        <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 sm:px-8">
+        <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 sm:px-8">
           <p className="font-mono text-xs tracking-tight text-ink-3">
             Audience case
           </p>
@@ -78,7 +78,7 @@ export default async function CasePage({
 
   return (
     <main className="flex flex-1 flex-col">
-      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-12 sm:px-8">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 sm:px-8">
         <p className="font-mono text-xs tracking-tight text-ink-3">
           Audience case
         </p>

@@ -5,7 +5,7 @@ export default function Home() {
   const hypothesis = mockAudiences.find((a) => a.kind === "hypothesis");
   return (
     <main className="flex flex-1 flex-col">
-      <div className="mx-auto w-full max-w-3xl flex-1 px-6 py-24 sm:px-8">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-24 sm:px-8">
         <p className="font-mono text-sm tracking-tight text-ink-2">
           Audience fit for creative work
         </p>

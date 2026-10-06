@@ -67,3 +67,4 @@ Format:
 | 2026-10-06 | Revamp first screen into idea-only pitch flow | §6.1 | giant idea input above the fold, optional similar-to/nothing-like on step 2, example goes straight to /run, 103 pass; check+typecheck+build clean |
 | 2026-10-06 | Refresh homepage CTA hierarchy, labels, eyebrow, and optional skip path | §5, §6.1 | pnpm check, typecheck, build pass; browser smoke confirms focus ring and skip link clean |
 | 2026-10-06 | Enforce measured-only accent, semantic no-data labels, mobile targets, and cached sample arc | §6.7, §6.12 | pnpm check, typecheck, build pass; cached /run smoke shows Strong surprise and not measured state |
+| 2026-10-06 | Widen shared page shells for desktop while preserving readable prose measures | n/a | pnpm check, typecheck, build pass |
