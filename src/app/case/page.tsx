@@ -53,7 +53,7 @@ export default async function CasePage({
           <div className="mt-8">
             <Link
               href="/run"
-              className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+              className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
             >
               Back to the run
             </Link>
@@ -176,7 +176,7 @@ export default async function CasePage({
           <CasePrintButton />
           <Link
             href={backHref}
-            className="inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+            className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
           >
             Back to the run
           </Link>

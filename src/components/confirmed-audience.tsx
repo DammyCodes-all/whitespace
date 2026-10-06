@@ -42,7 +42,7 @@ export function ConfirmedAudience({
       )}
       <Link
         href={runHref}
-        className="mt-3 inline-block bg-measured px-5 py-2.5 text-sm text-white transition-transform duration-150 ease-out active:scale-[0.97]"
+        className="mt-3 inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
       >
         {runHref === "/run" ? "See a sample run" : "Run this pitch"}
       </Link>
