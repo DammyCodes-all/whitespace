@@ -39,3 +39,6 @@ Format:
 | 2026-10-06 | Merge origin Day 2/4/5 work; port Day 3 scoring tests onto shared fit API | §6.6 | biome scoped clean; node:test pass; typecheck+build pass |
 | 2026-10-06 | Fix review findings: honest verdict margins, single stream player, unified coverage | §6.7, §10 #4 | biome scoped clean; node:test 18 pass; typecheck+build pass |
 | 2026-10-06 | Add Day 7 Q related-items fetch with fixtures and label map | §6.8 | biome scoped clean; node:test 29 pass; typecheck+build pass |
+| 2026-10-06 | Add Qloo public seam barrel for pipeline wiring | §7 | biome+tsc clean on new file; tsx seam smoke 17/17; next build pass |
+| 2026-10-06 | Wire runPipeline from Qloo seam to score to verdict on fixtures | §5.4, §6, §7, §8 | biome+tsc clean; tsx --test 4/4 (shape, Inconclusive, repeatability, empty); next build pass |
+| 2026-10-06 | Wire run page to seam with step evidence plus save-only island | §5.4, §6.12, §10 #6 | biome+tsc clean; next build pass; tsx step check 7/7 |

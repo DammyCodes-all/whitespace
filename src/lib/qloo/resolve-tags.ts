@@ -13,9 +13,9 @@
  * §11 (caps guard quota).
  */
 
-import { QlooError, qlooFetch } from "@/lib/qloo/client";
-import { cleanQueries, normalizeKey } from "@/lib/qloo/resolve-shared";
 import type { PitchTag, QlooCall } from "@/lib/types";
+import { QlooError, qlooFetch } from "./client.ts";
+import { cleanQueries, normalizeKey } from "./resolve-shared.ts";
 
 /** Grilled Day 2 decision: caps guard quota (§11). */
 export const MAX_TAG_WORDS = 20;

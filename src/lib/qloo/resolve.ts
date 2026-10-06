@@ -10,13 +10,13 @@
  */
 
 export type { ResolveTagsResult } from "@/lib/qloo/resolve-tags";
+export type { ResolveTitlesResult } from "@/lib/qloo/resolve-titles";
 export {
   MAX_TAG_WORDS,
   resolvePitchTags,
-} from "@/lib/qloo/resolve-tags";
-export type { ResolveTitlesResult } from "@/lib/qloo/resolve-titles";
+} from "./resolve-tags.ts";
 export {
   MAX_TITLE_QUERIES,
   resolveTitles,
   WORK_TYPE_TO_SEARCH_TYPES,
-} from "@/lib/qloo/resolve-titles";
+} from "./resolve-titles.ts";
