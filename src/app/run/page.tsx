@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChatbotPreview, type ChatbotView } from "@/components/chatbot-preview";
 import { EvidenceCalls } from "@/components/evidence";
 import { RankedList } from "@/components/ranked-list";
 import type { ReachAudience } from "@/components/reach";
@@ -6,6 +7,8 @@ import { ReachPlan } from "@/components/reach";
 import { RunSaver } from "@/components/run-saver";
 import { RunStream } from "@/components/run-stream";
 import { VerdictHeadline } from "@/components/verdict";
+import { answerChatbot } from "@/lib/agent/chatbot";
+import { LlmError } from "@/lib/agent/llm-client";
 import {
   mockAudiences,
   mockCalls,
@@ -18,12 +21,9 @@ import {
   mockVerdict,
 } from "@/lib/demo/mock-run";
 import { parseRunInput } from "@/lib/demo/parse-run-input";
-import { selectReachTargets } from "@/lib/demo/reach-targets";
-import { TAG_LABELS } from "@/lib/fixtures/tag-labels";
+import { buildReachGroups } from "@/lib/demo/reach-groups";
 import { runPipeline } from "@/lib/pipeline/run";
-import { fetchRelated } from "@/lib/qloo/related";
-import { fetchAllAudienceTastes } from "@/lib/qloo/tastes";
-import { countUnlabeled, findGaps } from "@/lib/scoring/gaps";
+import { markChatbotTitles } from "@/lib/qloo/mark";
 import type { PipelineResult, QlooCall } from "@/lib/types";
 
 /**
@@ -89,13 +89,52 @@ export default async function RunPage({
 }) {
   const params = (await searchParams) ?? {};
   const pipelineInput = parseRunInput(params.input);
+  // Day 9 U: the chatbot answers in parallel with the pipeline — it needs
+  // no Qloo, so serializing it would only spend the 90s budget (§10 #6).
+  // Either side may fail independently; the run never depends on the bot.
+  const [pipeRes, chatRes] = await Promise.allSettled([
+    runPipeline(pipelineInput),
+    answerChatbot({
+      pitchText: pipelineInput.pitchText,
+      workType: pipelineInput.workType,
+    }),
+  ]);
   let result: PipelineResult;
   let live = true;
-  try {
-    result = await runPipeline(pipelineInput);
-  } catch {
+  if (pipeRes.status === "fulfilled") {
+    result = pipeRes.value;
+  } else {
     result = mockResult();
     live = false;
+  }
+
+  // §6.11 marks: every chatbot title checked in Qloo. Keyless the bot
+  // throws `configured=false` at once, so this costs nothing keyless;
+  // live it adds one LLM call plus one `/search` per unique title (§11).
+  let chatbot: ChatbotView | null = null;
+  let chatbotCalls: QlooCall[] = [];
+  let chatbotError: string | null = null;
+  if (live && chatRes.status === "fulfilled") {
+    try {
+      const marks = await markChatbotTitles(
+        chatRes.value.titles,
+        pipelineInput.workType,
+      );
+      chatbot = {
+        answer: chatRes.value.answer,
+        found: marks.found,
+        notFoundTitles: marks.notFoundTitles,
+      };
+      chatbotCalls = marks.calls;
+    } catch {
+      chatbotError = "Chatbot titles could not be checked in Qloo.";
+    }
+  } else if (chatRes.status === "rejected") {
+    const reason = chatRes.reason;
+    chatbotError =
+      reason instanceof LlmError && reason.configured === false
+        ? "Chatbot comparison needs an LLM key."
+        : "Chatbot comparison failed.";
   }
 
   const audiences = [result.hypothesis, ...result.rivals];
@@ -131,45 +170,16 @@ export default async function RunPage({
 
   const context = live ? "live" : "on mocks";
 
-  // Day 7 U: reach plan for the verdict's targets. Tastes are refetched
-  // for the top audience only until the pipeline exposes them; related
-  // calls join the evidence list so every citation resolves (§10 #8).
-  const targets = live
-    ? selectReachTargets(result.verdict, result.scores, audiences)
-    : [];
-  const reachGroups: ReachAudience[] = [];
-  const reachCalls: QlooCall[] = [];
-  if (live && targets.length > 0) {
-    const excludeIds = result.hypothesis.titles.map((t) => t.qlooId);
-    const { all: tasteLists } = await fetchAllAudienceTastes(
-      targets,
-      result.input.workType,
-    );
-    // Targets are independent: fetch concurrently, then assemble in
-    // order so the evidence list stays deterministic (§10 #7).
-    const relatedLists = await Promise.all(
-      targets.map((audience) => fetchRelated(audience, excludeIds)),
-    );
-    targets.forEach((audience, index) => {
-      const related = relatedLists[index] ?? [];
-      const tastes = tasteLists.find((t) => t.audienceId === audience.id);
-      const gaps = tastes ? findGaps(tastes, result.tags, TAG_LABELS) : [];
-      const unlabeledCount = tastes
-        ? countUnlabeled(tastes, result.tags, TAG_LABELS)
-        : 0;
-      for (const group of related) {
-        if (group.call !== null) reachCalls.push(group.call);
-      }
-      reachGroups.push({
-        audience,
-        headline: index === 0 ? "Best fit" : "Runner-up · Split verdict",
-        related,
-        gaps,
-        unlabeledCount,
-        tastesCallId: stepCallId("tastes"),
-      });
-    });
-  } else if (!live && top) {
+  // Day 7 U + Day 9 U: reach plan for the verdict's targets, assembled
+  // in one place so `/run` and `/case` agree. Related calls join the
+  // evidence list so every citation resolves (§10 #8).
+  let reachGroups: ReachAudience[] = [];
+  let reachCalls: QlooCall[] = [];
+  if (live) {
+    const built = await buildReachGroups(result);
+    reachGroups = built.groups;
+    reachCalls = built.calls;
+  } else if (top) {
     reachGroups.push({
       audience: top,
       headline: "Best fit",
@@ -206,7 +216,11 @@ export default async function RunPage({
 
         <ReachPlan groups={reachGroups} />
 
-        <EvidenceCalls calls={[...result.calls, ...reachCalls]} />
+        <ChatbotPreview chatbot={chatbot} error={chatbotError} />
+
+        <EvidenceCalls
+          calls={[...result.calls, ...reachCalls, ...chatbotCalls]}
+        />
 
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <Link
@@ -215,6 +229,14 @@ export default async function RunPage({
           >
             Back to start
           </Link>
+          {live ? (
+            <Link
+              href={`/case?input=${encodeURIComponent(JSON.stringify(pipelineInput))}`}
+              className="inline-block border border-rule px-5 py-2.5 text-sm text-ink transition-colors hover:border-ink"
+            >
+              Audience case
+            </Link>
+          ) : null}
           {live ? (
             <RunSaver result={result} id="latest" />
           ) : (
