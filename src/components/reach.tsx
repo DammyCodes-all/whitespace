@@ -38,20 +38,20 @@ function byKindOrder(a: RelatedResult, b: RelatedResult): number {
 
 function CategoryShelf({ group }: { group: RelatedResult }) {
   return (
-    <div className="border-b border-rule py-4">
+    <div className="bg-paper p-4 sm:p-5">
       <h3 className="text-base tracking-tight text-ink">
         {KIND_LABELS[group.kind]}
       </h3>
       {group.items.length === 0 ? (
-        <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-2">
+        <p className="nodata mt-3 px-2 py-2 font-mono text-xs text-ink-2">
           not measured
         </p>
       ) : (
-        <ul className="mt-2">
+        <ul className="mt-2 divide-y divide-rule">
           {group.items.map((item) => (
             <li
               key={item.entityId}
-              className="flex items-baseline justify-between gap-4 py-1"
+              className="flex items-baseline justify-between gap-4 py-2"
             >
               <p className="text-[15px] tracking-tight text-ink">{item.name}</p>
               <p
@@ -87,20 +87,20 @@ function GapList({
   tastesCallId?: string;
 }) {
   return (
-    <div className="border-b border-rule py-4">
+    <div className="mt-4 border border-rule bg-surface p-4 sm:p-5">
       <h3 className="text-base tracking-tight text-ink">
         What {audienceName} loves that your pitch doesn&apos;t mention yet
       </h3>
       {gaps.length === 0 ? (
-        <p className="nodata mt-2 px-2 py-2 font-mono text-xs text-ink-2">
+        <p className="nodata mt-3 px-2 py-2 font-mono text-xs text-ink-2">
           not measured
         </p>
       ) : (
-        <ul className="mt-2">
+        <ul className="mt-2 divide-y divide-rule">
           {gaps.map((gap) => (
             <li
               key={gap.tagId}
-              className="flex items-baseline justify-between gap-4 py-1"
+              className="flex items-baseline justify-between gap-4 py-2"
             >
               <p className="text-[15px] tracking-tight text-ink">{gap.label}</p>
               <p
@@ -123,7 +123,7 @@ function GapList({
         </ul>
       )}
       {unlabeledCount > 0 && (
-        <p data-numeric className="mt-2 font-mono text-xs text-ink-3">
+        <p data-numeric className="tnum mt-2 font-mono text-xs text-ink-3">
           +{unlabeledCount} untracked
         </p>
       )}
@@ -146,18 +146,36 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
   return (
     <section aria-label="Reach plan" className="mt-12">
       <h2 className="text-lg tracking-tight text-ink">Reach plan</h2>
-      {groups.map((group) => (
-        <div key={group.audience.id} className="mt-4">
-          <p className="font-serif text-base text-ink">
-            {group.audience.name}{" "}
-            <span className="font-mono text-xs text-ink-3">
-              {group.headline}
-            </span>
-          </p>
-          <div className="mt-2 border-t border-rule">
-            {[...group.related].sort(byKindOrder).map((related, index) => (
-              <CategoryShelf key={`${related.kind}-${index}`} group={related} />
-            ))}
+      {groups.map((group) => {
+        const sorted = [...group.related].sort(byKindOrder);
+        const totalItems = sorted.reduce(
+          (sum, related) => sum + related.items.length,
+          0,
+        );
+        const kindsMeasured = sorted.filter(
+          (related) => related.items.length > 0,
+        ).length;
+        return (
+          <div key={group.audience.id} className="mt-6">
+            <p className="font-serif text-base text-ink">
+              {group.audience.name}{" "}
+              <span className="font-mono text-xs text-ink-3">
+                {group.headline}
+              </span>
+            </p>
+            <p className="mt-1 font-mono text-xs text-ink-2">
+              <span data-numeric className="tnum">
+                {totalItems} picks · {kindsMeasured}/4 kinds measured
+              </span>
+            </p>
+            <div className="mt-3 grid gap-px border border-rule bg-rule sm:grid-cols-2">
+              {sorted.map((related, index) => (
+                <CategoryShelf
+                  key={`${related.kind}-${index}`}
+                  group={related}
+                />
+              ))}
+            </div>
             <GapList
               audienceName={group.audience.name}
               gaps={group.gaps}
@@ -165,8 +183,8 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
               tastesCallId={group.tastesCallId}
             />
           </div>
-        </div>
-      ))}
+        );
+      })}
     </section>
   );
 }
