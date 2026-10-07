@@ -79,3 +79,4 @@ Format:
 | 2026-10-06 | Remove the visible homepage textarea label while preserving accessible naming | n/a | pnpm check, typecheck pass |
 | 2026-10-06 | Remove the shared footer disclaimer and separator from the page shell | n/a | pnpm check, typecheck, build pass |
 | 2026-10-06 | Redesign the homepage input surface and action row | §5, §6.1 | pnpm check, typecheck, build pass; browser smoke confirms 720px input and ink CTA |
+| 2026-10-07 | Redesign chatbot comparison with asymmetric panels, grounding tally, and measured states | §6.11, §6.12, §6.7 | biome+tsc clean on touched file; build pass; chatbot+mark 10 pass |
