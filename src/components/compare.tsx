@@ -81,6 +81,21 @@ export function CompareView({
     (audience) => audience.id === verdict.topAudienceId,
   );
   const topScore = scores.find((score) => score.audienceId === top?.id);
+  const ranked = scores
+    .filter((score) =>
+      audiences.some((audience) => audience.id === score.audienceId),
+    )
+    .sort((a, b) => b.score - a.score);
+  const runnerUp = ranked.find((score) => score.audienceId !== top?.id);
+  const runnerUpAudience = runnerUp
+    ? audiences.find((audience) => audience.id === runnerUp.audienceId)
+    : undefined;
+  const secondName =
+    top === undefined ? "second" : (runnerUpAudience?.name ?? "second");
+  const controlCeilingValue =
+    topScore === undefined
+      ? undefined
+      : topScore.score - verdict.marginTopVsControl;
   const foundCount = chatbot?.found.length ?? 0;
   const totalCount = foundCount + (chatbot?.notFoundTitles.length ?? 0);
   const emptyMessage =
@@ -144,10 +159,33 @@ export function CompareView({
               </span>
             )}
           </p>
+          <p className="mt-2 font-mono text-xs text-ink-3">
+            <span data-numeric className="tnum">
+              Margin {verdict.marginTopVsSecond.toFixed(2)} over {secondName} ·{" "}
+              {verdict.marginTopVsControl.toFixed(2)} over control
+            </span>
+          </p>
+          {top !== undefined && top.titles.length > 0 && (
+            <p className="mt-2 text-sm leading-relaxed text-ink-2">
+              Measured from: {top.titles.map((title) => title.name).join(", ")}
+              {top.notFoundTitles.length > 0 && (
+                <span className="font-mono text-xs text-ink-3">
+                  {" "}
+                  · {top.notFoundTitles.length} not found in Qloo
+                </span>
+              )}
+            </p>
+          )}
           <p className="mt-3 font-mono text-xs text-ink-3">
             {verdict.clearsControl
               ? "Beat the unrelated control audiences by a clear margin."
               : "Did not beat the unrelated control audiences by a clear margin."}
+            {controlCeilingValue !== undefined && (
+              <span data-numeric className="tnum">
+                {" "}
+                Ceiling {controlCeilingValue.toFixed(2)}.
+              </span>
+            )}
           </p>
         </div>
         <div className="bg-paper p-5 sm:p-6 md:col-span-5">
