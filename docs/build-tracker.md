@@ -82,3 +82,4 @@ Format:
 | 2026-10-07 | Redesign chatbot comparison with asymmetric panels, grounding tally, and measured states | §6.11, §6.12, §6.7 | biome+tsc clean on touched file; build pass; chatbot+mark 10 pass |
 | 2026-10-07 | Redesign reach plan with 2-col shelves, Rank labels, and tally line | §6.8, §6.12 | biome+tsc clean on touched file; build pass |
 | 2026-10-07 | Tone down reach plan type changes, keep layout and tally | §6.8 | biome+tsc clean; build pass |
+| 2026-10-08 | Rewrite compare view copy with takeaway line and titles-check framing | §6.11, §6.7, §6.12 | biome+tsc clean on touched file; build pass |
