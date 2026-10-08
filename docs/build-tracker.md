@@ -42,6 +42,7 @@ Format:
 | 2026-10-08 | Fix accordion snap with starting-style start frame | §6.12 | biome+tsc clean; next build pass; starting-style verified in built CSS |
 | 2026-10-08 | Redesign saved-run replay with human labels | §6.12 | biome+tsc clean; next build pass |
 | 2026-10-08 | Dedupe replay verdict, word-boundary cuts, honest 0 | §6.6, §10 #4 | biome+tsc clean; next build pass |
+| 2026-10-08 | Distill replay to top-3 scores, hide ties | §6.12 | biome+tsc clean; next build pass |
 | 2026-10-06 | Merge origin Day 2/4/5 work; port Day 3 scoring tests onto shared fit API | §6.6 | biome scoped clean; node:test pass; typecheck+build pass |
 | 2026-10-06 | Fix review findings: honest verdict margins, single stream player, unified coverage | §6.7, §10 #4 | biome scoped clean; node:test 18 pass; typecheck+build pass |
 | 2026-10-06 | Add Day 7 Q related-items fetch with fixtures and label map | §6.8 | biome scoped clean; node:test 29 pass; typecheck+build pass |
