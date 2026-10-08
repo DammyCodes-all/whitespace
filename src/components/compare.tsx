@@ -82,16 +82,23 @@ export function CompareView({
   );
   const topScore = scores.find((score) => score.audienceId === top?.id);
   const foundCount = chatbot?.found.length ?? 0;
-  const notFoundCount = chatbot?.notFoundTitles.length ?? 0;
-  const totalCount = foundCount + notFoundCount;
-  const groundingPct =
-    chatbot !== null && totalCount > 0
-      ? Math.round((foundCount / totalCount) * 100)
-      : null;
+  const totalCount = foundCount + (chatbot?.notFoundTitles.length ?? 0);
   const emptyMessage =
     error?.startsWith("not measured") === true
       ? error
       : `not measured: ${error ?? "Chatbot comparison unavailable."}`;
+  const verdictLabel =
+    verdict.verdict === "Strong"
+      ? "Strong fit"
+      : verdict.verdict === "Weak"
+        ? "Weak fit"
+        : verdict.verdict;
+  const takeaway =
+    verdict.verdict === "Inconclusive"
+      ? "Not enough Qloo data to judge. Both sides are withheld."
+      : verdict.clearsControl
+        ? "The measured result beats the chatbot guess. Left has Qloo evidence, right is ungrounded by design."
+        : "Neither method earned trust here. The measured result ran low, and the chatbot guess has no measurements.";
 
   return (
     <section aria-label="Chatbot comparison" className="mt-12">
@@ -100,29 +107,9 @@ export function CompareView({
         Same pitch, two methods: Whitespace uses Qloo taste evidence; the
         chatbot receives no Qloo tools.
       </p>
-      {chatbot !== null && totalCount > 0 ? (
-        <p className="mt-2 font-mono text-xs text-ink-2">
-          <span data-numeric className="tnum">
-            chatbot titles: {totalCount} checked · {foundCount} found ·{" "}
-            {notFoundCount} not found
-          </span>
-          {groundingPct !== null && (
-            <span data-numeric className="tnum">
-              {" "}
-              · grounding {groundingPct}%
-            </span>
-          )}
-          {chatbotCallId !== undefined && (
-            <a
-              href={`#${chatbotCallId}`}
-              className="cite ml-1"
-              aria-label="Evidence for chatbot title checks"
-            >
-              [e]
-            </a>
-          )}
-        </p>
-      ) : null}
+      <p className="mt-2 max-w-prose text-sm font-medium leading-relaxed text-ink">
+        {takeaway}
+      </p>
       <div className="mt-4 grid gap-px border border-rule bg-rule md:grid-cols-12">
         <div className="bg-surface p-5 sm:p-6 md:col-span-7">
           <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
@@ -131,20 +118,13 @@ export function CompareView({
           <p
             className={`mt-4 font-serif text-2xl ${verdictColor(verdict.verdict)}`}
           >
-            {verdict.verdict}
-            {topCallId !== undefined && (
-              <a
-                href={`#${topCallId}`}
-                className="cite ml-2 font-mono text-xs"
-                aria-label="Evidence for Whitespace verdict"
-              >
-                [e]
-              </a>
-            )}
+            {verdictLabel}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-ink-2">
             <span className="font-serif text-base text-ink">
-              {top?.name ?? "No audience could be judged"}
+              {top === undefined
+                ? "No audience could be judged"
+                : `Best measured: ${top.name}`}
             </span>
             {topScore !== undefined && (
               <span
@@ -152,13 +132,22 @@ export function CompareView({
                 className="tnum ml-2 font-mono text-sm text-ink"
               >
                 {topScore.score.toFixed(2)}
+                {topCallId !== undefined && (
+                  <a
+                    href={`#${topCallId}`}
+                    className="cite ml-1 font-mono text-xs"
+                    aria-label="Evidence for Whitespace verdict"
+                  >
+                    [e]
+                  </a>
+                )}
               </span>
             )}
           </p>
           <p className="mt-3 font-mono text-xs text-ink-3">
             {verdict.clearsControl
-              ? "Clears the control ceiling."
-              : "Does not clear the control ceiling."}
+              ? "Beat the unrelated control audiences by a clear margin."
+              : "Did not beat the unrelated control audiences by a clear margin."}
           </p>
         </div>
         <div className="bg-paper p-5 sm:p-6 md:col-span-5">
@@ -175,19 +164,31 @@ export function CompareView({
                 title in Qloo.
               </p>
             </>
+          ) : totalCount === 0 ? (
+            <p className="nodata mt-4 px-2 py-2 font-mono text-xs text-ink-3">
+              not measured: no titles to check
+            </p>
           ) : (
             <>
-              <p className="mt-4 font-mono text-[13px] leading-relaxed text-ink-2">
+              <p className="mt-4 max-w-prose text-sm leading-relaxed text-ink-2">
                 {chatbot.answer}
               </p>
+              <p className="mt-4 font-mono text-xs text-ink-2">
+                <span data-numeric className="tnum">
+                  Titles check: {foundCount}/{totalCount} exist in Qloo. Advice
+                  unmeasured.
+                </span>
+                {chatbotCallId !== undefined && (
+                  <a
+                    href={`#${chatbotCallId}`}
+                    className="cite ml-1"
+                    aria-label="Evidence for chatbot title checks"
+                  >
+                    [e]
+                  </a>
+                )}
+              </p>
               <ChatbotTitles chatbot={chatbot} callId={chatbotCallId} />
-              {groundingPct !== null && (
-                <p className="mt-3 font-mono text-xs text-ink-3">
-                  <span data-numeric className="tnum">
-                    grounding {foundCount}/{totalCount} = {groundingPct}%
-                  </span>
-                </p>
-              )}
             </>
           )}
         </div>
