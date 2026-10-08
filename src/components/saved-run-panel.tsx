@@ -59,11 +59,12 @@ export function SavedRunPanel() {
     run.verdict.topAudienceId === null
       ? "no top audience"
       : audienceName(run, run.verdict.topAudienceId);
-  const topScore =
-    run.verdict.topAudienceId === null
-      ? null
-      : (run.scores.find((s) => s.audienceId === run.verdict.topAudienceId) ??
-        null);
+  const ranked = [...run.scores].sort((a, b) => b.score - a.score);
+  const topThree = ranked.slice(0, 3);
+  const rest = ranked.slice(3);
+  // Twenty identical zeros carry no information — the verdict line
+  // already said it. Only list scores when they differ.
+  const scoresDiffer = new Set(ranked.map(scoreText)).size > 1;
 
   return (
     <section
@@ -101,23 +102,57 @@ export function SavedRunPanel() {
         </p>
         <p data-numeric className="tnum mt-1 font-mono text-xs text-ink-3">
           {run.verdict.verdict} · {topName}
-          {run.scores.length <= 1 && topScore !== null
-            ? ` · ${scoreText(topScore)}`
-            : ""}
         </p>
-        {run.scores.length > 1 ? (
-          <ul className="mt-2 space-y-1 font-mono text-xs">
-            {run.scores.map((score) => (
-              <li key={score.audienceId} className="flex justify-between gap-4">
-                <span className="truncate text-ink-2">
-                  {audienceName(run, score.audienceId)}
-                </span>
-                <span data-numeric className="tnum shrink-0 text-ink-3">
-                  {scoreText(score)}
-                </span>
-              </li>
-            ))}
-          </ul>
+        {scoresDiffer ? (
+          <>
+            <ul className="mt-2 space-y-1 font-mono text-xs">
+              {topThree.map((score) => (
+                <li
+                  key={score.audienceId}
+                  className="flex justify-between gap-4"
+                >
+                  <span className="truncate text-ink-2">
+                    {audienceName(run, score.audienceId)}
+                  </span>
+                  <span data-numeric className="tnum shrink-0 text-ink-3">
+                    {scoreText(score)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {rest.length > 0 ? (
+              <details className="group/aud mt-1.5">
+                <summary className="cursor-pointer list-none font-mono text-xs text-ink-3 underline decoration-dotted underline-offset-4 hover:text-ink">
+                  <span className="group-open/aud:hidden">
+                    all {ranked.length} audiences
+                  </span>
+                  <span className="hidden group-open/aud:inline">hide</span>
+                </summary>
+                <div className="grid grid-rows-[0fr] group-open/aud:grid-rows-[1fr] starting:grid-rows-[0fr] motion-safe:transition-[grid-template-rows] motion-safe:duration-200 motion-safe:ease-out">
+                  <div className="overflow-hidden">
+                    <ul className="mt-1.5 max-h-64 space-y-1 overflow-y-auto font-mono text-xs">
+                      {rest.map((score) => (
+                        <li
+                          key={score.audienceId}
+                          className="flex justify-between gap-4"
+                        >
+                          <span className="truncate text-ink-2">
+                            {audienceName(run, score.audienceId)}
+                          </span>
+                          <span
+                            data-numeric
+                            className="tnum shrink-0 text-ink-3"
+                          >
+                            {scoreText(score)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            ) : null}
+          </>
         ) : null}
         {run.calls.length > 0 ? (
           <details className="group/trace mt-3">
