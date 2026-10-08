@@ -36,6 +36,12 @@ Format:
 | 2026-10-06 | Add evidence calls component plus saved-run store, lift /run | §6.12 | biome+tsc clean; tsx round-trip smoke; next build pass |
 | 2026-10-06 | Split resolve, controls, pitch-form into modules under 200 lines | n/a | biome+tsc clean; tsx barrel+seeds smoke; next build pass |
 | 2026-10-05 | Fix pnpm Node 22 shim via nvm install 22 + global pnpm 10.30.1 | n/a | pnpm -v 10.30.1; pnpm install --frozen-lockfile passes |
+| 2026-10-08 | Claim-first evidence calls with All-calls collapse | §6.10, §6.12 | biome+tsc clean; next build pass; case suite 3 pass |
+| 2026-10-08 | Lighten evidence rows, quiet full-trace toggle | §6.12 | biome+tsc clean; next build pass |
+| 2026-10-08 | Animate evidence accordions with CSS grid rows | §6.12 | biome+tsc clean; next build pass |
+| 2026-10-08 | Fix accordion snap with starting-style start frame | §6.12 | biome+tsc clean; next build pass; starting-style verified in built CSS |
+| 2026-10-08 | Redesign saved-run replay with human labels | §6.12 | biome+tsc clean; next build pass |
+| 2026-10-08 | Dedupe replay verdict, word-boundary cuts, honest 0 | §6.6, §10 #4 | biome+tsc clean; next build pass |
 | 2026-10-06 | Merge origin Day 2/4/5 work; port Day 3 scoring tests onto shared fit API | §6.6 | biome scoped clean; node:test pass; typecheck+build pass |
 | 2026-10-06 | Fix review findings: honest verdict margins, single stream player, unified coverage | §6.7, §10 #4 | biome scoped clean; node:test 18 pass; typecheck+build pass |
 | 2026-10-06 | Add Day 7 Q related-items fetch with fixtures and label map | §6.8 | biome scoped clean; node:test 29 pass; typecheck+build pass |
@@ -83,3 +89,4 @@ Format:
 | 2026-10-07 | Redesign reach plan with 2-col shelves, Rank labels, and tally line | §6.8, §6.12 | biome+tsc clean on touched file; build pass |
 | 2026-10-07 | Tone down reach plan type changes, keep layout and tally | §6.8 | biome+tsc clean; build pass |
 | 2026-10-08 | Rewrite compare view copy with takeaway line and titles-check framing | §6.11, §6.7, §6.12 | biome+tsc clean on touched file; build pass |
+| 2026-10-08 | Add margins, runner-up, basis titles, and ceiling to compare left panel | §6.7, §6.11, §6.12 | biome+tsc clean on touched file; build pass |
