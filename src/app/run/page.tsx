@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChangeView } from "@/components/change";
 import type { ChatbotView } from "@/components/chatbot-preview";
 import { CompareView } from "@/components/compare";
+import type { EvidenceLine } from "@/components/evidence";
 import { EvidenceCalls } from "@/components/evidence";
 import { RankedList } from "@/components/ranked-list";
 import type { ReachAudience } from "@/components/reach";
@@ -241,6 +242,45 @@ export default async function RunPage({
     }
   }
 
+  // Claim-first evidence (§6.10, §6.12): the steps the run page
+  // already cites, plus reach/chatbot/change calls, render up front;
+  // the rest collapses under "All calls".
+  const evidence: EvidenceLine[] = [
+    ...result.steps.flatMap((step) =>
+      step.callId === undefined
+        ? []
+        : [
+            {
+              text:
+                step.detail !== undefined && step.detail !== ""
+                  ? `${step.label} — ${step.detail}`
+                  : step.label,
+              callId: step.callId,
+            },
+          ],
+    ),
+    ...reachGroups.map((group) => ({
+      text: `Reach for ${group.audience.name}`,
+      callId: group.tastesCallId,
+    })),
+    ...(chatbotCalls[0] !== undefined
+      ? [
+          {
+            text: "Chatbot titles checked in Qloo",
+            callId: chatbotCalls[0].id,
+          },
+        ]
+      : []),
+    ...(changed?.calls[0] !== undefined
+      ? [
+          {
+            text: "Change rechecked under the limit",
+            callId: changed.calls[0].id,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <main className="flex flex-1 flex-col">
       <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-12 sm:px-8">
@@ -347,6 +387,7 @@ export default async function RunPage({
             ...changeCalls,
             ...chatbotCalls,
           ]}
+          evidence={evidence}
         />
 
         <div className="mt-12 flex flex-wrap items-center gap-4">

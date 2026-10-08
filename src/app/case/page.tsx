@@ -170,7 +170,10 @@ export default async function CasePage({
           </p>
         </section>
 
-        <EvidenceCalls calls={[...result.calls, ...reachCalls]} />
+        <EvidenceCalls
+          calls={[...result.calls, ...reachCalls]}
+          evidence={model.evidence}
+        />
 
         <div className="mt-12 flex flex-wrap items-center gap-4 print:hidden">
           <CasePrintButton />
