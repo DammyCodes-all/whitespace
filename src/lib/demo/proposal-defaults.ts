@@ -9,12 +9,13 @@
 
 import type { ProposeRival } from "@/lib/agent/propose";
 
-/** Demo descriptive words (§6.5) until "Suggest with AI" replaces them. */
+/** Demo descriptive words (§6.5) until "Suggest with AI" replaces them.
+ * Genre-led so the §6.6 mean can separate; every word resolves live. */
 export const DEFAULT_CANDIDATE_WORDS: string[] = [
-  "slow-burn",
-  "solitude",
-  "quiet",
+  "science-fiction",
   "space",
+  "drama",
+  "future",
 ];
 
 /** Demo rival readings (§6.3) until "Suggest with AI" replaces them. */

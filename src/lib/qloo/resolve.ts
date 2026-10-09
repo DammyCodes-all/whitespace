@@ -11,10 +11,7 @@
 
 export type { ResolveTagsResult } from "@/lib/qloo/resolve-tags";
 export type { ResolveTitlesResult } from "@/lib/qloo/resolve-titles";
-export {
-  MAX_TAG_WORDS,
-  resolvePitchTags,
-} from "./resolve-tags.ts";
+export { MAX_TAG_WORDS, resolvePitchTags } from "./resolve-tags.ts";
 export {
   MAX_TITLE_QUERIES,
   resolveTitles,

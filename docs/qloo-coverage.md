@@ -63,6 +63,27 @@ verdict and scores (§10 #7).
   ("Fast franchise action") resolves fuzzily and distorts exclusion; Day 8
   fixtures must use real titles.
 
+## Margins v1 (set 2026-10-09, live)
+
+`CONTROL_MARGIN` 0.1 → **0.05** in `src/lib/policy/verdict.ts`
+(`SPLIT_MARGIN`/`SURPRISE_MARGIN` stay stubbed: no live Split or
+surprise observed yet). Basis, all live on hackathon Qloo, film:
+
+| Input (words) | Top | Best control | Gap |
+|---|---|---|---|
+| space, mid-specificity (alien/survival/dystopia/scientist, alien pinned) | hyp 0.744 | Sci-fi epic 0.644 | **0.100** |
+| space, broad genre (science-fiction/fiction/dystopia/space) | rival-amb 0.488 | Horror 0.488 | 0.028 |
+| horror, mid-specificity (horror/folk-horror/grief/ghost) | hyp 0.160 | Fantasy 0.180 | -0.020 |
+| Day 8 pack, all 4 entries (mood-level words) | — | — | 0 (all zeros / Inconclusive) |
+| user space pitch, same 4 words + auto-expansion | hyp 0.360 | Horror 0.262 | **0.098 → Strong** |
+
+0.05 sits between observed noise (≤0.03) and observed signal (0.10).
+Companion fixes shipped the same day: tag resolve prefers the
+namespace variant audiences hold (pipeline resolves tags after tastes);
+propose caps words at 4–6, genre/theme/setting-led (`src/lib/agent/propose.ts`).
+With the bar at 0.05 the space run above returns **Strong** (top hyp,
+no surprise — the guess was right).
+
 ## Day 10 Q status (2026-10-06)
 
 1. **Location call: ship the guard, hide the map.** No live key in the

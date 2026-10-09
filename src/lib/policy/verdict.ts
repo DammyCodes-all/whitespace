@@ -29,26 +29,38 @@ import { isUnjudgeable } from "../scoring/fit.ts";
 import type { FitScore, VerdictResult } from "../types.ts";
 
 /**
- * Provisional stubs. §6.7 sets these by testing on real pitches; Day 10
- * records v1. Change them here and nothing else in the codebase moves.
+ * Margins v1, set 2026-10-09 from live runs (was: provisional stubs).
+ * Evidence (hackathon Qloo, film domain):
+ * - Genuine signal: space pitch, mid-specificity words
+ *   (alien/survival/dystopia/scientist) -> hyp 0.744, best control
+ *   (Sci-fi epic) 0.644, gap 0.0999…
+ * - Noise ceiling: broad genre words -> best gap 0.028 (rival-amb tie
+ *   with Horror control); mood-word pitches -> all zeros, gap 0.
+ * - Nonsense stays out via the coverage floor, not the margin.
+ * CONTROL_MARGIN 0.05 sits between observed noise (<=0.03) and observed
+ * signal (0.10). SPLIT/SURPRISE stay stubbed: no live Split or surprise
+ * case observed yet — do not tune them until one is.
+ * Change them here and nothing else in the codebase moves.
  *
- * Calibration protocol (Day 10 S): `node scripts/calibrate-margins.ts`
- * with QLOO_API_KEY set runs the Day 8 pack through the real pipeline
- * and prints the margin distributions behind these numbers — hyp vs
- * rival, hyp vs control, plus the quota line. The recorded run goes in
- * docs/qloo-coverage.md and the constants move from there. Until that
- * run exists, these stay the provisional defaults; do not tune them by
- * eye against one pitch (§6.7: margins are findings, not defaults).
+ * Re-calibration protocol: `node scripts/calibrate-margins.ts` with
+ * QLOO_API_KEY set runs the Day 8 pack through the real pipeline and
+ * prints fresh margin distributions. Note the pack's hardcoded words are
+ * mood-level (margins 0 on every entry as of 2026-10-09); re-calibrate
+ * against sharp-worded inputs when the pack is updated, and record the
+ * run in docs/qloo-coverage.md (§6.7: margins are findings, not defaults).
  *
  * Invariant: MIN_RISE (policy/change.ts) must stay >= SPLIT_MARGIN —
  * otherwise the change bar would accept a move smaller than the verdict
  * policy calls a tie. The Day 8 pack fixture note tracks this.
  */
-export const CONTROL_MARGIN = 0.1;
+export const CONTROL_MARGIN = 0.05;
 export const SPLIT_MARGIN = 0.05;
 export const SURPRISE_MARGIN = 0.1;
 export const COVERAGE_FLOOR = 0.34;
 export const MAX_UNJUDGEABLE_SHARE = 0.5;
+
+/** Float hygiene: a 0.0999… gap from rank fractions must read as 0.1. */
+const MARGIN_EPSILON = 1e-9;
 
 export interface VerdictInput {
   /** Hypothesis audience id, for the surprise check. */
@@ -160,7 +172,8 @@ export function decideVerdict(
   const hasControls = controlScores.length > 0;
   const controlBest = hasControls ? bestScore(controlScores) : 0;
   const marginTopVsControl = top.score - controlBest;
-  const clearsControl = hasControls && marginTopVsControl >= controlMargin;
+  const clearsControl =
+    hasControls && marginTopVsControl + MARGIN_EPSILON >= controlMargin;
   if (!clearsControl) {
     return {
       verdict: "Weak",
@@ -177,8 +190,8 @@ export function decideVerdict(
   const secondClears =
     second !== null &&
     !isUnjudgeable(second) &&
-    second.score - controlBest >= controlMargin;
-  if (secondClears && marginTopVsSecond < splitMargin) {
+    second.score - controlBest + MARGIN_EPSILON >= controlMargin;
+  if (secondClears && marginTopVsSecond + MARGIN_EPSILON < splitMargin) {
     return {
       verdict: "Split",
       topAudienceId: top.audienceId,
@@ -194,7 +207,7 @@ export function decideVerdict(
     hypothesis !== null &&
     top.audienceId !== hypothesisId &&
     !isUnjudgeable(hypothesis) &&
-    top.score - hypothesis.score >= surpriseMargin;
+    top.score - hypothesis.score + MARGIN_EPSILON >= surpriseMargin;
 
   return {
     verdict: "Strong",

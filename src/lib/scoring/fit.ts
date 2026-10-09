@@ -52,6 +52,12 @@ export interface AudienceTastes {
    * broken by a caller passing one in.
    */
   tagIds: string[];
+  /**
+   * Qloo display names parallel to `tagIds` (same order, same length),
+   * for the expansion retry's vocabulary search. Optional so fixtures
+   * and tests without names keep working; absent means no names known.
+   */
+  tagNames?: string[];
   /** The fetch failed. Nothing is judgeable for this audience (§6.6). */
   failed?: boolean;
 }
@@ -97,21 +103,31 @@ export interface ScoreOptions {
 }
 
 /**
- * §6.6: score one audience against the pitch tags.
- *
- * Returns the frozen `FitScore`. When the audience is unjudgeable the score
- * is 0, but that 0 is a placeholder and must never be drawn; use
- * {@link isUnjudgeable} to tell the no-data case from a real zero.
+ * A pitch tag with its scoring weight and display label. Base tags
+ * weigh 1 (pinned must-haves 2, §6.6); expansion-retry tags
+ * (`@/lib/scoring/expansion`) weigh 0.5 and render `word→Tag Name`.
  */
-export function scoreAudience(
+export interface WeightedTag {
+  tag: PitchTag;
+  weight: number;
+  label?: string;
+}
+
+/**
+ * §6.6: score one audience against weighted pitch tags. Same weighted
+ * mean as ever; `scoreAudience` below is this with standard weights,
+ * so existing callers and tests are unaffected.
+ */
+export function scoreAudienceWeighted(
   tastes: AudienceTastes,
-  tags: PitchTag[],
+  wtags: WeightedTag[],
   options: ScoreOptions = {},
 ): FitScore {
   const minimum = options.minTastesForJudgement ?? MIN_TASTES_FOR_JUDGEMENT;
   const ranks =
     tastes.failed === true ? new Map<string, number>() : rankMap(tastes);
 
+  const labels = wtags.map((w) => w.label ?? w.tag.tag);
   // §6.6: a failed or short list judges nothing, so every tag is no-data.
   if (tastes.failed === true || ranks.size < minimum) {
     return {
@@ -119,7 +135,7 @@ export function scoreAudience(
       score: 0,
       matchedTags: [],
       zeroTags: [],
-      noDataTags: tags.map((tag) => tag.tag),
+      noDataTags: labels,
     };
   }
 
@@ -129,18 +145,18 @@ export function scoreAudience(
   let weightedStrength = 0;
   let weightTotal = 0;
 
-  for (const tag of tags) {
-    // §6.6: a pinned must-have counts double, in both directions.
-    const weight = tag.pinned ? 2 : 1;
+  for (const [index, w] of wtags.entries()) {
+    const label = labels[index] ?? w.tag.tag;
+    const weight = w.weight;
     weightTotal += weight;
 
-    const rank = ranks.get(tag.qlooTagId);
+    const rank = ranks.get(w.tag.qlooTagId);
     if (rank === undefined) {
-      zeroTags.push(tag.tag);
+      zeroTags.push(label);
       continue;
     }
 
-    matchedTags.push(tag.tag);
+    matchedTags.push(label);
     weightedStrength += weight * rankStrength(rank, total);
   }
 
@@ -154,6 +170,25 @@ export function scoreAudience(
 }
 
 /**
+ * §6.6: score one audience against the pitch tags.
+ *
+ * Returns the frozen `FitScore`. When the audience is unjudgeable the score
+ * is 0, but that 0 is a placeholder and must never be drawn; use
+ * {@link isUnjudgeable} to tell the no-data case from a real zero.
+ */
+export function scoreAudience(
+  tastes: AudienceTastes,
+  tags: PitchTag[],
+  options: ScoreOptions = {},
+): FitScore {
+  return scoreAudienceWeighted(
+    tastes,
+    tags.map((tag) => ({ tag, weight: tag.pinned ? 2 : 1 })),
+    options,
+  );
+}
+
+/**
  * Score every audience against one shared tag list. The tag list is the
  * same for all of them (§6.5), so the pipeline calls this once.
  */
@@ -163,6 +198,20 @@ export function scoreAll(
   options: ScoreOptions = {},
 ): FitScore[] {
   return allTastes.map((tastes) => scoreAudience(tastes, tags, options));
+}
+
+/**
+ * Score every audience against one shared weighted tag list, including
+ * expansion-retry tags. Same shared-list rule as {@link scoreAll}.
+ */
+export function scoreAllWeighted(
+  allTastes: AudienceTastes[],
+  wtags: WeightedTag[],
+  options: ScoreOptions = {},
+): FitScore[] {
+  return allTastes.map((tastes) =>
+    scoreAudienceWeighted(tastes, wtags, options),
+  );
 }
 
 /**

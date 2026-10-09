@@ -14,7 +14,7 @@ export const EXAMPLE_RUN_INPUT: PipelineInput = {
   workType: "film",
   nothingLike: ["Fast franchise action"],
   similarTitles: ["Moon", "Arrival", "Dune"],
-  candidateWords: ["slow-burn", "solitude", "quiet", "space"],
+  candidateWords: ["science-fiction", "space", "drama", "future"],
   rivalProposals: [
     {
       id: "rival-lit",
