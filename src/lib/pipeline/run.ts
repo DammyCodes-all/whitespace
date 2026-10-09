@@ -8,7 +8,10 @@
  * readings) arrive via `PipelineInput`: U passes the confirmed form
  * data, and `demoPipelineInput` covers the mock pitch until the agent
  * proposes them live. Tag resolve runs after tastes so it can prefer
- * the namespace variant audiences actually hold (§6.5, §6.6).
+ * the namespace variant audiences actually hold (§6.5, §6.6). The scope
+ * gate (§3) refuses tool/app pitches before any Qloo call; the concept
+ * audience (§6.6) scores "who loves these tags" next to the movie-fan
+ * audiences so the idea itself gets tested.
  *
  * Fixtures first: without a key every Q call takes the mock path, so
  * tastes fail, coverage is 0, and the verdict is honestly Inconclusive
@@ -33,12 +36,14 @@ import type {
   RunStep,
 } from "@/lib/types";
 import { checkGrounding } from "../policy/grounding.ts";
+import { checkScope } from "../policy/scope.ts";
 import { decideVerdict } from "../policy/verdict.ts";
 import {
   buildControls,
   buildRivals,
   CONTROL_COUNT,
   fetchAllAudienceTastes,
+  fetchConceptTastes,
   resetQuota,
   resolvePitchTags,
   resolveTitles,
@@ -136,6 +141,51 @@ export async function runPipeline(
   resetQuota();
   const calls: QlooCall[] = [];
   const steps: RunStep[] = [];
+
+  // Scope gate (§3, §6.7): tool/app pitches unite users by a behavior,
+  // not a taste, and Qloo holds no app entities to ground them. Scoring
+  // them anyway manufactures fake Weak runs, so refuse before spending
+  // quota: Inconclusive with reason "scope", no Qloo calls.
+  const scope = checkScope(input.pitchText);
+  if (!scope.inScope) {
+    steps.push(
+      doneStep(
+        "scope",
+        "Scope check",
+        scope.trigger
+          ? `tool/app pitch (saw "${scope.trigger}") — taste data cannot judge tools`
+          : "tool/app pitch — taste data cannot judge tools",
+      ),
+    );
+    const hypothesis: Audience = {
+      id: "hyp",
+      kind: "hypothesis",
+      name: `Hypothesis (${input.workType})`,
+      titles: [],
+      notFoundTitles: [],
+    };
+    return {
+      input: pitch,
+      hypothesis,
+      rivals: [],
+      controls: [],
+      tags: [],
+      coverage: 0,
+      scores: [],
+      verdict: {
+        verdict: "Inconclusive",
+        topAudienceId: null,
+        marginTopVsSecond: 0,
+        marginTopVsControl: 0,
+        clearsControl: false,
+        surprise: false,
+        inconclusiveReason: "scope",
+      },
+      grounding: { ok: true, ungroundedTitles: [], ungroundedTags: [] },
+      calls,
+      steps,
+    };
+  }
 
   const titleRes = await resolveTitles(similarTitles, input.workType);
   calls.push(...titleRes.calls);
@@ -250,10 +300,41 @@ export async function runPipeline(
     ),
   );
 
+  // Concept audience (§6.6, §7): the hypothesis describes film fandom,
+  // not the idea. Ask Qloo the complementary question — "who loves THESE
+  // TAGS?" via signal.interests.tags — and score it as a contender next
+  // to the movie-fan audiences. One extra call; a miss degrades to
+  // no-data like any other audience (§8). Renders inside `rivals` with
+  // kind "rival" so no frozen type changes.
+  const conceptAudience: Audience = {
+    id: "concept",
+    kind: "rival",
+    name: "Concept (from your words)",
+    reason: "Built from your pitch tags, not movie fandoms.",
+    titles: [],
+    notFoundTitles: [],
+  };
+  const { tastes: conceptTastes, call: conceptCall } = await fetchConceptTastes(
+    pitchTags.map((t) => t.qlooTagId),
+    input.workType,
+  );
+  if (conceptCall !== null) calls.push(conceptCall);
+  steps.push(
+    doneStep(
+      "concept",
+      "Concept audience",
+      conceptTastes.failed === true
+        ? "no concept signal"
+        : `${conceptTastes.tagIds.length} tastes from your words`,
+      conceptCall?.id,
+    ),
+  );
+  const allWithConcept = [...all, conceptTastes];
+
   const exclusionTastes: AudienceTastes = all.find(
     (t) => t.audienceId === exclusion.id,
   ) ?? { audienceId: exclusion.id, tagIds: [], failed: true };
-  const adjusted = subtractExclusionFromAll(all, exclusionTastes);
+  const adjusted = subtractExclusionFromAll(allWithConcept, exclusionTastes);
   const tasteById = new Map(adjusted.map((t) => [t.audienceId, t]));
   const missingTastes = (id: string): AudienceTastes => ({
     audienceId: id,
@@ -262,6 +343,7 @@ export async function runPipeline(
   });
   const contenderTastes = [
     hypothesis.id,
+    conceptAudience.id,
     ...rivalRes.rivals.map((r) => r.id),
   ].map((id) => tasteById.get(id) ?? missingTastes(id));
   const controlTastes = controlRes.controls.map(
@@ -344,6 +426,7 @@ export async function runPipeline(
     ...pitchTags.map((t) => t.qlooTagId),
     ...expansionTags.map((t) => t.qlooTagId),
     ...all.flatMap((t) => t.tagIds),
+    ...conceptTastes.tagIds,
   ];
   const grounding = checkGrounding(
     [hypothesis, ...rivalRes.rivals].flatMap((a) =>
@@ -357,7 +440,7 @@ export async function runPipeline(
   return {
     input: pitch,
     hypothesis,
-    rivals: rivalRes.rivals,
+    rivals: [...rivalRes.rivals, conceptAudience],
     controls: controlRes.controls,
     tags: pitchTags,
     coverage: tagRes.coverage,

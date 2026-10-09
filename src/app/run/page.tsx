@@ -10,6 +10,7 @@ import { ReachPlan } from "@/components/reach";
 import { RunSaver } from "@/components/run-saver";
 import { RunStream } from "@/components/run-stream";
 import { SavedRunPanel } from "@/components/saved-run-panel";
+import { ScopeNotice } from "@/components/scope-notice";
 import { VerdictHeadline } from "@/components/verdict";
 import { answerChatbot } from "@/lib/agent/chatbot";
 import { LlmError } from "@/lib/agent/llm-client";
@@ -194,6 +195,12 @@ export default async function RunPage({
 
   const context = live ? "live" : "on mocks";
 
+  // Day 11 S: scope gate. A tool/app pitch is refused before any Qloo
+  // call (verdict Inconclusive, reason "scope"): render the explained
+  // card instead of ranked bars, reach, change, or comparison — every
+  // one of those would be a fake run dressed as a result (§3, §6.7).
+  const outOfScope = live && result.verdict.inconclusiveReason === "scope";
+
   // Day 7 U + Day 9 U: reach plan for the verdict's targets, assembled
   // in one place so `/run` and `/case` agree. Related calls join the
   // evidence list so every citation resolves (§10 #8).
@@ -297,88 +304,96 @@ export default async function RunPage({
           <RunStream steps={result.steps} />
         </div>
 
-        <RankedList
-          audiences={audiences}
-          scores={result.scores}
-          controlCeiling={controlCeiling}
-          audienceCallIds={audienceCallIds}
-          topName={top ? `${top.name}${live ? "" : " (on mocks)"}` : undefined}
-        />
+        {outOfScope ? (
+          <ScopeNotice pitchText={result.input.pitchText} />
+        ) : (
+          <>
+            <RankedList
+              audiences={audiences}
+              scores={result.scores}
+              controlCeiling={controlCeiling}
+              audienceCallIds={audienceCallIds}
+              topName={
+                top ? `${top.name}${live ? "" : " (on mocks)"}` : undefined
+              }
+            />
 
-        <ReachPlan groups={reachGroups} />
+            <ReachPlan groups={reachGroups} />
 
-        <section aria-label="Try a limit" className="mt-12">
-          <h2 className="text-lg tracking-tight text-ink">Try a limit</h2>
-          <form action="/run" method="get" className="mt-4">
-            {typeof params.input === "string" && (
-              <input type="hidden" name="input" value={params.input} />
-            )}
-            <label
-              htmlFor="constraint"
-              className="block text-sm tracking-tight text-ink"
-            >
-              Add a limit, such as a smaller budget or a shorter format
-            </label>
-            <p className="mt-1 text-sm text-ink-3">
-              The pitch is rewritten under your limit and rechecked against the
-              same bar.
-            </p>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-              <input
-                id="constraint"
-                name="constraint"
-                type="text"
-                defaultValue={constraint}
-                maxLength={140}
-                placeholder="Lower budget"
-                className="min-w-0 flex-1 border border-rule bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-3"
-              />
-              <button
-                type="submit"
-                className="shrink-0 bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
-              >
-                Check change
-              </button>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {["Lower budget", "Shorter format", "Smaller cast"].map(
-                (preset) => (
-                  <Link
-                    key={preset}
-                    href={`/run?constraint=${encodeURIComponent(preset)}${inputParam}`}
-                    className="border border-rule px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:text-ink"
+            <section aria-label="Try a limit" className="mt-12">
+              <h2 className="text-lg tracking-tight text-ink">Try a limit</h2>
+              <form action="/run" method="get" className="mt-4">
+                {typeof params.input === "string" && (
+                  <input type="hidden" name="input" value={params.input} />
+                )}
+                <label
+                  htmlFor="constraint"
+                  className="block text-sm tracking-tight text-ink"
+                >
+                  Add a limit, such as a smaller budget or a shorter format
+                </label>
+                <p className="mt-1 text-sm text-ink-3">
+                  The pitch is rewritten under your limit and rechecked against
+                  the same bar.
+                </p>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                  <input
+                    id="constraint"
+                    name="constraint"
+                    type="text"
+                    defaultValue={constraint}
+                    maxLength={140}
+                    placeholder="Lower budget"
+                    className="min-w-0 flex-1 border border-rule bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-3"
+                  />
+                  <button
+                    type="submit"
+                    className="shrink-0 bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
                   >
-                    {preset}
-                  </Link>
-                ),
+                    Check change
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {["Lower budget", "Shorter format", "Smaller cast"].map(
+                    (preset) => (
+                      <Link
+                        key={preset}
+                        href={`/run?constraint=${encodeURIComponent(preset)}${inputParam}`}
+                        className="border border-rule px-3 py-1.5 font-mono text-xs text-ink-2 transition-colors hover:text-ink"
+                      >
+                        {preset}
+                      </Link>
+                    ),
+                  )}
+                </div>
+              </form>
+              {changed !== null && (
+                <div className="mt-4 border-t border-rule">
+                  <ChangeView changed={changed} />
+                </div>
               )}
-            </div>
-          </form>
-          {changed !== null && (
-            <div className="mt-4 border-t border-rule">
-              <ChangeView changed={changed} />
-            </div>
-          )}
-          {changeFailed && (
-            <p className="mt-4 text-sm text-ink-3">
-              The recheck failed. The run above is unaffected.
-            </p>
-          )}
-        </section>
+              {changeFailed && (
+                <p className="mt-4 text-sm text-ink-3">
+                  The recheck failed. The run above is unaffected.
+                </p>
+              )}
+            </section>
 
-        <CompareView
-          chatbot={chatbot}
-          error={chatbotError}
-          audiences={audiences}
-          scores={result.scores}
-          verdict={result.verdict}
-          topCallId={
-            result.verdict.topAudienceId === null
-              ? undefined
-              : audienceCallIds[result.verdict.topAudienceId]
-          }
-          chatbotCallId={chatbotCalls[0]?.id}
-        />
+            <CompareView
+              chatbot={chatbot}
+              error={chatbotError}
+              audiences={audiences}
+              scores={result.scores}
+              verdict={result.verdict}
+              topCallId={
+                result.verdict.topAudienceId === null
+                  ? undefined
+                  : audienceCallIds[result.verdict.topAudienceId]
+              }
+              chatbotCallId={chatbotCalls[0]?.id}
+            />
+          </>
+        )}
 
         <EvidenceCalls
           calls={[
