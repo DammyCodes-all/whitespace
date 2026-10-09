@@ -7,7 +7,8 @@
  * gates. The AI's proposals (similar titles, candidate words, rival
  * readings) arrive via `PipelineInput`: U passes the confirmed form
  * data, and `demoPipelineInput` covers the mock pitch until the agent
- * proposes them live.
+ * proposes them live. Tag resolve runs after tastes so it can prefer
+ * the namespace variant audiences actually hold (§6.5, §6.6).
  *
  * Fixtures first: without a key every Q call takes the mock path, so
  * tastes fail, coverage is 0, and the verdict is honestly Inconclusive
@@ -27,6 +28,7 @@ import type {
   Audience,
   PipelineResult,
   PitchInput,
+  PitchTag,
   QlooCall,
   RunStep,
 } from "@/lib/types";
@@ -42,7 +44,11 @@ import {
   resolveTitles,
 } from "../qloo/index.ts";
 import { subtractExclusionFromAll } from "../scoring/exclusion.ts";
-import { scoreAll } from "../scoring/fit.ts";
+import {
+  EXPANSION_TOP_TASTES,
+  selectExpansions,
+} from "../scoring/expansion.ts";
+import { MIN_TASTES_FOR_JUDGEMENT, scoreAllWeighted } from "../scoring/fit.ts";
 
 /**
  * What the pipeline needs beyond the frozen `PitchInput`. Titles, words,
@@ -72,7 +78,7 @@ export const demoPipelineInput: PipelineInput = {
   workType: "film",
   nothingLike: ["Fast franchise action"],
   similarTitles: ["Moon", "Arrival", "Dune"],
-  candidateWords: ["slow-burn", "solitude", "quiet", "space"],
+  candidateWords: ["science-fiction", "space", "drama", "future"],
   rivalProposals: [
     {
       id: "rival-lit",
@@ -149,28 +155,6 @@ export async function runPipeline(
     ),
   );
 
-  const tagRes = await resolvePitchTags(candidateWords, input.workType);
-  calls.push(...tagRes.calls);
-  // §6.6: pinned must-haves count double. resolvePitchTags returns
-  // pinned:false; the UI's pinnedWords list is applied here (S-owned).
-  // Local mirror of Q's normalizeKey (kept here per file ownership):
-  // "slow-burn" and "slow burn" are the same word for pinning.
-  const normalizeWord = (value: string): string =>
-    value.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  const pinnedSet = new Set(pinnedWords.map(normalizeWord).filter(Boolean));
-  const pitchTags = tagRes.tags.map((tag) =>
-    pinnedSet.has(normalizeWord(tag.tag)) ? { ...tag, pinned: true } : tag,
-  );
-  const suggested = tagRes.tags.length + tagRes.notFoundWords.length;
-  steps.push(
-    doneStep(
-      "tags",
-      "Pitch tags",
-      `coverage ${tagRes.tags.length} of ${suggested}`,
-      tagRes.calls[0]?.id,
-    ),
-  );
-
   const rivalRes = await buildRivals(
     hypothesis,
     rivalProposals,
@@ -233,6 +217,39 @@ export async function runPipeline(
     ),
   );
 
+  // Tags resolve after tastes: a word living in several Qloo namespaces
+  // resolves to the variant audiences actually hold, so scoring can meet
+  // it (§6.5, §6.6). The exclusion audience stays out of the preference
+  // set — preferring an id the subtract then removes would score nothing.
+  const tasteUniverse = new Set(
+    all.filter((t) => t.audienceId !== exclusion.id).flatMap((t) => t.tagIds),
+  );
+  const tagRes = await resolvePitchTags(
+    candidateWords,
+    input.workType,
+    tasteUniverse,
+  );
+  calls.push(...tagRes.calls);
+  // §6.6: pinned must-haves count double. resolvePitchTags returns
+  // pinned:false; the UI's pinnedWords list is applied here (S-owned).
+  // Local mirror of Q's normalizeKey (kept here per file ownership):
+  // "slow-burn" and "slow burn" are the same word for pinning.
+  const normalizeWord = (value: string): string =>
+    value.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  const pinnedSet = new Set(pinnedWords.map(normalizeWord).filter(Boolean));
+  const pitchTags = tagRes.tags.map((tag) =>
+    pinnedSet.has(normalizeWord(tag.tag)) ? { ...tag, pinned: true } : tag,
+  );
+  const suggested = tagRes.tags.length + tagRes.notFoundWords.length;
+  steps.push(
+    doneStep(
+      "tags",
+      "Pitch tags",
+      `coverage ${tagRes.tags.length} of ${suggested}`,
+      tagRes.calls[0]?.id,
+    ),
+  );
+
   const exclusionTastes: AudienceTastes = all.find(
     (t) => t.audienceId === exclusion.id,
   ) ?? { audienceId: exclusion.id, tagIds: [], failed: true };
@@ -250,9 +267,63 @@ export async function runPipeline(
   const controlTastes = controlRes.controls.map(
     (c) => tasteById.get(c.id) ?? missingTastes(c.id),
   );
-  const contenderScores = scoreAll(contenderTastes, pitchTags);
-  const controlScores = scoreAll(controlTastes, pitchTags);
-  steps.push(doneStep("score", "Fit scores", "rank-normalized 0 to 1"));
+
+  // Expansion retry (§6.5, §6.6): pitch tags held by no audience taste
+  // list get one silent second chance against the hypothesis top tastes.
+  // Borrowed ids come from fetched tastes, so §8 grounding holds; they
+  // score at half weight and render `word→Tag Name`. No extra Qloo calls:
+  // both sides already arrived. Skipped when the hypothesis itself is
+  // unjudgeable: nothing honest to borrow from.
+  const heldIds = new Set(
+    [...contenderTastes, ...controlTastes].flatMap((t) => t.tagIds),
+  );
+  const unmatchedWords = pitchTags
+    .filter((t) => !heldIds.has(t.qlooTagId))
+    .map((t) => t.tag);
+  const hypAdjusted = tasteById.get(hypothesis.id);
+  const hypLends =
+    hypAdjusted !== undefined &&
+    hypAdjusted.failed !== true &&
+    hypAdjusted.tagIds.length >= MIN_TASTES_FOR_JUDGEMENT;
+  const expansionTags: PitchTag[] = [];
+  const expansionLabels = new Map<string, string>();
+  if (unmatchedWords.length > 0 && hypLends && hypAdjusted !== undefined) {
+    const hypTop = hypAdjusted.tagIds
+      .slice(0, EXPANSION_TOP_TASTES)
+      .map((id, index) => ({ id, name: hypAdjusted.tagNames?.[index] ?? "" }));
+    const expansions = selectExpansions(
+      unmatchedWords,
+      hypTop,
+      new Set(pitchTags.map((t) => t.qlooTagId)),
+    );
+    for (const e of expansions) {
+      expansionTags.push({
+        tag: e.word,
+        qlooTagId: e.qlooTagId,
+        pinned: false,
+      });
+      expansionLabels.set(e.qlooTagId, `${e.word}→${e.name}`);
+    }
+  }
+  const weightedTags = [
+    ...pitchTags.map((tag) => ({ tag, weight: tag.pinned ? 2 : 1 })),
+    ...expansionTags.map((tag) => ({
+      tag,
+      weight: 0.5,
+      label: expansionLabels.get(tag.qlooTagId) ?? tag.tag,
+    })),
+  ];
+  const contenderScores = scoreAllWeighted(contenderTastes, weightedTags);
+  const controlScores = scoreAllWeighted(controlTastes, weightedTags);
+  steps.push(
+    doneStep(
+      "score",
+      "Fit scores",
+      expansionTags.length > 0
+        ? `rank-normalized 0 to 1, +${expansionTags.length} expanded`
+        : "rank-normalized 0 to 1",
+    ),
+  );
 
   const verdict = decideVerdict({
     hypothesisId: hypothesis.id,
@@ -271,13 +342,14 @@ export async function runPipeline(
   const knownTitleIds = audiences.flatMap((a) => a.titles.map((t) => t.qlooId));
   const knownTagIds = [
     ...pitchTags.map((t) => t.qlooTagId),
+    ...expansionTags.map((t) => t.qlooTagId),
     ...all.flatMap((t) => t.tagIds),
   ];
   const grounding = checkGrounding(
     [hypothesis, ...rivalRes.rivals].flatMap((a) =>
       a.titles.map((t) => t.qlooId),
     ),
-    pitchTags.map((t) => t.qlooTagId),
+    [...pitchTags, ...expansionTags].map((t) => t.qlooTagId),
     knownTitleIds,
     knownTagIds,
   );

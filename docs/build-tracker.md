@@ -94,3 +94,7 @@ Format:
 | 2026-10-09 | Set home headline to Instrument Serif single-line nowrap | §1, §5 | biome clean on page, tsc clean |
 | 2026-10-09 | Center home headline and tighten headline-subtitle gap | §1, §5 | biome clean on page, tsc clean |
 | 2026-10-09 | Remove hardcoded pre-run title check, resolve all titles live at run | §6.2 | biome+tsc clean on touched files; build pass |
+| 2026-10-09 | Prefer taste-held tag namespace variant, resolve tags after tastes | §6.5, §6.6 | biome+tsc clean; 107 pass node --test; live: dystopia picks keyword variant at rank 7 |
+| 2026-10-09 | Cap candidate words 4 to 6, genre-led prompt plus sharper demo words | §6.5 | biome+tsc clean; propose cap test updated; 107 pass |
+| 2026-10-09 | Set CONTROL_MARGIN 0.05 from live gaps plus float epsilon | §6.7 | 107 pass; live space run returns Strong (hyp 0.744 vs control 0.644) |
+| 2026-10-09 | Add automatic tag-expansion retry from hypothesis tastes at half weight | §6.5, §6.6, §8 | biome+tsc clean; 116 pass node --test; live user pitch flips Weak to Strong (hyp 0.360 vs Horror 0.262) |

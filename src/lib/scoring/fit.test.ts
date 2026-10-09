@@ -3,7 +3,13 @@ import { describe, it } from "node:test";
 import { TASTE_FIXTURES } from "../fixtures/taste-lists.ts";
 import { reportCoverage } from "../policy/grounding.ts";
 import type { AudienceTastes } from "./fit.ts";
-import { isUnjudgeable, rankStrength, scoreAll, scoreAudience } from "./fit.ts";
+import {
+  isUnjudgeable,
+  rankStrength,
+  scoreAll,
+  scoreAudience,
+  scoreAudienceWeighted,
+} from "./fit.ts";
 import { SAMPLE_PITCH_TAGS } from "./fixtures.ts";
 
 /** Fixture tag ids in affinity order: position is the rank. */
@@ -117,6 +123,28 @@ describe("scoreAll", () => {
       results.map((r) => r.audienceId),
       ["hyp", "rival-lit", "rival-amb"],
     );
+  });
+});
+
+describe("scoreAudienceWeighted", () => {
+  it("scores borrowed tags at half weight with an expanded label", () => {
+    const tags = tastesFor("hyp");
+    const borrowed = {
+      tag: "slowness",
+      qlooTagId: "urn:tag:mood:media:slow_burn",
+      pinned: false,
+    };
+    const result = scoreAudienceWeighted(tags, [
+      { tag: SAMPLE_PITCH_TAGS[0], weight: 2 },
+      { tag: borrowed, weight: 0.5, label: "slowness→Slow Burn" },
+    ]);
+    assert.ok(result.matchedTags.includes("slowness→Slow Burn"));
+    assert.ok(!result.matchedTags.includes("slowness"));
+    const plain = scoreAudienceWeighted(tags, [
+      { tag: SAMPLE_PITCH_TAGS[0], weight: 2 },
+      { tag: borrowed, weight: 1 },
+    ]);
+    approx(plain.score, result.score);
   });
 });
 

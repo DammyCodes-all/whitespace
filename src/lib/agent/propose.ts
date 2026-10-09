@@ -34,7 +34,7 @@ export interface ProposeRival {
 export interface ProposeResult {
   /** 3 to 5 "similar to" titles (§6.2). */
   similarTitles: string[];
-  /** 5 to 10 descriptive words (§6.5). */
+  /** 4 to 6 descriptive words (§6.5): few and genre-sharp, so the mean in §6.6 can separate. */
   candidateWords: string[];
   /** Exactly 3 rival readings (§6.3). */
   rivalProposals: ProposeRival[];
@@ -52,11 +52,13 @@ import {
   readEnv,
 } from "./llm-client.ts";
 
-/** Caps guard quota and prompt size (§11). */
+/** Caps guard quota and prompt size (§11). Few sharp words beat many vague
+ * ones: §6.6 scores the mean across tags, so each extra mood word dilutes
+ * the genre signal every audience is judged on. */
 export const MAX_SIMILAR_TITLES = 5;
 export const MIN_SIMILAR_TITLES = 3;
-export const MAX_CANDIDATE_WORDS = 10;
-export const MIN_CANDIDATE_WORDS = 5;
+export const MAX_CANDIDATE_WORDS = 6;
+export const MIN_CANDIDATE_WORDS = 4;
 export const RIVAL_COUNT = 3;
 export const MAX_RIVAL_TITLES = 5;
 export const MIN_RIVAL_TITLES = 3;
@@ -92,7 +94,7 @@ function systemPrompt(workType: WorkType): string {
     '"candidateWords":["word1","word2","word3"],',
     `"rivalProposals":[{"id":"rival-1","name":"short reading","reason":"one sentence","titles":["t1","t2","t3"]}]}`,
     `Rules: similarTitles ${MIN_SIMILAR_TITLES} to ${MAX_SIMILAR_TITLES} real, well-known ${workType} titles close to the pitch.`,
-    `candidateWords ${MIN_CANDIDATE_WORDS} to ${MAX_CANDIDATE_WORDS} single descriptive words (genre, mood, setting, theme, format), lowercase, no names. Avoid event logistics or production language (e.g. screening, archive, dj set, film screening); prefer terms that describe taste-level genre/theme/mood/setting.`,
+    `candidateWords ${MIN_CANDIDATE_WORDS} to ${MAX_CANDIDATE_WORDS} single descriptive words, lowercase, no names. Prefer genre, theme and setting terms that taste data uses (e.g. science-fiction, folk-horror, coastal town, grief); use mood adjectives (quiet, hopeful, slow) sparingly, at most one. Avoid event logistics or production language (e.g. screening, archive, dj set, film screening).`,
     `rivalProposals exactly ${RIVAL_COUNT} genuinely different readings of the same pitch, each with ${MIN_RIVAL_TITLES} to ${MAX_RIVAL_TITLES} real titles. Reasons are one sentence. Titles are real titles only, never ids or numbers.`,
   ].join("\n");
 }

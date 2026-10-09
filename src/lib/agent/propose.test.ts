@@ -33,7 +33,7 @@ describe("toResult", () => {
     assert.equal(result.rivalProposals.length, 3);
   });
 
-  it("caps similar titles at 5 and words at 10", () => {
+  it("caps similar titles at 5 and words at 6", () => {
     const result = toResult({
       similarTitles: ["a", "b", "c", "d", "e", "f", "g"],
       candidateWords: [
@@ -53,7 +53,7 @@ describe("toResult", () => {
       rivalProposals: validInput().rivalProposals,
     });
     assert.equal(result.similarTitles.length, 5);
-    assert.equal(result.candidateWords.length, 10);
+    assert.equal(result.candidateWords.length, 6);
   });
 
   it("drops overlong strings and defaults missing rival ids", () => {

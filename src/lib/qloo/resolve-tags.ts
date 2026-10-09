@@ -64,21 +64,43 @@ function extractTagEntries(data: unknown): TagEntry[] {
   return [];
 }
 
-function pickTag(word: string, candidates: TagEntry[]): TagEntry | null {
+function tagEntryId(hit: TagEntry): string | null {
+  const rawId = hit.tag_id ?? hit.tag_value ?? hit.id;
+  return typeof rawId === "string" && rawId.trim() !== "" ? rawId : null;
+}
+
+function pickTag(
+  word: string,
+  candidates: TagEntry[],
+  preferredIds?: ReadonlySet<string>,
+): TagEntry | null {
   // Grilled Day 2 decision: lowercased exact match only. No fuzzy matching
   // in code: the AI proposes, Qloo disposes (§7).
   const want = normalizeKey(word);
   if (want === "") return null;
+  const exact: TagEntry[] = [];
   for (const c of candidates) {
     if (typeof c.name !== "string") continue;
-    if (normalizeKey(c.name) === want) return c;
+    if (normalizeKey(c.name) === want) exact.push(c);
   }
-  return null;
+  if (exact.length === 0) return null;
+  // Same word, several namespaces (e.g. genre:media:dystopia vs
+  // keyword:media:dystopia): prefer the variant the audiences actually
+  // over-index on, so a real match is not lost to a coin flip. Falls
+  // back to the first exact hit when tastes hold none of them.
+  if (preferredIds !== undefined) {
+    const grounded = exact.find((c) => {
+      const id = tagEntryId(c);
+      return id !== null && preferredIds.has(id);
+    });
+    if (grounded !== undefined) return grounded;
+  }
+  return exact[0] ?? null;
 }
 
 function toPitchTag(word: string, hit: TagEntry): PitchTag | null {
-  const rawId = hit.tag_id ?? hit.tag_value ?? hit.id;
-  if (typeof rawId !== "string" || rawId.trim() === "") return null;
+  const rawId = tagEntryId(hit);
+  if (rawId === null) return null;
   return { tag: word, qlooTagId: rawId, pinned: false };
 }
 
@@ -89,10 +111,15 @@ function toPitchTag(word: string, hit: TagEntry): PitchTag | null {
  * to scope the search to the domain's namespaces (`./tag-scopes.ts`) so
  * resolved ids share a namespace with audience tastes (§6.6 scoring
  * compares ids); absent scopes nothing (tests, old callers).
+ * Pass `preferredTasteIds` (the taste ids audiences actually hold) so a
+ * word living in several namespaces resolves to the variant scoring can
+ * meet; without it the first exact hit wins. Every id returned still
+ * came from Qloo (§7, §8).
  */
 export async function resolvePitchTags(
   words: string[],
   workType?: WorkType,
+  preferredTasteIds?: ReadonlySet<string>,
 ): Promise<ResolveTagsResult> {
   if (typeof window !== "undefined") {
     throw new Error(
@@ -118,7 +145,7 @@ export async function resolvePitchTags(
           : { "filter.tag.types": TAG_SCOPES[workType] }),
       });
       calls.push(trace);
-      const hit = pickTag(word, extractTagEntries(data));
+      const hit = pickTag(word, extractTagEntries(data), preferredTasteIds);
       const tag = hit === null ? null : toPitchTag(word, hit);
       if (tag === null) {
         notFoundWords.push(word);

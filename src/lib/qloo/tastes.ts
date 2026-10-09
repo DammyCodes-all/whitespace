@@ -50,6 +50,7 @@ interface TasteEntry {
   tag_id?: unknown;
   tag_value?: unknown;
   id?: unknown;
+  name?: unknown;
 }
 
 function toTagId(entry: TasteEntry): string | null {
@@ -57,12 +58,18 @@ function toTagId(entry: TasteEntry): string | null {
   return typeof raw === "string" && raw.trim() !== "" ? raw : null;
 }
 
+function toTagName(entry: TasteEntry): string {
+  return typeof entry.name === "string" ? entry.name.trim() : "";
+}
+
 /**
- * Pull tag ids in response order. Response order IS the rank (§11), so
- * this never sorts by any numeric affinity field. Defensive against
- * `results.tags` and bare-`results` array shapes; unknown shapes yield [].
+ * Pull tag ids (plus display names) in response order. Response order IS
+ * the rank (§11), so this never sorts by any numeric affinity field.
+ * Defensive against `results.tags` and bare-`results` array shapes;
+ * unknown shapes yield []. Ids and names stay parallel for the
+ * expansion retry's vocabulary search.
  */
-function extractTagIds(data: unknown): string[] {
+function extractTags(data: unknown): { id: string; name: string }[] {
   if (typeof data !== "object" || data === null) return [];
   const root = data as Record<string, unknown>;
   const results: unknown = root.results;
@@ -73,14 +80,14 @@ function extractTagIds(data: unknown): string[] {
     entries = (results as Record<string, unknown>).tags ?? [];
   }
   if (!Array.isArray(entries)) return [];
-  const out: string[] = [];
+  const out: { id: string; name: string }[] = [];
   const seen = new Set<string>();
   for (const raw of entries) {
     if (typeof raw !== "object" || raw === null) continue;
     const id = toTagId(raw as TasteEntry);
     if (id === null || seen.has(id)) continue;
     seen.add(id);
-    out.push(id);
+    out.push({ id, name: toTagName(raw as TasteEntry) });
   }
   return out;
 }
@@ -105,7 +112,12 @@ export async function fetchAudienceTastes(
     .slice(0, MAX_ENTITIES_PER_AUDIENCE);
   if (ids.length === 0) {
     return {
-      tastes: { audienceId: audience.id, tagIds: [], failed: true },
+      tastes: {
+        audienceId: audience.id,
+        tagIds: [],
+        tagNames: [],
+        failed: true,
+      },
       call: null,
     };
   }
@@ -120,14 +132,24 @@ export async function fetchAudienceTastes(
         ? {}
         : { "filter.tag.types": TAG_SCOPES[workType] }),
     });
+    const tags = extractTags(data);
     return {
-      tastes: { audienceId: audience.id, tagIds: extractTagIds(data) },
+      tastes: {
+        audienceId: audience.id,
+        tagIds: tags.map((t) => t.id),
+        tagNames: tags.map((t) => t.name),
+      },
       call: trace,
     };
   } catch (err) {
     if (err instanceof QlooError) {
       return {
-        tastes: { audienceId: audience.id, tagIds: [], failed: true },
+        tastes: {
+          audienceId: audience.id,
+          tagIds: [],
+          tagNames: [],
+          failed: true,
+        },
         call: err.trace,
       };
     }
