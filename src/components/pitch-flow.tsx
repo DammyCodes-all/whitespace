@@ -13,15 +13,8 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { PitchForm } from "@/components/pitch-form";
 import { EXAMPLE_RUN_INPUT } from "@/lib/demo/example-run-input";
-import type { ResolvedTitle } from "@/lib/types";
 
-export function PitchFlow({
-  found,
-  notFound,
-}: {
-  found: ResolvedTitle[];
-  notFound: string[];
-}) {
+export function PitchFlow() {
   const [pitch, setPitch] = useState("");
   const [step, setStep] = useState<"idea" | "sharpen">("idea");
   const [emptyNudge, setEmptyNudge] = useState(false);
@@ -53,7 +46,7 @@ export function PitchFlow({
           Add what your idea is similar to and what it is nothing like. Both are
           optional; the run uses whatever you confirm.
         </p>
-        <PitchForm found={found} notFound={notFound} initialPitch={pitch} />
+        <PitchForm initialPitch={pitch} />
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <Link
             href={skipHref}

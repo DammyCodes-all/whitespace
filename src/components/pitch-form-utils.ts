@@ -8,13 +8,6 @@
 export interface Suggestion {
   key: string;
   name: string;
-  found: boolean;
-  /**
-   * True for LLM-proposed titles not yet checked against Qloo. The badge
-   * reads "proposed · check at run" instead of "found" (§6.2 honesty:
-   * only the run grounds them).
-   */
-  proposed?: boolean;
 }
 
 /** §6.1: long pitches trim to roughly 300 words, with a notice. */

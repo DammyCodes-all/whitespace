@@ -91,3 +91,6 @@ Format:
 | 2026-10-07 | Tone down reach plan type changes, keep layout and tally | §6.8 | biome+tsc clean; build pass |
 | 2026-10-08 | Rewrite compare view copy with takeaway line and titles-check framing | §6.11, §6.7, §6.12 | biome+tsc clean on touched file; build pass |
 | 2026-10-08 | Add margins, runner-up, basis titles, and ceiling to compare left panel | §6.7, §6.11, §6.12 | biome+tsc clean on touched file; build pass |
+| 2026-10-09 | Set home headline to Instrument Serif single-line nowrap | §1, §5 | biome clean on page, tsc clean |
+| 2026-10-09 | Center home headline and tighten headline-subtitle gap | §1, §5 | biome clean on page, tsc clean |
+| 2026-10-09 | Remove hardcoded pre-run title check, resolve all titles live at run | §6.2 | biome+tsc clean on touched files; build pass |

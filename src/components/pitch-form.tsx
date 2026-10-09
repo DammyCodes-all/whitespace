@@ -33,7 +33,7 @@ import {
   DEFAULT_CANDIDATE_WORDS,
   DEFAULT_RIVAL_PROPOSALS,
 } from "@/lib/demo/proposal-defaults";
-import type { Audience, ResolvedTitle, WorkType } from "@/lib/types";
+import type { Audience, WorkType } from "@/lib/types";
 
 const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
 
@@ -48,13 +48,9 @@ export interface ConfirmInput {
 }
 
 export function PitchForm({
-  found,
-  notFound,
   initialPitch = "",
   onConfirm,
 }: {
-  found: ResolvedTitle[];
-  notFound: string[];
   initialPitch?: string;
   onConfirm?: (audience: Audience, input: ConfirmInput) => void;
 }) {
@@ -62,16 +58,10 @@ export function PitchForm({
   const [workType, setWorkType] = useState<WorkType>("film");
   const [nothingLike, setNothingLike] = useState<string[]>([""]);
   const [wasTrimmed, setWasTrimmed] = useState(false);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>(() => [
-    ...found.map((t) => ({
-      key: `found-${t.qlooId}`,
-      name: t.name,
-      found: true,
-    })),
-    ...notFound.map((t) => ({ key: `missing-${t}`, name: t, found: false })),
-  ]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [draft, setDraft] = useState("");
   const [confirmed, setConfirmed] = useState<Audience | null>(null);
+  const [confirmedTitles, setConfirmedTitles] = useState<string[]>([]);
   const [confirmedHref, setConfirmedHref] = useState<string>("/run");
   const [candidateWords, setCandidateWords] = useState<string[]>(() => [
     ...DEFAULT_CANDIDATE_WORDS,
@@ -112,7 +102,7 @@ export function PitchForm({
     if (name === "") return;
     setSuggestions((prev) => [
       ...prev,
-      { key: `added-${name.toLowerCase()}`, name, found: false },
+      { key: `added-${name.toLowerCase()}`, name },
     ]);
     setDraft("");
     setConfirmed(null);
@@ -143,8 +133,6 @@ export function PitchForm({
       const aiSuggestions: Suggestion[] = result.similarTitles.map((name) => ({
         key: `ai-${name.toLowerCase()}`,
         name,
-        found: true,
-        proposed: true,
       }));
       setSuggestions((prev) => {
         // Merge, don't clobber: keep hand-added titles the AI didn't
@@ -196,41 +184,21 @@ export function PitchForm({
   }
 
   function confirm() {
-    const kept = suggestions.filter((s) => s.found);
-    const missing = suggestions.filter((s) => !s.found).map((s) => s.name);
     const trimmed =
       countWords(pitch) > WORD_LIMIT ? trimToWords(pitch, WORD_LIMIT) : pitch;
     setPitch(trimmed);
     setWasTrimmed(countWords(pitch) > WORD_LIMIT);
-    // Titles resolve only from fixture data: a kept entry without a fixture
-    // match falls back to not-found rather than inventing a Qloo id (§7).
-    const titles: ResolvedTitle[] = [];
-    const unmatched: string[] = [];
-    for (const s of kept) {
-      const match = found.find((t) => t.name === s.name);
-      if (match === undefined) {
-        unmatched.push(s.name);
-      } else {
-        titles.push({
-          query: s.name,
-          qlooId: match.qlooId,
-          name: s.name,
-          type: match.type,
-        });
-      }
-    }
+    // No pre-run check: every title is resolved live against Qloo in the
+    // pipeline (§6.2, §8). The confirm step only collects names.
+    const similarTitles = suggestions.map((s) => s.name);
     const nothingLikeKept = nothingLike.map((v) => v.trim()).filter(Boolean);
     const audience: Audience = {
       id: "hyp",
       kind: "hypothesis",
       name: `Hypothesis (${workType})`,
-      titles,
-      notFoundTitles: [...missing, ...unmatched],
+      titles: [],
+      notFoundTitles: [],
     };
-    // The run grounds every title and word against Qloo, so the run input
-    // carries all suggestion names (not just fixture matches) plus the
-    // AI's words and rivals.
-    const similarTitles = suggestions.map((s) => s.name);
     const pinnedKept = pinnedWords.filter((p) =>
       candidateWords.some((w) => w.toLowerCase() === p.toLowerCase()),
     );
@@ -245,6 +213,7 @@ export function PitchForm({
     };
     const href = `/run?input=${encodeURIComponent(JSON.stringify(runInput))}`;
     setConfirmed(audience);
+    setConfirmedTitles(similarTitles);
     setConfirmedHref(href);
     onConfirm?.({ ...audience }, runInput);
   }
@@ -348,6 +317,7 @@ export function PitchForm({
       {confirmed && (
         <ConfirmedAudience
           audience={confirmed}
+          pendingTitles={confirmedTitles}
           nothingLike={nothingLike}
           runHref={confirmedHref}
         />

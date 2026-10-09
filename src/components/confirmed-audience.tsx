@@ -13,22 +13,28 @@ import type { Audience } from "@/lib/types";
 
 export function ConfirmedAudience({
   audience,
+  pendingTitles,
   nothingLike,
   runHref = "/run",
 }: {
   audience: Audience;
+  pendingTitles?: string[];
   nothingLike: string[];
   runHref?: string;
 }) {
+  const titles = pendingTitles ?? [
+    ...audience.titles.map((t) => t.name),
+    ...audience.notFoundTitles,
+  ];
   return (
     <div className="mt-6 border border-rule bg-surface p-4">
       <p className="font-mono text-xs tracking-tight text-ink-3">
         hypothesis audience · §6.2
       </p>
       <p className="mt-1 font-serif text-base text-ink">
-        {audience.titles.length} titles kept
-        {audience.notFoundTitles.length > 0 &&
-          `, ${audience.notFoundTitles.length} not found: ${audience.notFoundTitles.join(", ")}`}
+        {titles.length === 0
+          ? "No titles listed"
+          : `${titles.length} title${titles.length === 1 ? "" : "s"} to check at run: ${titles.join(", ")}`}
       </p>
       {nothingLike.some((v) => v.trim() !== "") && (
         <p className="mt-1 font-mono text-xs text-ink-2">
