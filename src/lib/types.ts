@@ -116,8 +116,16 @@ export interface VerdictResult {
    * Day 9 S: why an Inconclusive verdict was returned (case limits
    * section, §6.10). Absent on decisive verdicts. Additive optional
    * field — types unfreeze noted in docs/build-tracker.md.
+   * Day 11 S: "scope" added — the pitch is a tool/app, not a creative
+   * work (§3), so taste data cannot judge it. Unfreeze noted in
+   * docs/build-tracker.md alongside Day 9.
    */
-  inconclusiveReason?: "coverage" | "nodata" | "top-unjudgeable" | "empty";
+  inconclusiveReason?:
+    | "coverage"
+    | "nodata"
+    | "top-unjudgeable"
+    | "empty"
+    | "scope";
 }
 
 /** §8 grounding check: every title/tag in output came from Qloo. */
