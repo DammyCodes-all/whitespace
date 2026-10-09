@@ -28,8 +28,7 @@ export function SimilarToConfirm({
         Similar to — confirm the list
       </h3>
       <p className="mt-1 font-mono text-xs text-ink-3">
-        AI-proposed or fixture titles; every title is checked against Qloo at
-        run time.
+        Every title is checked against Qloo at run time.
       </p>
       <ul className="mt-3 border-t border-rule">
         {suggestions.map((s) => (
@@ -37,24 +36,7 @@ export function SimilarToConfirm({
             key={s.key}
             className="flex items-baseline justify-between gap-4 border-b border-rule py-2"
           >
-            <p className="text-[15px] text-ink">
-              {s.name}{" "}
-              <span
-                className={
-                  s.proposed === true
-                    ? "font-mono text-xs text-ink-3"
-                    : s.found
-                      ? "font-mono text-xs text-measured"
-                      : "font-mono text-xs text-clay"
-                }
-              >
-                {s.proposed === true
-                  ? "proposed · check at run"
-                  : s.found
-                    ? "found"
-                    : "not found in Qloo"}
-              </span>
-            </p>
+            <p className="text-[15px] text-ink">{s.name}</p>
             <button
               type="button"
               onClick={() => onRemove(s.key)}
