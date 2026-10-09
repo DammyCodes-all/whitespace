@@ -84,6 +84,22 @@ propose caps words at 4–6, genre/theme/setting-led (`src/lib/agent/propose.ts`
 With the bar at 0.05 the space run above returns **Strong** (top hyp,
 no surprise — the guess was right).
 
+## Day 11 fixes (shipped 2026-10-09, live-verified)
+
+1. **Scope gate** (`src/lib/policy/scope.ts`, `src/components/scope-notice.tsx`):
+   telegram-bot pitch now returns Inconclusive with reason `scope` and zero
+   Qloo calls instead of a fake all-zeros Weak. Rule: tool-creation or
+   utility-behavior signal without creative-work framing. A film ABOUT a
+   bot stays in scope (framing wins).
+2. **Concept audience** (`src/lib/qloo/concept.ts`): `signal.interests.tags`
+   on `/v2/insights` verified live (sci-fi tag signal → 200, tag affinities).
+   Scored as a contender beside movie-fan audiences. Live: space run stays
+   **Strong** (hyp 0.360 vs Horror 0.262) with concept at 0.000 — the idea
+   gets tested without circularity inflation. Horror run: concept no-data
+   (short list), verdict unchanged Weak.
+3. **Show the guess**: confirm panel now states hypothesis titles, rival
+   readings, and words with "is that your crowd?" before the run.
+
 ## Day 10 Q status (2026-10-06)
 
 1. **Location call: ship the guard, hide the map.** No live key in the
