@@ -320,6 +320,8 @@ export function PitchForm({
           pendingTitles={confirmedTitles}
           nothingLike={nothingLike}
           runHref={confirmedHref}
+          rivals={rivals.map((r) => ({ name: r.name, titles: [...r.titles] }))}
+          words={[...candidateWords]}
         />
       )}
     </section>
