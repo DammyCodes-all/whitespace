@@ -98,3 +98,6 @@ Format:
 | 2026-10-09 | Cap candidate words 4 to 6, genre-led prompt plus sharper demo words | §6.5 | biome+tsc clean; propose cap test updated; 107 pass |
 | 2026-10-09 | Set CONTROL_MARGIN 0.05 from live gaps plus float epsilon | §6.7 | 107 pass; live space run returns Strong (hyp 0.744 vs control 0.644) |
 | 2026-10-09 | Add automatic tag-expansion retry from hypothesis tastes at half weight | §6.5, §6.6, §8 | biome+tsc clean; 116 pass node --test; live user pitch flips Weak to Strong (hyp 0.360 vs Horror 0.262) |
+| 2026-10-09 | Add scope gate refusing tool/app pitches as Inconclusive/scope with explained card (types unfreeze: additive reason only) | §3, §6.7, §10 #4 | biome+tsc clean; 124 pass node --test; live bot pitch returns scope with zero Qloo calls; build pass |
+| 2026-10-09 | Add concept audience from pitch-tag signals scored beside movie-fan audiences | §6.6, §7, §8 | biome+tsc clean; live tag-signal verified 200; space run stays Strong with concept 0.000 (no circularity); build pass |
+| 2026-10-09 | Show the guess on confirm: hypothesis titles, rival readings, words, is-that-your-crowd | §5, §6.2, §6.3 | biome+tsc clean; build pass |
