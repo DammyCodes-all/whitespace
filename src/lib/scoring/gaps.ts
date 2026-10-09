@@ -43,10 +43,34 @@ function rankMap(tagIds: string[]): Map<string, number> {
 }
 
 /**
- * Find what the audience loves that the pitch lacks, strongest first,
- * capped at `topN`. Failed or empty taste lists yield no gaps (unknown
- * loves means no claimable gaps); unlabeled tags are skipped here and
- * reported via `countUnlabeled`. Never throws.
+ * §6.8 live names: build display labels from the tastes response itself
+ * (`tagNames` parallel to `tagIds`), falling back to the fixture map for
+ * ids with no live name. Without this, live URNs never match the stub
+ * and every run renders empty gaps + a large untracked count.
+ */
+export function labelsForTastes(
+  tastes: AudienceTastes,
+  fallback: Record<string, string> = {},
+): Record<string, string> {
+  const labels: Record<string, string> = {};
+  const names = tastes.tagNames ?? [];
+  tastes.tagIds.forEach((tagId, index) => {
+    const live = names[index]?.trim() ?? "";
+    if (live !== "") {
+      labels[tagId] = live;
+    } else if (fallback[tagId] !== undefined) {
+      labels[tagId] = fallback[tagId];
+    }
+  });
+  for (const [tagId, label] of Object.entries(fallback)) {
+    if (labels[tagId] === undefined) labels[tagId] = label;
+  }
+  return labels;
+}
+
+/**
+ * Whether the taste list holds anything judgeable. Failed or empty lists
+ * yield no gaps because unknown loves mean no claimable gaps.
  */
 export function findGaps(
   tastes: AudienceTastes,

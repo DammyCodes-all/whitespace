@@ -101,3 +101,5 @@ Format:
 | 2026-10-09 | Add scope gate refusing tool/app pitches as Inconclusive/scope with explained card (types unfreeze: additive reason only) | §3, §6.7, §10 #4 | biome+tsc clean; 124 pass node --test; live bot pitch returns scope with zero Qloo calls; build pass |
 | 2026-10-09 | Add concept audience from pitch-tag signals scored beside movie-fan audiences | §6.6, §7, §8 | biome+tsc clean; live tag-signal verified 200; space run stays Strong with concept 0.000 (no circularity); build pass |
 | 2026-10-09 | Show the guess on confirm: hypothesis titles, rival readings, words, is-that-your-crowd | §5, §6.2, §6.3 | biome+tsc clean; build pass |
+| 2026-10-09 | Remove hijacked api.js dropper, restore scripts, surface LLM error causes | §7 | tsc clean; agent tests 16 pass; live /api/propose 200 (biome format pre-existing CRLF fail) |
+| 2026-10-09 | Use live taste names for gaps plus honest empty states, drop untracked line | §6.8 | biome+tsc clean on touched files; node --test 23 pass (gaps/change/reach-targets) |

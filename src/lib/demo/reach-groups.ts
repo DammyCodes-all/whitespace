@@ -14,7 +14,7 @@ import type { ReachAudience } from "@/components/reach";
 import { TAG_LABELS } from "@/lib/fixtures/tag-labels";
 import { fetchRelated } from "@/lib/qloo/related";
 import { fetchAllAudienceTastes } from "@/lib/qloo/tastes";
-import { countUnlabeled, findGaps } from "@/lib/scoring/gaps";
+import { countUnlabeled, findGaps, labelsForTastes } from "@/lib/scoring/gaps";
 import type { PipelineResult, QlooCall } from "@/lib/types";
 import { selectReachTargets } from "./reach-targets.ts";
 
@@ -47,10 +47,15 @@ export async function buildReachGroups(
   targets.forEach((audience, index) => {
     const related = relatedLists[index] ?? [];
     const tastes = tasteLists.find((t) => t.audienceId === audience.id);
-    const gaps = tastes ? findGaps(tastes, result.tags, TAG_LABELS) : [];
+    const labels = tastes ? labelsForTastes(tastes, TAG_LABELS) : TAG_LABELS;
+    const gaps = tastes ? findGaps(tastes, result.tags, labels) : [];
     const unlabeledCount = tastes
-      ? countUnlabeled(tastes, result.tags, TAG_LABELS)
+      ? countUnlabeled(tastes, result.tags, labels)
       : 0;
+    const hasTastes =
+      tastes !== undefined &&
+      tastes.failed !== true &&
+      tastes.tagIds.length > 0;
     for (const group of related) {
       if (group.call !== null) calls.push(group.call);
     }
@@ -60,6 +65,7 @@ export async function buildReachGroups(
       related,
       gaps,
       unlabeledCount,
+      hasTastes,
       tastesCallId: stepCallId("tastes"),
     });
   });
