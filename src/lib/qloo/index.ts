@@ -16,6 +16,7 @@
  * guard quota).
  */
 
+export type { ConceptTastesResult } from "@/lib/qloo/concept";
 export type { ControlSeed } from "@/lib/qloo/control-seeds";
 export type { BuildControlsResult } from "@/lib/qloo/controls";
 export type {
@@ -36,6 +37,10 @@ export {
   QlooError,
   resetQuota,
 } from "./client.ts";
+export {
+  fetchConceptTastes,
+  MAX_CONCEPT_TAGS,
+} from "./concept.ts";
 export { CONTROL_SEEDS } from "./control-seeds.ts";
 export {
   buildControls,
