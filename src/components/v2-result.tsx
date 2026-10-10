@@ -44,6 +44,16 @@ export function V2ResultView({
 }) {
   const [checked, setChecked] = useState<string[]>([]);
   const readOnly = isLegacyV2Replay(result);
+  // Candidate audiences assume these not-yet-confirmed analogies.
+  // Confirming them re-runs the same grouping as evidence.
+  const provisionalDiscoveryIds = result.lenses
+    .filter(
+      (lens) =>
+        lens.role === "discovery" &&
+        lens.identity === "resolved" &&
+        lens.bridge === "llm-provisional",
+    )
+    .map((lens) => lens.aspectId);
   const toggle = (id: string) =>
     setChecked((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -234,6 +244,65 @@ export function V2ResultView({
           </ul>
         </section>
       )}
+
+      {result.candidateHypotheses !== undefined &&
+        result.candidateHypotheses.length > 0 &&
+        result.neighborhoods.length === 0 && (
+          <section
+            aria-label="Candidate audiences"
+            className="border border-rule bg-surface p-5"
+          >
+            <h3 className="font-serif text-lg text-ink">
+              Candidate audiences — worth a look
+            </h3>
+            <p className="mt-1 text-sm text-ink-3">
+              What the overlap would support if you confirm the analogies above.
+              Projected, not findings — nothing here is evidence yet.
+            </p>
+            <ul className="mt-3 space-y-4">
+              {result.candidateHypotheses.map((group) => (
+                <li key={group.id}>
+                  <p className="text-sm text-ink">
+                    {group.sharedDescriptor ??
+                      "Reference overlap (no shared descriptor found)"}{" "}
+                    <span className="font-mono text-xs text-ink-3">
+                      candidate · would cover {group.coverage}{" "}
+                      {group.coverage === 1 ? "aspect" : "aspects"} ·{" "}
+                      {group.corroboration} corroborating{" "}
+                      {group.corroboration === 1 ? "pair" : "pairs"}
+                    </span>
+                  </p>
+                  <EvidenceLinks
+                    result={result}
+                    ids={group.evidenceIds}
+                    label="Count and grouping queries"
+                  />
+                  <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-ink-2">
+                    {group.members.map((m) => (
+                      <li key={m.id}>
+                        {m.name}
+                        <EvidenceLinks
+                          result={result}
+                          ids={memberEvidenceIds(result, group, m.id)}
+                          label="Returned connections"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+            {!readOnly && provisionalDiscoveryIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onConfirm(provisionalDiscoveryIds)}
+                className="mt-4 border border-ink bg-ink px-4 py-2 text-sm text-surface"
+              >
+                Confirm these analogies and re-run as a new version
+              </button>
+            )}
+          </section>
+        )}
 
       {result.explorations.length > 0 && (
         <section
