@@ -212,6 +212,32 @@ of exploration mode is still unvalidated with humans.
   store), `next build` passes.
 - Owed to a human: the 9-pitch review pass in `docs/v2-eval.md`.
 
+## 11. Candidate hypotheses (2026-10-10)
+
+- Problem: first runs land in exploration-only until the creator
+  ticks analogies, which reads as empty. Fix: project what the
+  frozen overlap WOULD support if provisional analogies confirm —
+  shown as "Candidate audiences — worth a look" with projected
+  counts, one-click "Confirm these analogies and re-run".
+- Contracts `v2-lean.7` / `v2-policy.4`: `candidateHypotheses` on
+  `V2Result` (always `pitchSupported: false`); computed only when
+  no confirmed neighborhood survives and ≥2 discovery lenses are
+  usable; pure re-grouping, no new calls. Never feeds reach,
+  explanations, or evidence counts. Replay accepts v2-lean.6 saves
+  (candidates default `[]`); v2-lean.1–5 stay read-only.
+- Also fixed: deadline test clock (+100/call killed interpretation
+  before any Deadline message could exist — pre-existing failure,
+  verified on pristine tree); +10/call lands the deadline
+  mid-retrieval as the test name intends.
+- Live notes: candidate path verified live (2001 + Interstellar
+  provisional, one ambiguous held back; 1 candidate C:2 X:1, 0
+  leads, 0 explanations, candidate limitation present; 9/40
+  attempts, ~16s). Two other smokes had <2 usable lenses (LLM
+  proposed unresolvable references) — correctly no candidates,
+  exploration-only. Live reference variance stays an open eval item.
+- Verify: biome+tsc clean, 377/377 suite (3 new candidate tests),
+  `next build` passes.
+
 ## 8. Investigation leads (2026-10-10, §4G live)
 
 - Contracts bumped to `v2-lean.3` (`V2Lead`: id+name, seeding
