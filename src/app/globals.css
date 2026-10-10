@@ -1,71 +1,58 @@
 @import "tailwindcss";
 
-/* Whitespace design tokens. Source of truth: docs/design-direction.md.
-   Light-first is deliberate (design-direction.md §1, §3). Do not add
+/* Whitespace design tokens. Source of truth: docs/design-direction.md (Oct 10).
+   Light-only is deliberate (design-direction.md §1, §3). Do not add
    per-screen colors; if a screen needs a new one, add it here first. */
 
 :root {
   /* neutrals */
-  --paper: #f7f6f2; /* 4.9:1 is --ink-3's floor on this canvas */
-  --surface: #ffffff;
-  --rule: #e2dfd6; /* hairlines, borders */
-  --ink: #191814; /* 16.4:1 */
-  --ink-2: #56534a; /* 7.1:1, secondary */
-  --ink-3: #6e6b60; /* 4.9:1, labels and the readable-text floor */
+  --paper: #f7f7f4; /* canvas, a soft off-white */
+  --surface: #ffffff; /* cards, the case page */
+  --outline: #17151f; /* chunky 2px borders, same value as ink */
+  --rule: #e9dec6; /* decorative hairlines only */
+  --ink: #17151f; /* 16.8:1 on paper */
+  --ink-2: #4a4658; /* 8.5:1, secondary */
+  --ink-3: #625e75; /* 5.8:1, labels and the readable-text floor */
 
-  /* the accent. Means "this value was measured", nothing else. */
-  --measured: #0e6a5f; /* 6.0:1 */
-  --measured-soft: #dceae7;
+  /* verdict fills, ink text on all of them */
+  --strong: #5fe3a1; /* mint, 11.2:1 with ink */
+  --split: #ffcb3d; /* yellow, 11.9:1 */
+  --weak: #c4d8f5; /* soft blue, 12.5:1 */
+  --surprise: #ff6b4a; /* coral, 6.4:1 */
 
-  /* verdict semantics */
-  --split: #8f5e12; /* 5.1:1, ochre */
-  --weak: #6e6b60; /* deliberately equal to --ink-3 */
-  --nodata: #edebe4;
-  --nodata-hatch: #c9c5b8;
-  --clay: #8a5636; /* 5.6:1, "not found in Qloo" only */
-}
+  /* text-safe versions, for when a verdict color has to be text on paper */
+  --measured: #0a6b47; /* 6.1:1 on paper */
+  --split-ink: #8a5a00; /* 5.5:1 on paper */
 
-.dark {
-  --paper: #131311;
-  --surface: #1b1b18;
-  --rule: #2c2b27;
-  --ink: #ededed; /* 15.6:1 */
-  --ink-2: #a5a196; /* 7.2:1 */
-  --ink-3: #8a8578; /* 5.1:1 */
-  --measured: #4fbfae; /* 8.3:1 */
-  --measured-soft: #16211f;
-  --split: #d9a441; /* 8.3:1 */
-  --weak: #8a8578;
-  --nodata: #1e1e1a;
-  --nodata-hatch: #33322c;
-  --clay: #c08563;
+  /* absence texture */
+  --nodata-bg: #eeece6; /* ink-3 text on it is 5.3:1 */
+  --nodata-hatch: #c9c6bc;
+  --clay: #8a4b2d; /* 6.3:1, "not found in Qloo" only */
 }
 
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
+  --color-outline: var(--outline);
   --color-rule: var(--rule);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
-  --color-measured: var(--measured);
-  --color-measured-soft: var(--measured-soft);
+  --color-strong: var(--strong);
   --color-split: var(--split);
+  --color-split-ink: var(--split-ink);
   --color-weak: var(--weak);
-  --color-nodata: var(--nodata);
-  --color-nodata-hatch: var(--nodata-hatch);
+  --color-surprise: var(--surprise);
+  --color-measured: var(--measured);
   --color-clay: var(--clay);
 
-  --font-sans:
-    var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-bricolage), ui-serif, Georgia, serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
   --text-body: 1rem;
   --text-body--line-height: 1.6;
 }
-
-@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   html {
@@ -75,8 +62,7 @@
   body {
     background: var(--paper);
     color: var(--ink);
-    font-family:
-      var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -92,15 +78,77 @@
   }
 
   ::selection {
-    background: var(--measured-soft);
+    background: var(--weak);
     color: var(--ink);
   }
 }
 
 @layer utilities {
-  /* The third state. Absence gets texture, never a number (§6.6, App. B). */
+  /* Chunky but flat: the one card and button shape, so nobody improvises
+     it (design-direction.md §5). No glass, no gradients, no glow. */
+  .card {
+    background: var(--surface);
+    border: 2px solid var(--outline);
+    border-radius: 16px;
+    box-shadow: 4px 4px 0 var(--outline);
+  }
+
+  /* Primary buttons use the card shape. On :active they translate(2px, 2px)
+     while the shadow shrinks to 2px 2px 0. Padding and type size stay
+     per-screen; only the shape lives here. */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ink);
+    color: var(--paper);
+    border: 2px solid var(--outline);
+    border-radius: 16px;
+    box-shadow: 4px 4px 0 var(--outline);
+    transition:
+      transform 150ms ease-out,
+      box-shadow 150ms ease-out,
+      background-color 150ms ease-out;
+  }
+
+  .btn-primary:hover {
+    background: var(--ink-2);
+  }
+
+  .btn-primary:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--outline);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    color: var(--ink);
+    border: 2px solid var(--outline);
+    border-radius: 16px;
+    box-shadow: 4px 4px 0 var(--outline);
+    transition:
+      transform 150ms ease-out,
+      box-shadow 150ms ease-out,
+      background-color 150ms ease-out;
+  }
+
+  .btn-secondary:hover {
+    background: var(--paper);
+  }
+
+  .btn-secondary:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--outline);
+  }
+
+  /* The third state. Absence gets texture, never a number (§6.6, App. B).
+     The hatch is supporting texture; the words "not measured" are the
+     signal, so every use pairs this class with that copy. */
   .nodata {
-    background-color: var(--nodata);
+    background-color: var(--nodata-bg);
     background-image: repeating-linear-gradient(
       45deg,
       var(--nodata-hatch) 0,
@@ -108,45 +156,105 @@
       transparent 1px,
       transparent 4px
     );
-    border: 1px dashed var(--ink-3);
+    border: 2px dashed var(--ink-3);
   }
 
-  /* Evidence markers are citations, not buttons (§6.12). */
+  /* Evidence markers are citations, not buttons (§6.12). A small dot next
+     to every claim; tapping opens the request and response in mono. */
   .cite {
     display: inline-flex;
     min-width: 1.5rem;
     min-height: 1.5rem;
     align-items: center;
     justify-content: center;
+    padding-inline: 0.3rem;
+    border: 1.5px solid var(--ink-3);
+    border-radius: 999px;
+    background: var(--surface);
     font-family: var(--font-plex-mono), ui-monospace, monospace;
     font-size: 0.6875rem;
+    line-height: 1;
     vertical-align: middle;
-    color: var(--ink-3);
-    text-decoration-line: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 2px;
-    text-decoration-color: var(--rule);
+    color: var(--ink-2);
+    text-decoration: none;
   }
 
   .cite:hover {
+    border-color: var(--measured);
     color: var(--measured);
-    text-decoration-color: currentcolor;
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
   }
 
+  /* The one graphic that is the product (§2): a solid ink control line
+     with a pill label. Never dashed — dashes are reserved for not
+     measured. */
   .control-line {
-    width: 1.5px;
+    width: 2.5px;
     background: var(--ink);
+  }
+
+  .control-pill {
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 999px;
+    padding: 0.1rem 0.45rem;
+  }
+
+  /* Motion is short (§1): bars grow from zero over ~300ms ease-out, the
+     surprise block pops in from 96% scale over ~220ms. A not-measured
+     state never animates into a number. */
+  .bar-grow {
+    transform-origin: left center;
+    animation: bar-grow 300ms ease-out;
+  }
+
+  .surprise-pop {
+    animation: surprise-pop 220ms ease-out;
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes surprise-pop {
+  from {
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-grow,
+  .surprise-pop {
+    animation: none;
   }
 }
 
 @media (max-width: 640px) {
+  /* Primary and secondary actions wrap as full-width rows; no action
+     depends on hover. */
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+
   .cite {
     margin-inline: 0.125rem;
   }
 }
 
-/* The audience case must print legible in black on white with the accent
-   removed (§6.10, design-direction.md §5). */
+/* The audience case must print legible in black on white with the fills
+   removed (§6.10, design-direction.md §3, §5). Outlines stay, shadows go,
+   the hatch stays, and the verdict word does the work the color did. */
 @media print {
   html,
   body {
@@ -154,7 +262,26 @@
     color: #000000;
   }
 
+  .card,
+  .btn-primary,
+  .btn-secondary {
+    box-shadow: none;
+  }
+
+  [class*="bg-strong"],
+  [class*="bg-split"],
+  [class*="bg-weak"],
+  [class*="bg-surprise"] {
+    background-color: #ffffff !important;
+  }
+
   .cite {
     color: #000000;
+    border-color: #000000;
+  }
+
+  .bar-grow,
+  .surprise-pop {
+    animation: none;
   }
 }

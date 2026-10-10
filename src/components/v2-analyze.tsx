@@ -190,10 +190,7 @@ export function V2Analyze() {
         </p>
       )}
       {saveError !== "" && (
-        <div
-          className="mb-4 border border-rule p-4 text-sm text-ink-2"
-          role="alert"
-        >
+        <div className="card mb-4 p-4 text-sm text-ink-2" role="alert">
           <p>{saveError}</p>
           {result !== null && (
             <button
@@ -241,7 +238,7 @@ export function V2Analyze() {
                 rows={6}
                 required
                 placeholder="A quiet science-fiction film about a lonely worker on a space station."
-                className="border border-rule bg-surface p-4 text-body text-ink"
+                className="rounded-2xl border-2 border-outline bg-surface p-4 text-body text-ink"
               />
             </label>
             <label className="flex items-center gap-2 text-sm text-ink-2">
@@ -255,7 +252,7 @@ export function V2Analyze() {
                   setWorkType(selected ?? "");
                 }}
                 required
-                className="border border-rule bg-surface px-2 py-1 text-base"
+                className="rounded-2xl border-2 border-outline bg-surface px-2 py-1 text-base"
               >
                 <option value="" disabled>
                   Choose type
@@ -278,7 +275,7 @@ export function V2Analyze() {
                     value={comparisons}
                     onChange={(e) => setComparisons(e.target.value)}
                     rows={2}
-                    className="border border-rule bg-surface p-2 text-base"
+                    className="rounded-2xl border-2 border-outline bg-surface p-2 text-base"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -287,7 +284,7 @@ export function V2Analyze() {
                     value={contrasts}
                     onChange={(e) => setContrasts(e.target.value)}
                     rows={2}
-                    className="border border-rule bg-surface p-2 text-base"
+                    className="rounded-2xl border-2 border-outline bg-surface p-2 text-base"
                   />
                 </label>
               </div>
@@ -299,7 +296,7 @@ export function V2Analyze() {
                 pitchText.trim() === "" ||
                 workType === ""
               }
-              className="border border-ink bg-ink px-4 py-2 text-sm text-surface disabled:opacity-40"
+              className="btn-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:border-ink-3 disabled:bg-transparent disabled:text-ink-3 disabled:shadow-none"
             >
               {status === "pending" ? "Analyzing…" : "Find audiences"}
             </button>
