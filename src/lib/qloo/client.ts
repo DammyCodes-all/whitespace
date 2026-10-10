@@ -24,9 +24,18 @@
  */
 
 import type { QlooCall } from "@/lib/types";
+import type { V2EvidenceCall } from "../pipeline/v2/types.ts";
+
+/** V2 transport ownership: one context per run, including every retry. */
+export interface QlooRequestContext {
+  used: number;
+  ceiling: number;
+  signal?: AbortSignal;
+  calls?: V2EvidenceCall[];
+}
 
 export interface QlooFetchOk {
-  /** Decoded JSON body, or null when the 200 response had no JSON body. */
+  /** Decoded JSON body; only legacy calls accept a missing JSON body as null. */
   data: unknown;
   trace: QlooCall;
 }
@@ -78,6 +87,13 @@ interface CacheEntry {
   data: unknown;
   status: number;
 }
+
+// Context identity, not process quota/reset state, owns v2 cached responses.
+const requestCaches = new WeakMap<
+  QlooRequestContext,
+  Map<string, CacheEntry>
+>();
+const MAX_EVIDENCE_RESPONSE_CHARS = 64_000;
 
 const responseCache = new Map<string, CacheEntry>();
 let networkCalls = 0;
@@ -159,12 +175,278 @@ export function isQlooConfigured(): boolean {
   return getQlooConfig().apiKey !== null;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const cancel = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", cancel);
+      reject(new DOMException("Qloo request cancelled.", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", cancel);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", cancel, { once: true });
+    if (signal?.aborted) cancel();
+  });
 }
 
 function isRetryableStatus(status: number): boolean {
   return status === 429 || (status >= 500 && status <= 599);
+}
+
+function sensitiveField(name: string): boolean {
+  return /^(?:x[-_]?api[-_]?key|api[-_]?key|authorization|access[-_]?token|token|secret)$/i.test(
+    name,
+  );
+}
+
+function redactText(value: string, apiKey: string | null): string {
+  return apiKey === null ? value : value.split(apiKey).join("[REDACTED]");
+}
+
+function captureResponse(
+  response: unknown,
+  apiKey: string | null,
+): { response: unknown; responseTruncated?: boolean } {
+  const json = JSON.stringify(response, (name, value: unknown) => {
+    if (sensitiveField(name)) return "[REDACTED]";
+    return typeof value === "string" ? redactText(value, apiKey) : value;
+  });
+  if (json.length > MAX_EVIDENCE_RESPONSE_CHARS) {
+    return {
+      response: { preview: json.slice(0, MAX_EVIDENCE_RESPONSE_CHARS) },
+      responseTruncated: true,
+    };
+  }
+  return { response: JSON.parse(json) as unknown };
+}
+
+/** A missing/malformed result envelope is not a completed empty lookup. */
+function validV2Response(path: string, data: unknown): boolean {
+  if (typeof data !== "object" || data === null || Array.isArray(data))
+    return false;
+  const results = (data as Record<string, unknown>).results;
+  if (path === "/search") return Array.isArray(results);
+  if (path === "/v2/insights") {
+    return (
+      Array.isArray(results) ||
+      (typeof results === "object" &&
+        results !== null &&
+        Array.isArray((results as Record<string, unknown>).entities))
+    );
+  }
+  return true;
+}
+
+/** Separate v2 ownership preserves the legacy no-context quota/mock contract. */
+async function qlooFetchWithContext(
+  path: string,
+  params: Record<string, string>,
+  context: QlooRequestContext,
+): Promise<QlooFetchOk> {
+  const config = getQlooConfig();
+  const started = Date.now();
+  const requestParams = { ...params };
+  const traceBase = {
+    id: crypto.randomUUID(),
+    endpoint: redactText(path, config.apiKey),
+    method: "GET" as const,
+    params: Object.fromEntries(
+      Object.entries(requestParams).map(([name, value]) => [
+        name,
+        sensitiveField(name) ? "[REDACTED]" : redactText(value, config.apiKey),
+      ]),
+    ),
+    at: new Date().toISOString(),
+  };
+  let attempts = 0;
+  let status = 0;
+  let response: unknown = null;
+  const traceOf = (fromCache = false): QlooCall => ({
+    ...traceBase,
+    status,
+    durationMs: Date.now() - started,
+    fromCache,
+    responseSummary: summarizeResponse(
+      captureResponse(response, config.apiKey).response,
+    ),
+  });
+  const record = (trace: QlooCall, error?: string) => {
+    context.calls?.push({
+      ...trace,
+      params: { ...trace.params },
+      ...captureResponse(response, config.apiKey),
+      attempts,
+      ...(error === undefined
+        ? {}
+        : { error: redactText(error, config.apiKey) }),
+    });
+  };
+  const checkCancelled = () => {
+    if (context.signal?.aborted) {
+      throw new QlooError(
+        `Qloo ${traceBase.endpoint} request cancelled.`,
+        traceOf(),
+        false,
+      );
+    }
+  };
+  const checkBudget = () => {
+    if (context.used >= context.ceiling) {
+      throw new QlooQuotaError(
+        `Qloo budget exhausted (${context.used}/${context.ceiling}); no further HTTP attempt sent.`,
+        traceOf(),
+        { calls: context.used, cached: 0 },
+      );
+    }
+  };
+
+  try {
+    checkCancelled();
+    let cache = requestCaches.get(context);
+    if (cache === undefined) {
+      cache = new Map();
+      requestCaches.set(context, cache);
+    }
+    // JSON encoding avoids delimiter collisions; origin/auth changes cannot hit an old entry.
+    const key = JSON.stringify([
+      config.baseUrl,
+      config.apiKey,
+      path,
+      Object.entries(requestParams).sort(([a], [b]) => a.localeCompare(b)),
+    ]);
+    const hit = config.apiKey === null ? undefined : cache.get(key);
+    if (hit !== undefined) {
+      status = hit.status;
+      response = hit.data;
+      const trace = traceOf(true);
+      record(trace);
+      return { data: structuredClone(hit.data), trace };
+    }
+    checkBudget();
+    if (config.apiKey === null) {
+      throw new QlooError("Qloo API key is not configured.", traceOf(), false);
+    }
+    const query = new URLSearchParams(requestParams).toString();
+    const url = `${config.baseUrl}${path}${query ? `?${query}` : ""}`;
+
+    for (let attempt = 0; attempt <= config.maxRetries; attempt += 1) {
+      checkCancelled();
+      checkBudget();
+      const controller = new AbortController();
+      const cancel = () => controller.abort();
+      context.signal?.addEventListener("abort", cancel, { once: true });
+      const timer = setTimeout(() => controller.abort(), config.timeoutMs);
+      try {
+        status = 0;
+        response = null;
+        // Reserve synchronously at the fetch boundary, including failures and retries.
+        context.used += 1;
+        attempts += 1;
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Api-Key": config.apiKey,
+          },
+          signal: controller.signal,
+        });
+        checkCancelled();
+        status = res.status;
+        const text = await res.text();
+        checkCancelled();
+        let validJson = true;
+        try {
+          response = JSON.parse(text) as unknown;
+        } catch {
+          validJson = false;
+          response = text;
+        }
+        if (res.ok) {
+          if (!validJson) {
+            throw new QlooError(
+              `Qloo ${traceBase.endpoint} returned malformed JSON.`,
+              traceOf(),
+              false,
+            );
+          }
+          if (
+            typeof response === "object" &&
+            response !== null &&
+            (response as Record<string, unknown>).success === false
+          ) {
+            throw new QlooError(
+              `Qloo ${traceBase.endpoint} reported a provider failure.`,
+              traceOf(),
+              false,
+            );
+          }
+          if (!validV2Response(path, response)) {
+            throw new QlooError(
+              `Qloo ${traceBase.endpoint} returned a malformed results envelope.`,
+              traceOf(),
+              false,
+            );
+          }
+          const stored = structuredClone(response);
+          cache.set(key, { data: stored, status });
+          const trace = traceOf();
+          record(trace);
+          return { data: structuredClone(stored), trace };
+        }
+        if (!isRetryableStatus(status) || attempt === config.maxRetries) {
+          throw new QlooError(
+            `Qloo ${traceBase.endpoint} failed with status ${status}.`,
+            traceOf(),
+            isRetryableStatus(status),
+          );
+        }
+      } catch (err) {
+        checkCancelled();
+        if (err instanceof QlooError) throw err;
+        const aborted =
+          controller.signal.aborted ||
+          (err instanceof Error && err.name === "AbortError");
+        if (attempt === config.maxRetries || (aborted && attempt > 0)) {
+          throw new QlooError(
+            aborted
+              ? `Qloo ${traceBase.endpoint} timed out after ${config.timeoutMs}ms.`
+              : `Qloo ${traceBase.endpoint} request failed.`,
+            traceOf(),
+            true,
+          );
+        }
+      } finally {
+        clearTimeout(timer);
+        context.signal?.removeEventListener("abort", cancel);
+      }
+      checkCancelled();
+      checkBudget();
+      await sleep(
+        300 * 2 ** attempt + Math.floor(Math.random() * 100),
+        context.signal,
+      );
+    }
+    throw new QlooError(
+      `Qloo ${traceBase.endpoint} retries exhausted.`,
+      traceOf(),
+      true,
+    );
+  } catch (err) {
+    const failure =
+      err instanceof QlooError || err instanceof QlooQuotaError
+        ? err
+        : new QlooError(
+            context.signal?.aborted
+              ? `Qloo ${traceBase.endpoint} request cancelled.`
+              : `Qloo ${traceBase.endpoint} request failed.`,
+            traceOf(),
+            !context.signal?.aborted,
+          );
+    record(failure.trace, failure.message);
+    throw failure;
+  }
 }
 
 /**
@@ -172,17 +454,22 @@ function isRetryableStatus(status: number): boolean {
  * §6.12 trace for the evidence drawer. Server-only: never import from
  * a Client Component and never expose the key to the browser.
  *
- * Offline contract (Council verdict): without a key it returns a
- * deterministic mock payload with fromCache=true instead of throwing,
- * so `pnpm build` and the Day 1 /run skeleton work with no secrets.
+ * Legacy offline contract: without a key, no-context calls return a
+ * deterministic mock payload with fromCache=true instead of throwing.
+ * Context calls never mock: quota/cache are private to that context,
+ * every HTTP attempt is charged, and cancellation covers fetch/backoff.
+ * When supplied, context.calls receives key-free, bounded response traces.
  */
 export async function qlooFetch(
   path: string,
   params: Record<string, string> = {},
+  context?: QlooRequestContext,
 ): Promise<QlooFetchOk> {
   if (typeof window !== "undefined") {
     throw new Error("qlooFetch is server-only and cannot run in the browser.");
   }
+
+  if (context !== undefined) return qlooFetchWithContext(path, params, context);
 
   const config = getQlooConfig();
   const started = Date.now();
