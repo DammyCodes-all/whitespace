@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 /**
- * Site shell header. Server Component, instant nav via Link.
+ * Site shell header. Client pathname awareness, instant nav via Link.
  * Single line on desktop, 68px tall. Light-only per design-direction.
  */
 export function SiteHeader() {
@@ -19,20 +19,20 @@ export function SiteHeader() {
         >
           Whitespace
         </Link>
-        <nav aria-label="Primary" className="flex items-center gap-6">
+        <nav aria-label="Primary" className="flex items-center gap-3 sm:gap-6">
           {pathname !== "/" && (
             <Link
               href="/"
               className="text-sm text-ink-2 transition-colors hover:text-ink"
             >
-              New fit
+              New analysis
             </Link>
           )}
           <Link
             href="/run"
             className="text-sm text-ink-2 transition-colors hover:text-ink"
           >
-            Read a sample result
+            Legacy v1 sample
           </Link>
         </nav>
       </div>
