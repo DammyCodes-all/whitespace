@@ -379,7 +379,18 @@ export async function analyzePitch(
         if (validated === null) throw new Error("Invalid brief proposal.");
         proposal = validated;
       }
-    } catch {
+    } catch (err) {
+      // Surface the cause (timeout vs malformed output vs invalid
+      // reviewed brief) so a repeated failure tells the creator whether
+      // retrying or revising is the right move. SyntaxError text can
+      // echo model output, so it stays generic; our own error messages
+      // carry no keys or payloads.
+      const cause =
+        err instanceof SyntaxError
+          ? "the reader's reply was not valid JSON"
+          : err instanceof Error
+            ? err.message
+            : "unknown error";
       return {
         reportState: "unable-to-assess",
         dataState: "unavailable",
@@ -393,7 +404,7 @@ export async function analyzePitch(
         limitations: [
           over()
             ? "Run deadline reached during interpretation. No evidence was gathered."
-            : "Interpretation failed or the reviewed brief was invalid. No evidence was gathered.",
+            : `Interpretation failed (${cause}). No evidence was gathered.`,
         ],
         leads: [],
         explanations: [],
