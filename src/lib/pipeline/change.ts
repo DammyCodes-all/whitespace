@@ -23,7 +23,7 @@ import { fetchAllAudienceTastes } from "../qloo/tastes.ts";
 import type { AudienceTastes } from "../scoring/fit.ts";
 import { scoreAll } from "../scoring/fit.ts";
 import type { GapItem } from "../scoring/gaps.ts";
-import { findGaps } from "../scoring/gaps.ts";
+import { findGaps, labelsForTastes } from "../scoring/gaps.ts";
 import type {
   Audience,
   FitScore,
@@ -138,7 +138,8 @@ export async function proposeChange(
   const fetchTastes = deps.fetchTastes ?? fetchAllAudienceTastes;
   const tasted = await fetchTastes([top]);
   const tastes = tasted.all.find((t) => t.audienceId === top.id) ?? null;
-  const gaps = tastes ? findGaps(tastes, result.tags, TAG_LABELS) : [];
+  const labels = tastes ? labelsForTastes(tastes, TAG_LABELS) : TAG_LABELS;
+  const gaps = tastes ? findGaps(tastes, result.tags, labels) : [];
 
   const proposedPitch = await propose(constraint, gaps);
   const used = usedGaps(proposedPitch, gaps);

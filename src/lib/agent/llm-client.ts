@@ -113,8 +113,12 @@ export async function callChatCompletions(
     ]);
     controller.signal.throwIfAborted();
     if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      const snippet = body.trim().slice(0, 200);
       throw new LlmError(
-        `${provider} failed with status ${res.status}.`,
+        snippet.length > 0
+          ? `${provider} failed with status ${res.status}: ${snippet}`
+          : `${provider} failed with status ${res.status}.`,
         provider,
         true,
       );
@@ -134,16 +138,18 @@ export async function callChatCompletions(
     return content;
   } catch (err) {
     if (err instanceof LlmError) throw err;
-    throw new LlmError(
-      options.signal?.aborted
-        ? `${provider} aborted.`
-        : controller.signal.aborted ||
-            (err instanceof Error && err.name === "AbortError")
-          ? `${provider} timed out.`
-          : `${provider} request failed.`,
-      provider,
-      true,
-    );
+    if (options.signal?.aborted) {
+      throw new LlmError(`${provider} aborted.`, provider, true);
+    }
+    if (
+      controller.signal.aborted ||
+      (err instanceof Error && err.name === "AbortError")
+    ) {
+      throw new LlmError(`${provider} timed out.`, provider, true);
+    }
+    const cause =
+      err instanceof Error && err.message !== "" ? `: ${err.message}` : "";
+    throw new LlmError(`${provider} request failed${cause}.`, provider, true);
   } finally {
     clearTimeout(timer);
     options.signal?.removeEventListener("abort", parentAbort);

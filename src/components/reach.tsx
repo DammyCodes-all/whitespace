@@ -19,6 +19,8 @@ export interface ReachAudience {
   related: RelatedResult[];
   gaps: GapItem[];
   unlabeledCount: number;
+  /** False when tastes failed or came back empty: gaps are unknown, not zero. */
+  hasTastes?: boolean;
   /** Traces the tastes call behind the gaps (§6.12). */
   tastesCallId?: string;
 }
@@ -79,21 +81,32 @@ function GapList({
   audienceName,
   gaps,
   unlabeledCount,
+  hasTastes = true,
   tastesCallId,
 }: {
   audienceName: string;
   gaps: GapItem[];
   unlabeledCount: number;
+  hasTastes?: boolean;
   tastesCallId?: string;
 }) {
+  const covered = hasTastes && gaps.length === 0 && unlabeledCount === 0;
   return (
     <div className="mt-4 border border-rule bg-surface p-4 sm:p-5">
       <h3 className="text-base tracking-tight text-ink">
         What {audienceName} loves that your pitch doesn&apos;t mention yet
       </h3>
-      {gaps.length === 0 ? (
-        <p className="nodata mt-3 px-2 py-2 font-mono text-xs text-ink-2">
-          not measured
+      {!hasTastes ? (
+        <p className="mt-3 text-sm text-ink-3">
+          No taste data for this audience.
+        </p>
+      ) : covered ? (
+        <p className="mt-3 text-sm text-ink-3">
+          Your pitch already mentions what this audience loves most.
+        </p>
+      ) : gaps.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-3">
+          No taste data for this audience.
         </p>
       ) : (
         <ul className="mt-2 divide-y divide-rule">
@@ -121,11 +134,6 @@ function GapList({
             </li>
           ))}
         </ul>
-      )}
-      {unlabeledCount > 0 && (
-        <p data-numeric className="tnum mt-2 font-mono text-xs text-ink-3">
-          +{unlabeledCount} untracked
-        </p>
       )}
       <p className="mt-2 text-sm text-ink-3">Research leads, not pitch copy.</p>
     </div>
@@ -180,6 +188,7 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
               audienceName={group.audience.name}
               gaps={group.gaps}
               unlabeledCount={group.unlabeledCount}
+              hasTastes={group.hasTastes}
               tastesCallId={group.tastesCallId}
             />
           </div>
