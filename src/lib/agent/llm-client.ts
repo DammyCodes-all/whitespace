@@ -76,8 +76,12 @@ export async function callChatCompletions(
       signal: controller.signal,
     });
     if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      const snippet = body.trim().slice(0, 200);
       throw new LlmError(
-        `${provider} failed with status ${res.status}.`,
+        snippet.length > 0
+          ? `${provider} failed with status ${res.status}: ${snippet}`
+          : `${provider} failed with status ${res.status}.`,
         provider,
         true,
       );
@@ -92,10 +96,12 @@ export async function callChatCompletions(
     return content;
   } catch (err) {
     if (err instanceof LlmError) throw err;
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new LlmError(`${provider} timed out.`, provider, true);
+    }
+    const cause = err instanceof Error && err.message !== "" ? `: ${err.message}` : "";
     throw new LlmError(
-      err instanceof Error && err.name === "AbortError"
-        ? `${provider} timed out.`
-        : `${provider} request failed.`,
+      `${provider} request failed${cause}.`,
       provider,
       true,
     );
