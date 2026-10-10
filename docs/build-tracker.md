@@ -102,4 +102,8 @@ Format:
 | 2026-10-09 | Add concept audience from pitch-tag signals scored beside movie-fan audiences | §6.6, §7, §8 | biome+tsc clean; live tag-signal verified 200; space run stays Strong with concept 0.000 (no circularity); build pass |
 | 2026-10-09 | Show the guess on confirm: hypothesis titles, rival readings, words, is-that-your-crowd | §5, §6.2, §6.3 | biome+tsc clean; build pass |
 | 2026-10-09 | Remove hijacked api.js dropper, restore scripts, surface LLM error causes | §7 | tsc clean; agent tests 16 pass; live /api/propose 200 (biome format pre-existing CRLF fail) |
+| 2026-10-10 | Remove dead dark-mode variant from tokens | n/a | grep confirms no .dark/dark: refs remain; tsc clean |
+| 2026-10-10 | Restore dark-mode variant block, owner-authored Oct 5 | n/a | git diff empty vs HEAD on globals.css; tsc clean |
+| 2026-10-10 | Redesign saved-run replay as editorial list plus detail | §6.12 | tsc clean; 113 pass node --test; next build pass |
+| 2026-10-10 | Collapse saved-run list to selected plus all-runs toggle | §6.12 | tsc clean; 113 pass node --test; next build pass |
 | 2026-10-09 | Use live taste names for gaps plus honest empty states, drop untracked line | §6.8 | biome+tsc clean on touched files; node --test 23 pass (gaps/change/reach-targets) |
