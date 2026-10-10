@@ -48,6 +48,7 @@ import {
   isBridgeEligible,
   MAX_COMPARISONS,
   MAX_ENRICHMENT_LOOKUPS,
+  MAX_NEIGHBORHOODS,
   MAX_REACH_NEIGHBORHOODS,
   OVERLAY_PER_QUERY,
   PIPELINE_VERSION,
@@ -321,6 +322,7 @@ export async function analyzePitch(
         lenses: [],
         manifest: null,
         neighborhoods: [],
+        candidateHypotheses: [],
         explorations: [],
         limitations: [
           scope.trigger !== undefined
@@ -343,6 +345,7 @@ export async function analyzePitch(
         lenses: [],
         manifest: null,
         neighborhoods: [],
+        candidateHypotheses: [],
         explorations: [],
         limitations: ["No pitch text provided. Paste the idea to begin."],
         leads: [],
@@ -385,6 +388,7 @@ export async function analyzePitch(
         lenses: [],
         manifest: null,
         neighborhoods: [],
+        candidateHypotheses: [],
         explorations: [],
         limitations: [
           over()
@@ -407,6 +411,7 @@ export async function analyzePitch(
         lenses: [],
         manifest: null,
         neighborhoods: [],
+        candidateHypotheses: [],
         explorations: [],
         limitations: [
           "The pitch has no representable aspects yet. Add what it is about (premise, theme, tone, or form).",
@@ -677,6 +682,7 @@ export async function analyzePitch(
           lenses,
           manifest: null,
           neighborhoods: [],
+          candidateHypotheses: [],
           explorations: overlayExplorations,
           limitations: [
             ...limitations,
@@ -702,6 +708,7 @@ export async function analyzePitch(
         lenses,
         manifest: null,
         neighborhoods: [],
+        candidateHypotheses: [],
         explorations: [],
         limitations: ambiguous
           ? [
@@ -893,6 +900,30 @@ export async function analyzePitch(
         break;
       }
     }
+
+    // Candidate hypotheses: when no confirmed neighborhood survived,
+    // project what the frozen overlap WOULD support if the creator
+    // confirms the provisional analogies. Pure re-grouping of already
+    // retrieved evidence — no new calls, no spend. Candidates are
+    // display-only (pitchSupported stays false): they never feed
+    // reach, explanations, or evidence counts. Confirming them
+    // re-runs the same grouping as evidence.
+    let candidateHypotheses: V2Neighborhood[] = [];
+    if (neighborhoods.length === 0 && discovery.length >= 2) {
+      const projected = discovery.map((lens) => ({
+        ...lens,
+        bridge: "creator-confirmation" as const,
+      }));
+      candidateHypotheses = formNeighborhoods(cores, projected, id, retrievals)
+        .filter((group) => group.coherent && group.pitchSupported)
+        .map((group) => ({ ...group, pitchSupported: false }))
+        .slice(0, MAX_NEIGHBORHOODS);
+      if (candidateHypotheses.length > 0) {
+        limitations.push(
+          "Candidate audiences assume analogies you have not confirmed yet; their counts are projected, not findings. Confirming them re-runs the group as evidence.",
+        );
+      }
+    }
     const explorations = buildExplorations(
       [...perAspect].flatMap(([, list]) => list),
       discovery,
@@ -934,7 +965,9 @@ export async function analyzePitch(
     const reachTargets = neighborhoods.slice(0, MAX_REACH_NEIGHBORHOODS);
     if (reachTargets.length === 0) {
       limitations.push(
-        "No audience hypotheses survived; no investigation leads to fetch.",
+        candidateHypotheses.length > 0
+          ? "No confirmed audience hypotheses yet, so no investigation leads to fetch; confirming a candidate unlocks leads."
+          : "No audience hypotheses survived; no investigation leads to fetch.",
       );
     } else if (over()) {
       limitations.push(
@@ -1043,6 +1076,7 @@ export async function analyzePitch(
       lenses,
       manifest,
       neighborhoods,
+      candidateHypotheses,
       explorations,
       limitations,
       leads,
