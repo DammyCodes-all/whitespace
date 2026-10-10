@@ -1,6 +1,6 @@
 # Whitespace
 
-Whitespace helps creators investigate which audiences their ideas might appeal to and where to begin reaching them. This glossary names the concepts used in the proposed audience-discovery redesign; current product behavior remains defined by `docs/product-spec.md`.
+Whitespace helps creators investigate which audiences their ideas might appeal to and where to begin reaching them. This glossary names the concepts used while exploring an audience-discovery redesign (since reverted; the v2 pipeline, docs, and routes were removed in Oct 2026); current product behavior remains defined by `docs/product-spec.md`.
 
 ## Language
 
