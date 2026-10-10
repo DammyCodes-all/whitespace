@@ -84,7 +84,7 @@ Before retrieval the run freezes: input, brief, aspect-to-reference bridges with
 
 ### 6.5 Discovery and neighborhoods
 
-Each discovery lens is queried separately into the same target categories (top-20 window). Taste neighborhoods are built in code from shared returned entities across at least two distinct aspect families, with coherence from shared returned metadata — never invented by the model. A supporting lens, when a third usable aspect exists, is retrieved after the freeze and can add evidence or reorder groups; it cannot create members. Detail enrichment (exact-name tag lookup, at most four) runs only when cores exist but no shared descriptor survives, and only reassesses coherence.
+Each discovery lens is queried separately into the same target categories (top-20 window). Taste neighborhoods are built in code from shared returned entities across at least two distinct aspect families, with coherence from shared returned metadata — never invented by the model. When no confirmed neighborhood survives, the same frozen overlap is shown once more as candidate audiences: what the grouping would support if the creator confirms the provisional analogies, with projected counts labeled as such. Candidates are display-only and never feed leads, explanations, or evidence. A supporting lens, when a third usable aspect exists, is retrieved after the freeze and can add evidence or reorder groups; it cannot create members. Detail enrichment (exact-name tag lookup, at most four) runs only when cores exist but no shared descriptor survives, and only reassesses coherence.
 
 ### 6.6 Evidence, not scores
 
