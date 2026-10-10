@@ -1,4 +1,5 @@
-import { PitchFlow } from "@/components/pitch-flow";
+import { Suspense } from "react";
+import { V2Analyze } from "@/components/v2-analyze";
 
 export default function Home() {
   return (
@@ -10,12 +11,19 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mt-3 max-w-[38rem] text-center text-body text-ink-2">
-            Paste an idea. We tell you which audience it fits, how strongly, and
-            where to find those people, and we show our work at every step.
+            Paste an idea. We read its distinct aspects and show taste
+            connections worth investigating — with evidence and gaps, not fit
+            scores.
           </p>
 
-          <div className="flex w-full max-w-[720px] flex-col">
-            <PitchFlow />
+          <div className="mt-8 flex w-full max-w-[720px] flex-col">
+            <Suspense
+              fallback={
+                <p className="text-sm text-ink-3">Loading analysis form…</p>
+              }
+            >
+              <V2Analyze />
+            </Suspense>
 
             <p className="mt-10 text-center text-sm text-ink-3">
               Results are a hypothesis built from group-level taste data. They
