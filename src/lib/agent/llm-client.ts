@@ -42,7 +42,14 @@ export function extractJson(content: string): string {
   return raw.slice(start, end + 1);
 }
 
-export interface ChatCompletionOptions {
+/** Request-scoped cancellation and actual provider-attempt accounting. */
+export interface LlmExecutionContext {
+  signal?: AbortSignal;
+  /** Called immediately before each provider fetch; may refuse dispatch by throwing. */
+  onAttempt?: () => void;
+}
+
+export interface ChatCompletionOptions extends LlmExecutionContext {
   temperature?: number;
   maxTokens?: number;
   extraHeaders?: Record<string, string>;
@@ -56,25 +63,55 @@ export async function callChatCompletions(
   provider: string,
   options: ChatCompletionOptions = {},
 ): Promise<string> {
+  if (options.signal?.aborted) {
+    throw new LlmError(`${provider} aborted.`, provider, true);
+  }
   const controller = new AbortController();
+  const parentAbort = () => controller.abort(options.signal?.reason);
+  options.signal?.addEventListener("abort", parentAbort, { once: true });
+  let rejectAbort: (reason: LlmError) => void = () => {};
+  const aborted = new Promise<never>((_resolve, reject) => {
+    rejectAbort = reject;
+  });
+  // A refusing attempt hook can abort before either race is attached.
+  void aborted.catch(() => {});
+  const rejectOnAbort = () =>
+    rejectAbort(
+      new LlmError(
+        options.signal?.aborted
+          ? `${provider} aborted.`
+          : `${provider} timed out.`,
+        provider,
+        true,
+      ),
+    );
+  controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
   const timer = setTimeout(() => controller.abort(), 20000);
+  let res: Response | undefined;
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        ...options.extraHeaders,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        response_format: { type: "json_object" },
-        temperature: options.temperature ?? 0.2,
-        max_tokens: options.maxTokens ?? 1200,
+    controller.signal.throwIfAborted();
+    options.onAttempt?.();
+    controller.signal.throwIfAborted();
+    res = await Promise.race([
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          ...options.extraHeaders,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          response_format: { type: "json_object" },
+          temperature: options.temperature ?? 0.2,
+          max_tokens: options.maxTokens ?? 1200,
+        }),
+        signal: controller.signal,
       }),
-      signal: controller.signal,
-    });
+      aborted,
+    ]);
+    controller.signal.throwIfAborted();
     if (!res.ok) {
       throw new LlmError(
         `${provider} failed with status ${res.status}.`,
@@ -82,7 +119,12 @@ export async function callChatCompletions(
         true,
       );
     }
-    const data: unknown = await res.json().catch(() => null);
+    // Fetch headers completing does not end the deadline: a body may still stall.
+    const data: unknown = await Promise.race([
+      res.json().catch(() => null),
+      aborted,
+    ]);
+    controller.signal.throwIfAborted();
     const content = (
       data as { choices?: { message?: { content?: unknown } }[] }
     )?.choices?.[0]?.message?.content;
@@ -93,13 +135,22 @@ export async function callChatCompletions(
   } catch (err) {
     if (err instanceof LlmError) throw err;
     throw new LlmError(
-      err instanceof Error && err.name === "AbortError"
-        ? `${provider} timed out.`
-        : `${provider} request failed.`,
+      options.signal?.aborted
+        ? `${provider} aborted.`
+        : controller.signal.aborted ||
+            (err instanceof Error && err.name === "AbortError")
+          ? `${provider} timed out.`
+          : `${provider} request failed.`,
       provider,
       true,
     );
   } finally {
     clearTimeout(timer);
+    options.signal?.removeEventListener("abort", parentAbort);
+    controller.signal.removeEventListener("abort", rejectOnAbort);
+    // Release unconsumed error bodies; active fetch bodies share the abort signal.
+    if (res?.body !== null && res?.body !== undefined && !res.bodyUsed) {
+      void res.body.cancel().catch(() => {});
+    }
   }
 }
