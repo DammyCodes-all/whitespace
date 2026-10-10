@@ -505,7 +505,7 @@ describe("analyzePitch states", () => {
       {
         ...deps(),
         now: () => {
-          t += 100;
+          t += 10;
           return t;
         },
       },
@@ -884,5 +884,61 @@ describe("analyzePitch states", () => {
     // No descriptor without tags: honest exploration-only, no invented group.
     assert.deepEqual(out.neighborhoods, []);
     assert.equal(out.reportState, "exploration-only");
+  });
+
+  it("shows candidate hypotheses on the first run without ticking", async () => {
+    const out = await analyzePitch(input(), deps());
+    assert.equal(out.reportState, "exploration-only");
+    assert.deepEqual(out.neighborhoods, []);
+    assert.equal(out.candidateHypotheses.length, 1);
+    const candidate = out.candidateHypotheses[0];
+    assert.equal(candidate.pitchSupported, false);
+    assert.equal(candidate.coherent, true);
+    assert.equal(candidate.coverage, 2);
+    assert.equal(candidate.corroboration, 1);
+    assert.deepEqual(candidate.members.map((m) => m.id).sort(), ["C1", "C2"]);
+    // Candidates are display-only: no reach, no explanations, no spend.
+    assert.deepEqual(out.leads, []);
+    assert.deepEqual(out.explanations, []);
+    assert.ok(
+      out.limitations.some((l) => l.includes("Candidate audiences assume")),
+    );
+  });
+
+  it("promotes candidates to hypotheses after confirmation", async () => {
+    const first = await analyzePitch(input(), deps());
+    assert.equal(first.candidateHypotheses.length, 1);
+    const second = await analyzePitch(
+      input({ confirmedAnalogies: ["a-1", "a-2"] }),
+      deps(),
+    );
+    assert.equal(second.reportState, "hypotheses");
+    assert.equal(second.neighborhoods.length, 1);
+    assert.deepEqual(second.candidateHypotheses, []);
+    assert.deepEqual(
+      second.neighborhoods[0].coreMemberIds,
+      first.candidateHypotheses[0].coreMemberIds,
+    );
+  });
+
+  it("shows no candidates without a shared descriptor", async () => {
+    const out = await analyzePitch(
+      input(),
+      deps({
+        resolveReference: async (query, _t, b) => {
+          b.used += 1;
+          if (query === "Moon") return resolved(query, "E1");
+          if (query === "Her") return resolved(query, "E2");
+          // Enrichment lookups find nothing usable.
+          return { ...resolved(query, "OTHER-ID"), tagIds: [] };
+        },
+        fetchLens: async (_id, aspectId) => [
+          retrieval(aspectId, ["C1", "C2"], "ok", []),
+        ],
+      }),
+    );
+    assert.equal(out.reportState, "exploration-only");
+    assert.deepEqual(out.neighborhoods, []);
+    assert.deepEqual(out.candidateHypotheses, []);
   });
 });
