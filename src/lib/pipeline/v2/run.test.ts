@@ -213,6 +213,34 @@ describe("analyzePitch states", () => {
     );
   });
 
+  it("names the interpretation failure cause so retry-vs-revise is clear", async () => {
+    const timedOut = await analyzePitch(
+      input(),
+      deps({
+        proposeBrief: async () => {
+          throw new Error("groq timed out.");
+        },
+      }),
+    );
+    assert.ok(
+      timedOut.limitations.some((l) =>
+        l.includes("Interpretation failed (groq timed out.)"),
+      ),
+    );
+    const malformed = await analyzePitch(
+      input(),
+      deps({
+        proposeBrief: async () => {
+          throw new SyntaxError('Unexpected token "x"');
+        },
+      }),
+    );
+    assert.ok(
+      malformed.limitations.some((l) => l.includes("was not valid JSON")),
+      "syntax details stay generic instead of echoing model output",
+    );
+  });
+
   it("asks for clarification when aspects are unrepresentable", async () => {
     const out = await analyzePitch(
       input(),
