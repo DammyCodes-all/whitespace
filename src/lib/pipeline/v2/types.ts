@@ -22,10 +22,10 @@
 import type { QlooCall } from "../../types.ts";
 
 /** Hardened contracts preserve older results as read-only replay. */
-export const PIPELINE_VERSION = "v2-lean.6";
+export const PIPELINE_VERSION = "v2-lean.7";
 
 /** Grouping/evidence policy version. Bump when heuristics change. */
-export const POLICY_VERSION = "v2-policy.3";
+export const POLICY_VERSION = "v2-policy.4";
 
 /** Fixed retrieval window per discovery query (pilot-verified). */
 export const RETRIEVAL_TAKE = 20;
@@ -346,7 +346,11 @@ export interface V2AttemptUsage {
  *  Explanations are §4H words about frozen neighborhoods: one entry
  *  per ordered neighborhood, empty when no hypotheses survived.
  *  Comparisons are §4B overlay entries: resolved creator context,
- *  never evidence. */
+ *  never evidence. Candidate hypotheses are projected groups shown
+ *  before any confirmation: what the overlap would support if the
+ *  creator confirms the provisional analogies. Display only —
+ *  pitchSupported is always false, and they never feed reach,
+ *  explanations, or evidence counts. */
 export interface V2EvidenceCall extends QlooCall {
   /** Key-free response data; truncation is explicitly disclosed. */
   response: unknown;
@@ -368,6 +372,9 @@ export interface V2Result {
   lenses: V2ReferenceLens[];
   manifest: V2Manifest | null;
   neighborhoods: V2Neighborhood[];
+  /** Projected groups pending creator confirmation; empty once
+   *  confirmed hypotheses exist. See the type doc above. */
+  candidateHypotheses: V2Neighborhood[];
   explorations: V2Exploration[];
   limitations: string[];
   leads: V2Lead[];
