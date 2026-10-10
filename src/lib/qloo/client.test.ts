@@ -11,6 +11,7 @@ import {
 
 const SAVED_KEY = process.env.QLOO_API_KEY;
 const SAVED_FETCH = globalThis.fetch;
+const SAVED_RETRIES = process.env.QLOO_MAX_RETRIES;
 
 function stubFetch(payload: unknown, status = 200): void {
   process.env.QLOO_API_KEY = "test-key";
@@ -67,6 +68,46 @@ describe("qlooFetch cache", () => {
     assert.deepEqual(getQuotaUsage(), { calls: 0, cached: 0 });
     const after = await qlooFetch("/search", { query: "x" });
     assert.equal(after.trace.fromCache, false);
+  });
+});
+
+describe("qlooFetch legacy compatibility", () => {
+  beforeEach(() => resetQuota());
+
+  afterEach(() => {
+    if (SAVED_KEY === undefined) delete process.env.QLOO_API_KEY;
+    else process.env.QLOO_API_KEY = SAVED_KEY;
+    if (SAVED_RETRIES === undefined) delete process.env.QLOO_MAX_RETRIES;
+    else process.env.QLOO_MAX_RETRIES = SAVED_RETRIES;
+    globalThis.fetch = SAVED_FETCH;
+    resetQuota();
+  });
+
+  it("retains no-key mock responses without an HTTP request", async () => {
+    delete process.env.QLOO_API_KEY;
+    globalThis.fetch = (async () => {
+      throw new Error("Legacy mock mode must not fetch.");
+    }) as typeof fetch;
+    const out = await qlooFetch("/search", { query: "Offline" });
+    assert.deepEqual(out.data, { success: true, mock: true, results: [] });
+    assert.equal(out.trace.fromCache, true);
+    assert.deepEqual(getQuotaUsage(), { calls: 0, cached: 0 });
+  });
+
+  it("preserves legacy invocation-based retry accounting", async () => {
+    process.env.QLOO_API_KEY = "test-key";
+    process.env.QLOO_MAX_RETRIES = "1";
+    let fetches = 0;
+    globalThis.fetch = (async () => {
+      fetches += 1;
+      return new Response(JSON.stringify({ results: [] }), {
+        status: fetches === 1 ? 503 : 200,
+      });
+    }) as typeof fetch;
+    const out = await qlooFetch("/search", { query: "Retry" });
+    assert.equal(out.trace.status, 200);
+    assert.equal(fetches, 2);
+    assert.deepEqual(getQuotaUsage(), { calls: 1, cached: 0 });
   });
 });
 
