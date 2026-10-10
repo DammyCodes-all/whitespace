@@ -72,6 +72,7 @@ function result(): V2Result {
     manifest: null,
     lenses: [],
     neighborhoods: [],
+    candidateHypotheses: [],
     explorations: [],
     limitations: [],
     leads: [],
