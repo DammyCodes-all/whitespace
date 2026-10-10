@@ -196,8 +196,14 @@ const manifest = shape({
     "v2-lean.4",
     "v2-lean.5",
     "v2-lean.6",
+    "v2-lean.7",
   ),
-  policyVersion: oneOf("v2-policy.1", "v2-policy.2", "v2-policy.3"),
+  policyVersion: oneOf(
+    "v2-policy.1",
+    "v2-policy.2",
+    "v2-policy.3",
+    "v2-policy.4",
+  ),
   frozenSeedIds: strings,
   discoveryLensIds: strings,
   supportingLensIds: strings,
@@ -322,6 +328,9 @@ export function parseV2Result(value: unknown): V2Result | null {
       !(version < 5
         ? optional(value, "comparisons", array(comparison))
         : array(comparison)(value.comparisons)) ||
+      !(version < 7
+        ? optional(value, "candidateHypotheses", array(neighborhood))
+        : array(neighborhood)(value.candidateHypotheses)) ||
       !optional(value, "calls", array(call)) ||
       !optional(value, "retrievals", array(retrieval))
     )
@@ -359,6 +368,7 @@ export function parseV2Result(value: unknown): V2Result | null {
       leads: value.leads ?? [],
       explanations: value.explanations ?? [],
       comparisons: value.comparisons ?? [],
+      candidateHypotheses: value.candidateHypotheses ?? [],
       usage: { ...value.usage, latencyMs: value.usage.latencyMs ?? 0 },
     } as unknown as V2Result;
   } catch {
