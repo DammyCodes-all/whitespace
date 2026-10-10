@@ -106,6 +106,7 @@ function reviewed(): V2Result {
     reportState: "exploration-only",
     dataState: "complete",
     neighborhoods: [],
+    candidateHypotheses: [],
     explorations: [],
     limitations: [],
     leads: [],
