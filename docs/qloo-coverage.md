@@ -134,3 +134,53 @@ no surprise — the guess was right).
 for film and music, 6 fallbacks for book and game. Seeds are famous,
 pre-2026 titles chosen so Qloo is likely to hold them; misses are
 expected signal, not errors. Live: film and music both resolved 20/20.
+
+## V2 capability pilot (2026-10-10, live)
+
+Bounded §8 gate check for `docs/pipeline-redesign.md`. Ten live HTTP
+calls, aggregates only — no response payloads are stored in this repo
+(hackathon guide: private caching only, never commit Qloo data).
+Raw output stayed in server-local temp; only counts and conclusions
+below are public.
+
+Protocol: resolve 2 film lenses (`/search`, exact-name match), then
+`GET /v2/insights` with `signal.interests.entities=<lens id>` into
+`urn:entity:movie` + `urn:entity:book` at `take=20`. Pairs tested:
+Interstellar×Moonlight (far), Interstellar×Dune, Interstellar×Blade
+Runner 2049, Her×Moonlight (near). Depth sweep take=20/50/100 on the
+close pair; exclude-filter check; book-seeded podcast/person reach;
+unknown-param check; repeat-query stability.
+
+Findings (all 200s):
+
+1. **Identity:** exact-name match beat the first hit on every resolve
+   (5 candidates each). `/search` hits carried no usable type info
+   (null), so name+alias matching plus the `types` request param is the
+   identity signal — never first-hit acceptance.
+2. **Discovery works:** movie and book categories each returned a full
+   page (20/20) with entity metadata (`entity_id`, name, type/subtype,
+   properties, popularity, tags on 18–20/20, external links).
+   `take` honored at 20 and 50. `take=100` returned **zero** results —
+   treat ~50 as the practical page cap, not an error.
+3. **Overlap is sparse (the gate result):** entity overlap between two
+   lenses was **0 at top-20 in every pair and category**, including
+   near pairs (Interstellar×Dune, Interstellar×BR2049), and still 0 at
+   take=50. Shared *tag* vocabulary is large (~900–1300 shared tags of
+   ~3500–4200 per set) but generic. Per §8 this is a stop/revise
+   signal: entity-overlap grouping will usually yield zero supported
+   neighborhoods, so the honest first release is **reference-led
+   exploration**, not fabricated discovery.
+4. **Exclusion honored:** `filter.exclude.entities` removed both the
+   seed and a planted result id (re-query returned 20 without them).
+5. **Reach from non-film seeds works:** 3 book ids seeded podcast and
+   person queries (5/5 each, all with tags). Artist as a discovery
+   fallback also returns 20/20 with tags.
+6. **Silent ignoring confirmed:** an unknown query param returned 200
+   with identical counts — a 200 alone never proves a signal was
+   honored. Repeat queries are deterministic (20/20 identical), which
+   keeps client-side replay honest.
+
+Decision: build the lean MVP (2 discovery lenses × 2 categories,
+overlap-only grouping, `explorations` fallback; supporting lens,
+reach, detail enrichment, comparison overlay deferred). Zero
+neighborhoods is a valid result, not a failure.
