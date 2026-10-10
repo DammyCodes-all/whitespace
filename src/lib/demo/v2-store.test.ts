@@ -89,6 +89,7 @@ function result(): V2Result {
         evidenceIds: ["query-1"],
       },
     ],
+    candidateHypotheses: [],
     explorations: [
       {
         aspectId: "a-1",
