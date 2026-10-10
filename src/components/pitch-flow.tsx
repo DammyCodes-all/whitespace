@@ -48,10 +48,7 @@ export function PitchFlow() {
         </p>
         <PitchForm initialPitch={pitch} />
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <Link
-            href={skipHref}
-            className="border border-rule px-4 py-2 text-sm text-ink transition-colors hover:border-ink-3 hover:bg-surface"
-          >
+          <Link href={skipHref} className="btn-secondary px-4 py-2 text-sm">
             Skip and run
           </Link>
           <button
@@ -92,13 +89,13 @@ export function PitchFlow() {
             }
             setStep("sharpen");
           }}
-          className="inline-flex min-h-11 items-center justify-center bg-ink px-6 py-3 text-sm text-white transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
+          className="btn-primary inline-flex min-h-11 items-center justify-center px-6 py-3 text-sm"
         >
           Find my audience
         </button>
         <Link
           href={exampleHref}
-          className="inline-flex min-h-11 items-center justify-center border border-ink-2 px-6 py-3 text-sm text-ink transition-colors hover:border-ink hover:bg-surface"
+          className="btn-secondary inline-flex min-h-11 items-center justify-center px-6 py-3 text-sm"
         >
           Try an example
         </Link>

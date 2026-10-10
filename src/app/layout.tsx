@@ -1,26 +1,24 @@
 import type { Metadata } from "next";
-import {
-  IBM_Plex_Mono,
-  Instrument_Sans,
-  Instrument_Serif,
-} from "next/font/google";
+import { Bricolage_Grotesque, Figtree, IBM_Plex_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
 /* Font pairing and roles: docs/design-direction.md §4.
-   One typeface per function, no font doing two jobs. */
+   One typeface per function, no font doing two jobs. Bricolage carries
+   headlines, Figtree carries UI and body, Plex Mono carries streaming
+   numbers and raw payloads. The --font-sans/serif/mono aliases keep
+   their names so existing components keep working. */
 
-const instrumentSans = Instrument_Sans({
-  variable: "--font-instrument-sans",
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
   display: "swap",
 });
 
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  weight: "400",
   display: "swap",
 });
 
@@ -43,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${instrumentSans.variable} ${instrumentSerif.variable} ${plexMono.variable} h-full`}
+      className={`${figtree.variable} ${bricolage.variable} ${plexMono.variable} h-full`}
     >
       <body className="flex min-h-full flex-col font-sans text-ink antialiased">
         <SiteHeader />

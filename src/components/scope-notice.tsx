@@ -14,7 +14,7 @@ export function ScopeNotice({ pitchText }: { pitchText: string }) {
   return (
     <section
       aria-label="Outside what taste data can judge"
-      className="mt-8 border border-rule bg-surface p-5"
+      className="card mt-8 p-5"
     >
       <p className="font-mono text-xs tracking-tight text-ink-3">
         out of scope · §3

@@ -84,10 +84,7 @@ export function V2ResultView({
       )}
 
       {result.lenses.length > 0 && (
-        <section
-          aria-label="Reference lenses"
-          className="border border-rule bg-surface p-5"
-        >
+        <section aria-label="Reference lenses" className="card p-5">
           <h3 className="font-serif text-lg text-ink">Reference lenses</h3>
           <ul className="mt-3 space-y-3">
             {result.lenses.map((lens) => (
@@ -134,7 +131,7 @@ export function V2ResultView({
             <button
               type="button"
               onClick={() => onConfirm(checked)}
-              className="mt-4 border border-ink bg-ink px-4 py-2 text-sm text-surface"
+              className="btn-primary mt-4 px-4 py-2 text-sm"
             >
               Confirm {checked.length}{" "}
               {checked.length === 1 ? "analogy" : "analogies"} and re-run as a
@@ -145,10 +142,7 @@ export function V2ResultView({
       )}
 
       {(result.comparisons ?? []).length > 0 && (
-        <section
-          aria-label="Comparisons you named"
-          className="border border-rule bg-surface p-5"
-        >
+        <section aria-label="Comparisons you named" className="card p-5">
           <h3 className="font-serif text-lg text-ink">
             Because you mentioned these
           </h3>
@@ -184,10 +178,7 @@ export function V2ResultView({
       )}
 
       {result.neighborhoods.length > 0 && (
-        <section
-          aria-label="Audience hypotheses"
-          className="border border-rule bg-surface p-5"
-        >
+        <section aria-label="Audience hypotheses" className="card p-5">
           <h3 className="font-serif text-lg text-ink">Audience hypotheses</h3>
           <ul className="mt-3 space-y-4">
             {result.neighborhoods.map((group) => {
@@ -248,10 +239,7 @@ export function V2ResultView({
       {result.candidateHypotheses !== undefined &&
         result.candidateHypotheses.length > 0 &&
         result.neighborhoods.length === 0 && (
-          <section
-            aria-label="Candidate audiences"
-            className="border border-rule bg-surface p-5"
-          >
+          <section aria-label="Candidate audiences" className="card p-5">
             <h3 className="font-serif text-lg text-ink">
               Candidate audiences — worth a look
             </h3>
@@ -296,7 +284,7 @@ export function V2ResultView({
               <button
                 type="button"
                 onClick={() => onConfirm(provisionalDiscoveryIds)}
-                className="mt-4 border border-ink bg-ink px-4 py-2 text-sm text-surface"
+                className="btn-primary mt-4 px-4 py-2 text-sm"
               >
                 Confirm these analogies and re-run as a new version
               </button>
@@ -305,10 +293,7 @@ export function V2ResultView({
         )}
 
       {result.explorations.length > 0 && (
-        <section
-          aria-label="Exploration"
-          className="border border-rule bg-surface p-5"
-        >
+        <section aria-label="Exploration" className="card p-5">
           <h3 className="font-serif text-lg text-ink">
             Starting points to investigate
           </h3>
@@ -332,10 +317,7 @@ export function V2ResultView({
       )}
 
       {(result.leads ?? []).length > 0 && (
-        <section
-          aria-label="Investigation leads"
-          className="border border-rule bg-surface p-5"
-        >
+        <section aria-label="Investigation leads" className="card p-5">
           <h3 className="font-serif text-lg text-ink">Investigation leads</h3>
           <p className="mt-1 text-sm text-ink-3">
             Podcasts and people seeded by the hypotheses above — starting points
@@ -397,7 +379,7 @@ export function V2ResultView({
           <button
             type="button"
             onClick={onRevise}
-            className="border border-rule px-4 py-2 text-sm text-ink"
+            className="btn-secondary px-4 py-2 text-sm"
           >
             Revise the pitch as a new version
           </button>
