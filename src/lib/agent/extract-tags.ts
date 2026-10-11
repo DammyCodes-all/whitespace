@@ -29,20 +29,28 @@ export { LlmError };
 
 export interface ExtractTagsInput {
   pitchText: string;
+}
+
+export interface TagProposal {
+  words: string[];
+  /** The pitch's own type, read from the pitch — never a user control. */
   workType: WorkType;
 }
 
+const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
+
 /** Validated + capped; exported for unit tests (pure, no I/O). */
-export function toTagWords(data: unknown): string[] {
+export function toTagProposal(data: unknown): TagProposal {
   if (typeof data !== "object" || data === null) {
     throw new LlmError("LLM returned non-object JSON.", "parse", true);
   }
-  const raw = (data as Record<string, unknown>).tags;
+  const root = data as Record<string, unknown>;
+  const raw = root.tags;
   if (!Array.isArray(raw)) {
     throw new LlmError("LLM returned no tags array.", "parse", true);
   }
   const seen = new Set<string>();
-  const out: string[] = [];
+  const words: string[] = [];
   for (const value of raw) {
     if (typeof value !== "string") continue;
     const trimmed = value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -50,37 +58,43 @@ export function toTagWords(data: unknown): string[] {
     const key = trimmed.replace(/[_-]+/g, " ");
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(trimmed);
-    if (out.length >= TAG_WORDS.max) break;
+    words.push(trimmed);
+    if (words.length >= TAG_WORDS.max) break;
   }
-  if (out.length < TAG_WORDS.min) {
+  if (words.length < TAG_WORDS.min) {
     throw new LlmError(
       `LLM returned fewer than ${TAG_WORDS.min} usable tags.`,
       "parse",
       true,
     );
   }
-  return out;
+  const workType = root.workType;
+  if (typeof workType !== "string" || !WORK_TYPES.includes(workType as WorkType)) {
+    throw new LlmError("LLM returned no valid work type.", "parse", true);
+  }
+  return { words, workType: workType as WorkType };
 }
 
-function systemPrompt(workType: WorkType): string {
+function systemPrompt(): string {
   return [
-    `You read a creator's pitch for a ${workType} and pull out its descriptive words.`,
+    "You read a creator's pitch and pull out its descriptive words and its type.",
     "Reply with JSON ONLY, no markdown, no prose, matching this shape exactly:",
-    '{"tags":["word1","word2","more words"]}',
-    `Rules: between ${TAG_WORDS.min} and ${TAG_WORDS.max} words, lowercase, single concepts.`,
+    '{"tags":["word1","word2","more words"],"workType":"film"}',
+    `Rules: tags between ${TAG_WORDS.min} and ${TAG_WORDS.max} words, lowercase, single concepts.`,
     "Each word must appear in the pitch. Prefer genre, theme, setting and tone words taste data uses.",
+    'workType is exactly one of "film", "music", "book", "game" — whichever the pitch itself describes.',
     "Never invent a word that is not in the pitch. No names, no numbers, no claims about audiences.",
   ].join("\n");
 }
 
 /**
- * Propose 5 to 8 descriptive words for a pitch. Tries Groq first, then
- * OpenRouter. Throws `LlmError`; never returns unvalidated output.
+ * Propose 5 to 8 descriptive words plus the pitch's type. Tries Groq
+ * first, then OpenRouter. Throws `LlmError`; never returns unvalidated
+ * output.
  */
 export async function extractPitchTags(
   input: ExtractTagsInput,
-): Promise<string[]> {
+): Promise<TagProposal> {
   if (typeof window !== "undefined") {
     throw new Error("extractPitchTags is server-only.");
   }
@@ -89,8 +103,8 @@ export async function extractPitchTags(
     throw new LlmError("Pitch text is empty.", "input", true);
   }
   const messages: ChatMessage[] = [
-    { role: "system", content: systemPrompt(input.workType) },
-    { role: "user", content: `Pitch (${input.workType}): ${pitchText}` },
+    { role: "system", content: systemPrompt() },
+    { role: "user", content: `Pitch: ${pitchText}` },
   ];
 
   const groqKey = readEnv("GROQ_API_KEY");
@@ -130,7 +144,7 @@ export async function extractPitchTags(
         messages,
         attempt.provider,
       );
-      return toTagWords(JSON.parse(extractJson(content)));
+      return toTagProposal(JSON.parse(extractJson(content)));
     } catch (err) {
       lastError = err;
     }

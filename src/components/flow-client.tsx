@@ -13,7 +13,7 @@
  * adapter, not here.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FlowResultView } from "@/components/flow-result-view";
 import { TagChips } from "@/components/tag-chips";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
@@ -31,10 +31,18 @@ interface RunResponseBody {
   stopped: boolean;
 }
 
-export function FlowClient() {
+export function FlowClient({
+  initialPitch = "",
+  initialWorkType = "film",
+  autoStart = false,
+}: {
+  initialPitch?: string;
+  initialWorkType?: WorkType;
+  autoStart?: boolean;
+}) {
   const [phase, setPhase] = useState<Phase>("input");
-  const [pitchText, setPitchText] = useState("");
-  const [workType, setWorkType] = useState<WorkType>("film");
+  const [pitchText, setPitchText] = useState(initialPitch);
+  const [workType, setWorkType] = useState<WorkType>(initialWorkType);
   const [similarTitles, setSimilarTitles] = useState("");
   const [tags, setTags] = useState<FlowResult["tags"]>([]);
   const [steps, setSteps] = useState<FlowStepRow[]>([]);
@@ -43,6 +51,7 @@ export function FlowClient() {
   const [busy, setBusy] = useState(false);
 
   const matched = tags.filter((t) => t.status === "matched").length;
+  const autoStarted = useRef(false);
 
   async function extractTags() {
     setBusy(true);
@@ -69,6 +78,18 @@ export function FlowClient() {
       setBusy(false);
     }
   }
+
+  // Landing entry: a pitch arriving via URL auto-starts tag extraction,
+  // so the home text box flows straight into the chips step. Mount-only
+  // by design (props are fixed for the page lifetime); the ref guards
+  // StrictMode's double effect so only one POST fires.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-only auto-start
+  useEffect(() => {
+    if (autoStart && initialPitch.trim() !== "" && !autoStarted.current) {
+      autoStarted.current = true;
+      void extractTags();
+    }
+  }, []);
 
   const run = useCallback(async () => {
     setBusy(true);
