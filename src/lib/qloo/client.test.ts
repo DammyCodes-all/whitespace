@@ -111,6 +111,75 @@ describe("qlooFetch legacy compatibility", () => {
   });
 });
 
+describe("qlooFetch evidence capture", () => {
+  beforeEach(() => {
+    resetQuota();
+  });
+
+  afterEach(() => {
+    if (SAVED_KEY === undefined) delete process.env.QLOO_API_KEY;
+    else process.env.QLOO_API_KEY = SAVED_KEY;
+    if (SAVED_RETRIES === undefined) delete process.env.QLOO_MAX_RETRIES;
+    else process.env.QLOO_MAX_RETRIES = SAVED_RETRIES;
+    globalThis.fetch = SAVED_FETCH;
+    resetQuota();
+  });
+
+  it("stores the real request params and response body on success", async () => {
+    const payload = { success: true, results: [{ entity_id: "a" }] };
+    stubFetch(payload);
+    const out = await qlooFetch("/search", { query: "Moon", take: "5" });
+    assert.deepEqual(out.trace.params, { query: "Moon", take: "5" });
+    assert.equal(out.trace.responseBody, JSON.stringify(payload));
+    assert.equal(out.trace.responseTruncated, undefined);
+  });
+
+  it("truncates a large body and marks it, keeping real prefix bytes", async () => {
+    const big = `{"success":true,"results":[${"x".repeat(20_000)}]}`;
+    process.env.QLOO_API_KEY = "test-key";
+    globalThis.fetch = (async () =>
+      new Response(big, { status: 200 })) as typeof fetch;
+    const out = await qlooFetch("/search", { query: "big" });
+    assert.equal(out.trace.responseTruncated, true);
+    assert.ok((out.trace.responseBody ?? "").length <= 8_000);
+    assert.ok((out.trace.responseBody ?? "").startsWith('{"success":true'));
+  });
+
+  it("serves the stored body on cache hits", async () => {
+    const payload = { success: true, results: [{ entity_id: "a" }] };
+    stubFetch(payload);
+    const first = await qlooFetch("/search", { query: "Moon" });
+    const second = await qlooFetch("/search", { query: "Moon" });
+    assert.equal(second.trace.fromCache, true);
+    assert.equal(second.trace.responseBody, first.trace.responseBody);
+  });
+
+  it("strips the API key from stored request params", async () => {
+    stubFetch({ success: true, results: [] });
+    process.env.QLOO_API_KEY = "secret-key-123";
+    const out = await qlooFetch("/search", {
+      query: "echo secret-key-123 here",
+    });
+    assert.ok(!JSON.stringify(out.trace.params).includes("secret-key-123"));
+    assert.ok(
+      JSON.stringify(out.trace.params).includes("[REDACTED]"),
+    );
+  });
+
+  it("captures the error body and status on failure", async () => {
+    process.env.QLOO_API_KEY = "test-key";
+    process.env.QLOO_MAX_RETRIES = "0";
+    globalThis.fetch = (async () =>
+      new Response('{"error":"bad"}', { status: 400 })) as typeof fetch;
+    await assert.rejects(() => qlooFetch("/search", { query: "bad" }), (err) => {
+      assert.ok(err instanceof QlooError);
+      assert.equal(err.trace.status, 400);
+      assert.equal(err.trace.responseBody, '{"error":"bad"}');
+      return true;
+    });
+  });
+});
+
 describe("qlooFetch quota", () => {
   beforeEach(() => {
     resetQuota();

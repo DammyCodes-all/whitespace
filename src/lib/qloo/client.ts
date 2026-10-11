@@ -6,7 +6,7 @@
  * through `qlooFetch`, so the guard lives here rather than in a
  * wrapper nobody will remember to use.
  *
- * Cache contract: data only, never traces. Each call (hit or miss)
+ * Cache contract: data plus the raw response text, never traces. Each call (hit or miss)
  * emits a fresh trace; hits carry `fromCache: true` so the evidence
  * drawer stays complete (§6.12). Stored payloads are cloned on the
  * way out: a caller mutating a response must never poison later runs.
@@ -77,7 +77,21 @@ export interface QuotaUsage {
 interface CacheEntry {
   data: unknown;
   status: number;
+  /** Raw JSON text, already truncated at store time. Never reconstructed. */
+  raw: string;
+  truncated: boolean;
 }
+
+/**
+ * Package A evidence bound (§6.12): the stored response keeps real bytes
+ * up to this many chars, then a prefix with `responseTruncated` set.
+ * Large enough for a take=50 insights page, small enough that a 100-call
+ * saved run stays inside the ~5MB localStorage budget.
+ */
+export const MAX_EVIDENCE_RESPONSE_CHARS = 8_000;
+
+/** Error bodies are diagnostic context only; keep them small. */
+const MAX_ERROR_BODY_CHARS = 2_000;
 
 const responseCache = new Map<string, CacheEntry>();
 let networkCalls = 0;
@@ -101,6 +115,42 @@ function cacheKey(path: string, params: Record<string, string>): string {
     .map((k) => `${k}=${params[k]}`)
     .join("&");
   return `${path}?${query}`;
+}
+
+/**
+ * Strip the API key from anything stored. The key travels in the
+ * `X-Api-Key` header (never in params), but a value echoing it must
+ * never reach a trace, a saved run, or the browser.
+ */
+function redactKey(value: string, apiKey: string | null): string {
+  if (apiKey === null || apiKey === "") return value;
+  return value.split(apiKey).join("[REDACTED]");
+}
+
+function redactParams(
+  params: Record<string, string>,
+  apiKey: string | null,
+): Record<string, string> {
+  if (apiKey === null || apiKey === "") return { ...params };
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) {
+    out[redactKey(k, apiKey)] = redactKey(v, apiKey);
+  }
+  return out;
+}
+
+/** Truncate real bytes; the flag, not a rebuild, marks the cut. */
+function toStoredBody(raw: string): {
+  responseBody: string;
+  responseTruncated?: boolean;
+} {
+  if (raw.length > MAX_EVIDENCE_RESPONSE_CHARS) {
+    return {
+      responseBody: raw.slice(0, MAX_EVIDENCE_RESPONSE_CHARS),
+      responseTruncated: true,
+    };
+  }
+  return { responseBody: raw };
 }
 
 /** Quota accounting snapshot. */
@@ -204,23 +254,21 @@ export async function qlooFetch(
         : `qloo-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`,
     endpoint: path,
     method: "GET" as const,
-    params,
+    params: redactParams(params, config.apiKey),
     at: new Date().toISOString(),
   };
 
   if (config.apiKey === null) {
+    const mockBody = { success: true, mock: true, results: [] };
     return {
-      data: { success: true, mock: true, results: [] },
+      data: mockBody,
       trace: {
         ...traceBase,
         status: 0,
         durationMs: Date.now() - started,
         fromCache: true,
-        responseSummary: summarizeResponse({
-          success: true,
-          mock: true,
-          results: [],
-        }),
+        responseSummary: summarizeResponse(mockBody),
+        ...toStoredBody(JSON.stringify(mockBody)),
       },
     };
   }
@@ -237,6 +285,8 @@ export async function qlooFetch(
         durationMs: Date.now() - started,
         fromCache: true,
         responseSummary: summarizeResponse(hit.data),
+        responseBody: hit.raw,
+        ...(hit.truncated ? { responseTruncated: true as const } : {}),
       },
     };
   }
@@ -277,9 +327,21 @@ export async function qlooFetch(
       const durationMs = Date.now() - started;
 
       if (res.ok) {
-        const data: unknown = await res.json().catch(() => null);
+        const rawText = await res.text().catch(() => "");
+        let data: unknown = null;
+        try {
+          data = rawText === "" ? null : JSON.parse(rawText);
+        } catch {
+          data = null;
+        }
         const stored = structuredClone(data);
-        responseCache.set(key, { data: stored, status: res.status });
+        const body = toStoredBody(rawText);
+        responseCache.set(key, {
+          data: stored,
+          status: res.status,
+          raw: body.responseBody,
+          truncated: body.responseTruncated === true,
+        });
         return {
           data: structuredClone(stored),
           trace: {
@@ -288,11 +350,22 @@ export async function qlooFetch(
             durationMs,
             fromCache: false,
             responseSummary: summarizeResponse(stored),
+            ...body,
           },
         };
       }
 
       if (!isRetryableStatus(res.status) || attempt === config.maxRetries) {
+        const errText = await res.text().catch(() => "");
+        const errBody =
+          errText.length > MAX_ERROR_BODY_CHARS
+            ? {
+                responseBody: errText.slice(0, MAX_ERROR_BODY_CHARS),
+                responseTruncated: true as const,
+              }
+            : errText === ""
+              ? {}
+              : { responseBody: errText };
         throw new QlooError(
           `Qloo ${path} failed with status ${res.status}.`,
           {
@@ -300,6 +373,7 @@ export async function qlooFetch(
             status: res.status,
             durationMs,
             fromCache: false,
+            ...errBody,
           },
           isRetryableStatus(res.status),
         );
