@@ -81,4 +81,22 @@ describe("runFlowPitch", () => {
     assert.equal(out.steps[0]?.id, "scope");
     assert.equal(out.result.qlooCalls.total, 0);
   });
+
+  it("stops before controls when there is nothing to judge", async () => {
+    // No similar titles plus mock-path discovery (results: []) means no
+    // contenders: the run must stop before the control load, naming the
+    // cause instead of burning ~90 calls on an empty verdict.
+    const out = await runFlowPitch({
+      ...base,
+      similarTitles: [],
+      tags: tags(MIN_MATCHED_TAGS),
+    });
+    assert.equal(out.stopped, true);
+    assert.equal(out.result.verdict, "inconclusive");
+    assert.deepEqual(
+      out.steps.map((s) => s.id),
+      ["rivals", "verdict"],
+    );
+    assert.match(out.steps[1]?.detail ?? "", /nothing to judge/);
+  });
 });

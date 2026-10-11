@@ -67,4 +67,47 @@ describe("toTagProposal", () => {
     const out = toTagProposal({ tags: many, workType: "book" });
     assert.equal(out.words.length, TAG_WORDS.max);
   });
+
+  it("keeps honest title suggestions, trimmed and capped", () => {
+    const out = toTagProposal({
+      tags: FIVE,
+      workType: "film",
+      similarTitles: [
+        " Blade Runner 2049 ",
+        "The Matrix",
+        "blade runner 2049",
+        "Ghost in the Shell",
+        "Arrival",
+        "Dune",
+        "Interstellar",
+      ],
+    });
+    assert.deepEqual(out.similarTitles, [
+      "Blade Runner 2049",
+      "The Matrix",
+      "Ghost in the Shell",
+      "Arrival",
+      "Dune",
+    ]);
+  });
+
+  it("treats missing or malformed suggestions as no suggestions, never a failure", () => {
+    assert.deepEqual(
+      toTagProposal({ tags: FIVE, workType: "film" }).similarTitles,
+      [],
+    );
+    assert.deepEqual(
+      toTagProposal({ tags: FIVE, workType: "film", similarTitles: "Dune" })
+        .similarTitles,
+      [],
+    );
+    assert.deepEqual(
+      toTagProposal({
+        tags: FIVE,
+        workType: "film",
+        similarTitles: ["", 42, "x".repeat(81), "Dune", null],
+      }).similarTitles,
+      ["Dune"],
+    );
+  });
 });
