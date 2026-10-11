@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PitchFlow } from "@/components/pitch-flow";
 
 export default function Home() {
@@ -13,6 +14,15 @@ export default function Home() {
             Paste an idea. We tell you which audience it fits, how strongly, and
             where to find those people, and we show our work at every step.
           </p>
+
+          <div className="mt-6 flex justify-center">
+            <Link
+              href="/flow"
+              className="btn-secondary inline-flex min-h-11 items-center px-6 py-3 text-sm"
+            >
+              Open the audience flow
+            </Link>
+          </div>
 
           <div className="flex w-full max-w-[720px] flex-col">
             <PitchFlow />
