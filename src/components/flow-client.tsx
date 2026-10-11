@@ -21,8 +21,6 @@ import type { FlowResult } from "@/lib/flow/contract";
 import type { FlowStepRow } from "@/lib/flow/view-types";
 import type { WorkType } from "@/lib/types";
 
-const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
-
 type Phase = "input" | "tags" | "running" | "done";
 
 interface RunResponseBody {
@@ -33,16 +31,15 @@ interface RunResponseBody {
 
 export function FlowClient({
   initialPitch = "",
-  initialWorkType = "film",
   autoStart = false,
 }: {
   initialPitch?: string;
-  initialWorkType?: WorkType;
   autoStart?: boolean;
 }) {
   const [phase, setPhase] = useState<Phase>("input");
   const [pitchText, setPitchText] = useState(initialPitch);
-  const [workType, setWorkType] = useState<WorkType>(initialWorkType);
+  // The pitch's type is read by the tag call, never picked by hand.
+  const [workType, setWorkType] = useState<WorkType>("film");
   const [similarTitles, setSimilarTitles] = useState("");
   const [tags, setTags] = useState<FlowResult["tags"]>([]);
   const [steps, setSteps] = useState<FlowStepRow[]>([]);
@@ -60,10 +57,11 @@ export function FlowClient({
       const res = await fetch("/api/tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pitchText, workType }),
+        body: JSON.stringify({ pitchText }),
       });
       const data = (await res.json()) as {
         tags?: FlowResult["tags"];
+        workType?: WorkType;
         error?: string;
       };
       if (!res.ok) {
@@ -71,6 +69,14 @@ export function FlowClient({
         return;
       }
       setTags(data.tags ?? []);
+      if (
+        data.workType === "film" ||
+        data.workType === "music" ||
+        data.workType === "book" ||
+        data.workType === "game"
+      ) {
+        setWorkType(data.workType);
+      }
       setPhase("tags");
     } catch {
       setError("Could not reach the tag matcher.");
@@ -145,27 +151,7 @@ export function FlowClient({
             placeholder="A tender sci-fi drama for people who like slow-burn stories, with a lonely and hopeful feel."
             className="mt-4 min-h-32 w-full resize-y border-2 border-outline bg-surface px-4 py-3 text-[15px] leading-relaxed text-ink placeholder:text-ink-3"
           />
-          <div className="mt-4 flex flex-wrap items-end gap-6">
-            <div>
-              <label
-                htmlFor="work-type"
-                className="block font-mono text-xs text-ink-3"
-              >
-                Type of work
-              </label>
-              <select
-                id="work-type"
-                value={workType}
-                onChange={(e) => setWorkType(e.target.value as WorkType)}
-                className="mt-1 border-2 border-outline bg-surface px-3 py-2 text-sm text-ink"
-              >
-                {WORK_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="mt-4">
             <div>
               <label
                 htmlFor="similar"
@@ -200,6 +186,7 @@ export function FlowClient({
 
       {phase === "tags" && (
         <section aria-label="Confirm tags">
+          <p className="font-mono text-xs text-ink-3">Read as {workType}</p>
           <TagChips tags={tags} onChange={setTags} loading={busy} />
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <button

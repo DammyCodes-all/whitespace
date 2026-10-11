@@ -11,9 +11,6 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import type { WorkType } from "@/lib/types";
-
-const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
 
 const EXAMPLE_PITCH =
   "A tender sci-fi drama for people who like slow-burn stories, with a lonely and hopeful feel.";
@@ -21,18 +18,17 @@ const EXAMPLE_PITCH =
 export function FlowEntry() {
   const router = useRouter();
   const [pitch, setPitch] = useState("");
-  const [workType, setWorkType] = useState<WorkType>("film");
   const [emptyNudge, setEmptyNudge] = useState(false);
   const ideaRef = useRef<HTMLTextAreaElement>(null);
 
-  function start(pitchText: string, type: WorkType) {
+  function start(pitchText: string) {
     const trimmed = pitchText.trim();
     if (trimmed === "") {
       setEmptyNudge(true);
       ideaRef.current?.focus();
       return;
     }
-    const params = new URLSearchParams({ pitch: trimmed, workType: type });
+    const params = new URLSearchParams({ pitch: trimmed });
     router.push(`/flow?${params.toString()}`);
   }
 
@@ -57,36 +53,16 @@ export function FlowEntry() {
         </p>
       )}
       <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="flow-work-type"
-            className="font-mono text-xs text-ink-3"
-          >
-            Type
-          </label>
-          <select
-            id="flow-work-type"
-            value={workType}
-            onChange={(e) => setWorkType(e.target.value as WorkType)}
-            className="border-2 border-outline bg-surface px-2 py-2 text-sm text-ink"
-          >
-            {WORK_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
         <button
           type="button"
-          onClick={() => start(pitch, workType)}
+          onClick={() => start(pitch)}
           className="btn-primary inline-flex min-h-11 items-center justify-center px-6 py-3 text-sm"
         >
           Find my audience
         </button>
         <button
           type="button"
-          onClick={() => start(EXAMPLE_PITCH, "film")}
+          onClick={() => start(EXAMPLE_PITCH)}
           className="btn-secondary inline-flex min-h-11 items-center justify-center px-6 py-3 text-sm"
         >
           Try an example
