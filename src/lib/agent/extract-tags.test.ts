@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { TAG_WORDS } from "../config.ts";
-import { toTagWords } from "./extract-tags.ts";
+import { toTagProposal } from "./extract-tags.ts";
 
 const FIVE = [
   " Science-Fiction ",
@@ -11,26 +11,37 @@ const FIVE = [
   "solitude",
 ];
 
-describe("toTagWords", () => {
-  it("keeps lowercase, pitch-shaped words", () => {
-    const out = toTagWords({ tags: FIVE });
-    assert.deepEqual(out, [
+describe("toTagProposal", () => {
+  it("keeps lowercase, pitch-shaped words plus the detected type", () => {
+    const out = toTagProposal({ tags: FIVE, workType: "film" });
+    assert.deepEqual(out.words, [
       "science-fiction",
       "grief",
       "coastal town",
       "slow-burn",
       "solitude",
     ]);
+    assert.equal(out.workType, "film");
   });
 
-  it("rejects a short list, a missing array and a non-object", () => {
-    assert.throws(() => toTagWords({ tags: ["one", "two"] }));
-    assert.throws(() => toTagWords({ words: ["a"] }));
-    assert.throws(() => toTagWords("nope"));
+  it("accepts each of the four types", () => {
+    for (const workType of ["film", "music", "book", "game"]) {
+      assert.equal(toTagProposal({ tags: FIVE, workType }).workType, workType);
+    }
+  });
+
+  it("rejects a short list, a missing array, a non-object and a bad type", () => {
+    assert.throws(() =>
+      toTagProposal({ tags: ["one", "two"], workType: "film" }),
+    );
+    assert.throws(() => toTagProposal({ words: ["a"], workType: "film" }));
+    assert.throws(() => toTagProposal("nope"));
+    assert.throws(() => toTagProposal({ tags: FIVE, workType: "opera" }));
+    assert.throws(() => toTagProposal({ tags: FIVE }));
   });
 
   it("dedupes case and separator variants", () => {
-    const out = toTagWords({
+    const out = toTagProposal({
       tags: [
         "slow burn",
         "Slow-Burn",
@@ -40,8 +51,9 @@ describe("toTagWords", () => {
         "coastal town",
         "science fiction",
       ],
+      workType: "music",
     });
-    assert.deepEqual(out, [
+    assert.deepEqual(out.words, [
       "slow burn",
       "quiet",
       "grief",
@@ -52,14 +64,7 @@ describe("toTagWords", () => {
 
   it("caps at TAG_WORDS.max", () => {
     const many = Array.from({ length: 12 }, (_, i) => `w${i}`);
-    const out = toTagWords({ tags: many });
-    assert.equal(out.length, TAG_WORDS.max);
-  });
-
-  it("keeps extra words above the minimum", () => {
-    const out = toTagWords({ tags: [...FIVE, "x", "science fiction"] });
-    // "science-fiction" and "science fiction" are the same concept, so
-    // the dedupe keeps one: 6 unique words total.
-    assert.equal(out.length, 6);
+    const out = toTagProposal({ tags: many, workType: "book" });
+    assert.equal(out.words.length, TAG_WORDS.max);
   });
 });

@@ -69,7 +69,10 @@ export function toTagProposal(data: unknown): TagProposal {
     );
   }
   const workType = root.workType;
-  if (typeof workType !== "string" || !WORK_TYPES.includes(workType as WorkType)) {
+  if (
+    typeof workType !== "string" ||
+    !WORK_TYPES.includes(workType as WorkType)
+  ) {
     throw new LlmError("LLM returned no valid work type.", "parse", true);
   }
   return { words, workType: workType as WorkType };

@@ -3,16 +3,16 @@ import { extractPitchTags, LlmError } from "@/lib/agent/extract-tags";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowTag } from "@/lib/flow/contract";
 import { resetQuota, resolvePitchTags } from "@/lib/qloo";
-import type { WorkType } from "@/lib/types";
-
-const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
 
 /**
- * Package C step 2: POST { pitchText, workType } -> FlowTag chips.
+ * Package C step 2: POST { pitchText } -> FlowTag chips plus the
+ * detected work type.
  *
- * Extracts 5 to 8 descriptive words (LLM, tags only) and matches each
- * against a real Qloo tag. Unmatched words come back `not_found` and
- * never enter scoring; the user edits the list before running.
+ * One LLM call reads the pitch's descriptive words AND its type
+ * (film/music/book/game) — there is no type control anywhere in the
+ * UI. Each word is matched against a real Qloo tag in the detected
+ * type's namespaces. Unmatched words come back `not_found` and never
+ * enter scoring; the user edits the list before running.
  *
  * Server-only: the key and the LLM keys never reach the browser.
  */
@@ -28,26 +28,19 @@ export async function POST(request: Request) {
       ? (body as Record<string, unknown>)
       : {};
   const pitchText = typeof root.pitchText === "string" ? root.pitchText : "";
-  const workType = typeof root.workType === "string" ? root.workType : "";
   if (pitchText.trim() === "") {
     return NextResponse.json(
       { error: "pitchText is required." },
       { status: 400 },
     );
   }
-  if (!WORK_TYPES.includes(workType as WorkType)) {
-    return NextResponse.json(
-      { error: "workType is invalid." },
-      { status: 400 },
-    );
-  }
 
-  let words: string[];
+  let proposal: {
+    words: string[];
+    workType: "film" | "music" | "book" | "game";
+  };
   try {
-    words = await extractPitchTags({
-      pitchText,
-      workType: workType as WorkType,
-    });
+    proposal = await extractPitchTags({ pitchText });
   } catch (err) {
     if (err instanceof LlmError && err.configured === false) {
       return NextResponse.json(
@@ -61,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   resetQuota();
-  const tagRes = await resolvePitchTags(words, workType as WorkType);
+  const tagRes = await resolvePitchTags(proposal.words, proposal.workType);
   const tags: FlowTag[] = [
     ...tagRes.tags.map((t) => ({
       label: t.tag,
@@ -76,7 +69,8 @@ export async function POST(request: Request) {
   return NextResponse.json({
     tags,
     matched: tagRes.tags.length,
-    suggested: words.length,
+    suggested: proposal.words.length,
+    workType: proposal.workType,
     /** Below this the run stops as Inconclusive (flow gate). */
     minMatched: MIN_MATCHED_TAGS,
   });
