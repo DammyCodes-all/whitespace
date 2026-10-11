@@ -257,6 +257,25 @@ export async function runFlowPitch(
     ),
   );
 
+  const contenders: Audience[] = [
+    ...(hypothesis === null ? [] : [hypothesis]),
+    ...discovered,
+  ];
+  // Vacuous-run guard: no named audience and no rivals means nothing
+  // could be scored. Stop BEFORE controls/tastes/reach so the run
+  // spends ~3 calls, not ~90 — and say the cause, not just the verdict.
+  if (contenders.length === 0) {
+    steps.push(
+      doneStep(
+        "verdict",
+        "Control test and verdict",
+        "Inconclusive, nothing to judge: no similar titles and no rivals discovered",
+      ),
+    );
+    const result = emptyPipeline(baseInput, calls, steps, idleHypothesis);
+    return { result: toFlowResult(result), steps, stopped: true };
+  }
+
   // Controls (step 4): cached tag sets keyed by pitch type, scored
   // fresh per pitch.
   const controlCached = await loadControlTastes(
@@ -274,22 +293,6 @@ export async function runFlowPitch(
       controlCached.calls[0]?.id,
     ),
   );
-
-  const contenders: Audience[] = [
-    ...(hypothesis === null ? [] : [hypothesis]),
-    ...discovered,
-  ];
-  if (contenders.length === 0) {
-    steps.push(
-      doneStep(
-        "verdict",
-        "Control test and verdict",
-        "Inconclusive, no audiences",
-      ),
-    );
-    const result = emptyPipeline(baseInput, calls, steps, idleHypothesis);
-    return { result: toFlowResult(result), steps, stopped: true };
-  }
 
   const { all: freshTastes, calls: tasteCalls } = await fetchAllAudienceTastes(
     contenders,

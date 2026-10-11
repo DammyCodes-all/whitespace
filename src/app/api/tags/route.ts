@@ -5,14 +5,17 @@ import type { FlowTag } from "@/lib/flow/contract";
 import { resetQuota, resolvePitchTags } from "@/lib/qloo";
 
 /**
- * Package C step 2: POST { pitchText } -> FlowTag chips plus the
- * detected work type.
+ * Package C step 2: POST { pitchText } -> FlowTag chips, the detected
+ * work type, and suggested similar-to titles.
  *
- * One LLM call reads the pitch's descriptive words AND its type
+ * One LLM call reads the pitch's descriptive words, its type
  * (film/music/book/game) — there is no type control anywhere in the
- * UI. Each word is matched against a real Qloo tag in the detected
- * type's namespaces. Unmatched words come back `not_found` and never
- * enter scoring; the user edits the list before running.
+ * UI — and 3 to 5 well-known titles the pitch resembles. Each word is
+ * matched against a real Qloo tag in the detected type's namespaces.
+ * Unmatched words come back `not_found` and never enter scoring; the
+ * user edits the list before running. Suggested titles are UNVERIFIED
+ * strings for tap-to-add: the run resolves each one live and reports
+ * misses as not-found (§6.2, §8), so a model invention can never score.
  *
  * Server-only: the key and the LLM keys never reach the browser.
  */
@@ -38,6 +41,7 @@ export async function POST(request: Request) {
   let proposal: {
     words: string[];
     workType: "film" | "music" | "book" | "game";
+    similarTitles: string[];
   };
   try {
     proposal = await extractPitchTags({ pitchText });
@@ -71,6 +75,8 @@ export async function POST(request: Request) {
     matched: tagRes.tags.length,
     suggested: proposal.words.length,
     workType: proposal.workType,
+    /** Unverified suggestions for tap-to-add; resolved live at run time. */
+    similarTitles: proposal.similarTitles,
     /** Below this the run stops as Inconclusive (flow gate). */
     minMatched: MIN_MATCHED_TAGS,
   });

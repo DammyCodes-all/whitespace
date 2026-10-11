@@ -41,6 +41,7 @@ export function FlowClient({
   // The pitch's type is read by the tag call, never picked by hand.
   const [workType, setWorkType] = useState<WorkType>("film");
   const [similarTitles, setSimilarTitles] = useState("");
+  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
   const [tags, setTags] = useState<FlowResult["tags"]>([]);
   const [steps, setSteps] = useState<FlowStepRow[]>([]);
   const [result, setResult] = useState<FlowResult | null>(null);
@@ -49,6 +50,22 @@ export function FlowClient({
 
   const matched = tags.filter((t) => t.status === "matched").length;
   const autoStarted = useRef(false);
+
+  /** Tap-to-add for a suggested title; dedupes case-insensitively. */
+  function addSuggested(title: string) {
+    const clean = title.trim();
+    if (clean === "") return;
+    const have = new Set(
+      similarTitles
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    if (have.has(clean.toLowerCase())) return;
+    setSimilarTitles((prev) =>
+      prev.trim() === "" ? clean : `${prev.replace(/\s*,\s*$/, "")}, ${clean}`,
+    );
+  }
 
   async function extractTags() {
     setBusy(true);
@@ -62,6 +79,7 @@ export function FlowClient({
       const data = (await res.json()) as {
         tags?: FlowResult["tags"];
         workType?: WorkType;
+        similarTitles?: string[];
         error?: string;
       };
       if (!res.ok) {
@@ -69,6 +87,13 @@ export function FlowClient({
         return;
       }
       setTags(data.tags ?? []);
+      setSuggestedTitles(
+        Array.isArray(data.similarTitles)
+          ? data.similarTitles.filter(
+              (t): t is string => typeof t === "string" && t.trim() !== "",
+            )
+          : [],
+      );
       if (
         data.workType === "film" ||
         data.workType === "music" ||
@@ -157,7 +182,8 @@ export function FlowClient({
                 htmlFor="similar"
                 className="block font-mono text-xs text-ink-3"
               >
-                Similar to (optional, comma separated)
+                Similar to (optional, comma separated — suggestions appear after
+                reading the tags)
               </label>
               <input
                 id="similar"
@@ -188,6 +214,39 @@ export function FlowClient({
         <section aria-label="Confirm tags">
           <p className="font-mono text-xs text-ink-3">Read as {workType}</p>
           <TagChips tags={tags} onChange={setTags} loading={busy} />
+          {suggestedTitles.length > 0 && (
+            <section aria-label="Suggested similar titles" className="mt-6">
+              <h2 className="text-lg tracking-tight text-ink">
+                Titles like yours?
+              </h2>
+              <p className="mt-1 max-w-prose text-body text-ink-2">
+                The model suggests these from your pitch — unverified. Tap to
+                add; each one is checked against Qloo on the run and anything
+                missing is reported, never scored.
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {suggestedTitles.map((title) => {
+                  const added = similarTitles
+                    .split(",")
+                    .map((s) => s.trim().toLowerCase())
+                    .includes(title.trim().toLowerCase());
+                  if (added) return null;
+                  return (
+                    <li key={title}>
+                      <button
+                        type="button"
+                        onClick={() => addSuggested(title)}
+                        disabled={busy}
+                        className="btn-secondary px-4 py-2 text-sm"
+                      >
+                        + {title}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <button
               type="button"
