@@ -17,8 +17,10 @@
  */
 
 export type { ConceptTastesResult } from "@/lib/qloo/concept";
+export type { LoadControlsResult } from "@/lib/qloo/control-cache";
 export type { ControlSeed } from "@/lib/qloo/control-seeds";
 export type { BuildControlsResult } from "@/lib/qloo/controls";
+export type { InterestItem } from "@/lib/qloo/interests";
 export type {
   LocationPlace,
   LocationResult,
@@ -41,18 +43,39 @@ export {
   fetchConceptTastes,
   MAX_CONCEPT_TAGS,
 } from "./concept.ts";
+export {
+  CONTROL_CACHE_TTL_MS,
+  clearControlCache,
+  controlCacheKey,
+  loadControlTastes,
+} from "./control-cache.ts";
 export { CONTROL_SEEDS } from "./control-seeds.ts";
 export {
   buildControls,
   CONTROL_COUNT,
   MAX_TITLES_PER_CONTROL,
 } from "./controls.ts";
+export { INTEREST_TRIM, interestsFromTastes } from "./interests.ts";
+export {
+  discoverRivals,
+  WORK_TYPE_TO_ENTITY_TYPE,
+} from "./rival-discovery.ts";
 export {
   fetchLocation,
   guardLocationData,
   MIN_PLACES_FOR_MAP,
 } from "./location.ts";
 export { MAX_MARK_TITLES, markChatbotTitles } from "./mark.ts";
+export {
+  fetchRelated,
+  kindToFilterType,
+  RELATED_KINDS,
+  RELATED_TAKE,
+  RELATED_TRIM,
+  type RelatedItem,
+  type RelatedKind,
+  type RelatedResult,
+} from "./related.ts";
 export { MAX_TAG_WORDS, resolvePitchTags } from "./resolve-tags.ts";
 export {
   MAX_TITLE_QUERIES,
