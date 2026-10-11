@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { PitchFlow } from "@/components/pitch-flow";
+import { FlowEntry } from "@/components/flow-entry";
 
 export default function Home() {
   return (
@@ -15,17 +14,8 @@ export default function Home() {
             where to find those people, and we show our work at every step.
           </p>
 
-          <div className="mt-6 flex justify-center">
-            <Link
-              href="/flow"
-              className="btn-secondary inline-flex min-h-11 items-center px-6 py-3 text-sm"
-            >
-              Open the audience flow
-            </Link>
-          </div>
-
           <div className="flex w-full max-w-[720px] flex-col">
-            <PitchFlow />
+            <FlowEntry />
 
             <p className="mt-10 text-center text-sm text-ink-3">
               Results are a hypothesis built from group-level taste data. They
