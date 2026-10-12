@@ -28,7 +28,7 @@ Motion is short. Bars grow from zero over about 300ms with ease-out when a resul
 
 A horizontal bar per audience, with a vertical line across all of them marking the control ceiling, labeled in the margin. The app's whole argument is §6.7, "clears control", so the comparison is one object instead of a number plus a sentence. If the bar stops short of the line, that is the thesis in one image.
 
-Bars are 28px tall with a 2px ink outline and fully rounded ends. The fill is the verdict color. The control line is solid ink, 2.5px, with a small pill at the top reading "control". It is never dashed, because dashes are reserved for not measured.
+Bars are 28px tall with a 2px ink outline and fully rounded ends. The fill is the verdict color. The bar to beat is a solid ink line, 2.5px, with a small pill at the top reading "the bar". It is never dashed, because dashes are reserved for not measured.
 
 ## 3. Color
 

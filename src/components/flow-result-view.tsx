@@ -77,14 +77,6 @@ function verdictSentence(result: FlowResult): string {
 function Bars({ result }: { result: FlowResult }) {
   const rows: FlowBarRow[] = barRows(result);
   const ceiling = result.ceiling;
-  const top = Math.max(
-    0.0001,
-    ceiling ?? 0,
-    ...rows.map((r) => r.score),
-    ...result.audiences
-      .filter((a) => a.role === "control" && a.score !== null)
-      .map((a) => a.score as number),
-  );
   return (
     <section aria-label="Ranked audiences" className="mt-8">
       <h3 className="text-base tracking-tight text-ink">
@@ -110,7 +102,7 @@ function Bars({ result }: { result: FlowResult }) {
                 <div
                   className="bar-grow absolute inset-y-0 left-0 bg-strong"
                   style={{
-                    width: `${(row.score / top) * 100}%`,
+                    width: `${row.score * 100}%`,
                     borderRadius: "999px",
                     border: "2px solid var(--outline)",
                   }}
@@ -118,7 +110,7 @@ function Bars({ result }: { result: FlowResult }) {
                 {ceiling !== null && (
                   <div
                     className="control-line absolute inset-y-[-4px]"
-                    style={{ left: `${(ceiling / top) * 100}%` }}
+                    style={{ left: `${ceiling * 100}%` }}
                   />
                 )}
               </div>
@@ -129,9 +121,9 @@ function Bars({ result }: { result: FlowResult }) {
           <div className="relative mt-1 h-6" aria-hidden="true">
             <div
               className="absolute top-0 -translate-x-1/2"
-              style={{ left: `${(ceiling / top) * 100}%` }}
+              style={{ left: `${ceiling * 100}%` }}
             >
-              <span className="control-pill">control</span>
+              <span className="control-pill">the bar</span>
             </div>
           </div>
         )}
