@@ -47,19 +47,15 @@ function VerdictHeadline({
           : verdictSentence(result)}
       </h2>
       {isCloseCall(result) && (
-        <p className="mt-2 max-w-prose text-body text-ink-2">
-          Close call — this sits near the control line, so a re-run may read
+        <p className="mt-2 max-w-prose text-body text-ink">
+          Close call — this sits near the bar, so a re-run may read
           differently. Tighten the words and run again.
         </p>
       )}
-      <p data-numeric className="tnum mt-2 font-mono text-sm text-ink-2">
+      <p className="mt-2 max-w-prose text-body text-ink">
         {result.ceiling === null
-          ? "control ceiling: not measured"
-          : `control ceiling: ${result.ceiling.toFixed(2)}`}
-        <span className="ml-2">
-          Qloo calls: {result.qlooCalls.network} network,{" "}
-          {result.qlooCalls.cached} cached
-        </span>
+          ? "No unrelated baseline was measured, so there is no bar to beat."
+          : `Even people with nothing to do with your idea match it up to ${Math.round(result.ceiling * 100)}%. That's the bar your pitch has to beat.`}
       </p>
     </div>
   );
@@ -72,9 +68,9 @@ function verdictSentence(result: FlowResult): string {
     return "Too little matched data to judge this pitch.";
   }
   if (result.verdict === "weak") {
-    return "Nothing beat the control ceiling, so no reach plan is shown.";
+    return "Nothing beat the bar, so there's no list of where to find them.";
   }
-  if (top === undefined) return "No audience cleared the control ceiling.";
+  if (top === undefined) return "No audience beat the bar.";
   return `Best fit: ${top.name}.`;
 }
 
