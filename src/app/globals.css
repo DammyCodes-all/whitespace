@@ -100,7 +100,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--ink);
+    cursor: pointer;
+    background: var(--ink-2);
     color: var(--paper);
     border: 2px solid var(--outline);
     border-radius: 16px;
@@ -112,7 +113,7 @@
   }
 
   .btn-primary:hover {
-    background: var(--ink-2);
+    background: var(--ink);
   }
 
   .btn-primary:active {
@@ -124,6 +125,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
     background: var(--surface);
     color: var(--ink);
     border: 2px solid var(--outline);
