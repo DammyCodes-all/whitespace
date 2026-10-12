@@ -38,6 +38,8 @@ Format:
 | 2026-10-05 | Fix pnpm Node 22 shim via nvm install 22 + global pnpm 10.30.1 | n/a | pnpm -v 10.30.1; pnpm install --frozen-lockfile passes |
 | 2026-10-08 | Claim-first evidence calls with All-calls collapse | §6.10, §6.12 | biome+tsc clean; next build pass; case suite 3 pass |
 | 2026-10-08 | Lighten evidence rows, quiet full-trace toggle | §6.12 | biome+tsc clean; next build pass |
+| 2026-10-12 | Add static end-result mock page at /demo/result | §6.7, §6.8, §6.9, §6.11, §6.12 | pnpm build pass |
+| 2026-10-12 | Remove evidence calls from end-result mock | §6.7, §6.8, §6.11 | pnpm build pass |
 | 2026-10-08 | Animate evidence accordions with CSS grid rows | §6.12 | biome+tsc clean; next build pass |
 | 2026-10-08 | Fix accordion snap with starting-style start frame | §6.12 | biome+tsc clean; next build pass; starting-style verified in built CSS |
 | 2026-10-08 | Redesign saved-run replay with human labels | §6.12 | biome+tsc clean; next build pass |
