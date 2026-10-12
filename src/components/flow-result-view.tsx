@@ -20,6 +20,14 @@ const VERDICT_FILLS: Record<FlowResult["verdict"], string> = {
   inconclusive: "bg-paper",
 };
 
+function marginLine(score: number, ceiling: number | null): string | null {
+  if (ceiling === null) return null;
+  const diff = Math.round((score - ceiling) * 100);
+  if (diff > 0) return `Beats the bar by ${diff}.`;
+  if (diff < 0) return `Misses the bar by ${-diff}.`;
+  return "Right on the bar.";
+}
+
 function VerdictHeadline({
   result,
   orange,
@@ -88,8 +96,10 @@ function Bars({ result }: { result: FlowResult }) {
             not measured
           </p>
         ) : (
-          rows.map((row) => (
-            <div key={row.id} className="border-b border-rule py-3">
+          rows.map((row) => {
+            const margin = marginLine(row.score, ceiling);
+            return (
+              <div key={row.id} className="border-b border-rule py-3">
               <div className="flex items-baseline justify-between gap-4">
                 <p className="text-[15px] tracking-tight text-ink">
                   {row.name}
@@ -114,8 +124,12 @@ function Bars({ result }: { result: FlowResult }) {
                   />
                 )}
               </div>
+              {margin !== null && (
+                <p className="mt-1 text-sm text-ink-2">{margin}</p>
+              )}
             </div>
-          ))
+            );
+          })
         )}
         {ceiling !== null && (
           <div className="relative mt-1 h-6" aria-hidden="true">
