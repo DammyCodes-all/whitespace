@@ -110,4 +110,20 @@ describe("buildCase", () => {
     assert.equal(model.verdictHeadline, "Inconclusive");
     assert.ok(model.verdictSub?.includes("too few pitch words"));
   });
+
+  it("explains no-signal as an uninformative baseline", () => {
+    const result = base();
+    result.verdict = {
+      verdict: "Inconclusive",
+      topAudienceId: "hyp",
+      marginTopVsSecond: 0,
+      marginTopVsControl: 0,
+      clearsControl: false,
+      surprise: false,
+      inconclusiveReason: "no-signal",
+    };
+    const model = buildCase(result);
+    assert.equal(model.verdictHeadline, "Inconclusive");
+    assert.ok(model.verdictSub?.includes("no control audience matched"));
+  });
 });

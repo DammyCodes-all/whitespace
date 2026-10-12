@@ -82,7 +82,9 @@ function headline(
         ? "too many audiences had no taste data"
         : reason === "top-unjudgeable"
           ? "the top audience had no taste data"
-          : "there was nothing reliable to judge";
+          : reason === "no-signal"
+            ? "no control audience matched any pitch tag"
+            : "there was nothing reliable to judge";
   return {
     headline: "Inconclusive",
     sub: `No reliable answer: ${why}.`,
