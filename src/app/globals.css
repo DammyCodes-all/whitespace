@@ -234,10 +234,34 @@
   }
 }
 
+@keyframes pixel-on {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer-text {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bar-grow,
-  .surprise-pop {
-    animation: none;
+  .surprise-pop,
+  .pixel-cell,
+  .shimmer-label {
+    animation: none !important;
+  }
+  .pixel-cell {
+    opacity: 0.15 !important;
   }
 }
 
