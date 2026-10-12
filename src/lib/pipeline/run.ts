@@ -39,11 +39,12 @@ import { checkGrounding } from "../policy/grounding.ts";
 import { checkScope } from "../policy/scope.ts";
 import { decideVerdict } from "../policy/verdict.ts";
 import {
-  buildControls,
   buildRivals,
   CONTROL_COUNT,
   fetchAllAudienceTastes,
   fetchConceptTastes,
+  getQuotaUsage,
+  loadControlTastes,
   resetQuota,
   resolvePitchTags,
   resolveTitles,
@@ -139,6 +140,7 @@ export async function runPipeline(
   // second full run trips the per-run cap (§11). Reach/change/chatbot
   // marks after the pipeline share this run's remaining budget.
   resetQuota();
+  const quotaBefore = getQuotaUsage();
   const calls: QlooCall[] = [];
   const steps: RunStep[] = [];
 
@@ -223,17 +225,21 @@ export async function runPipeline(
     ),
   );
 
-  const controlRes = await buildControls(
-    input.workType,
-    options.controlCount ?? CONTROL_COUNT,
-  );
-  calls.push(...controlRes.calls);
+  // Package A: control tag sets are cached across runs keyed by pitch
+  // type (§6.4). Scores below are still computed per pitch from the
+  // cached sets plus the current pitch tags — the cache never stores a
+  // score. A hit spends zero Qloo calls on controls.
+  const controlCount = options.controlCount ?? CONTROL_COUNT;
+  const controlCached = await loadControlTastes(input.workType, controlCount);
+  calls.push(...controlCached.calls);
   steps.push(
     doneStep(
       "controls",
       "Control audiences",
-      `${controlRes.controls.length} built, ${controlRes.droppedControls.length} dropped`,
-      controlRes.calls[0]?.id,
+      controlCached.fromCache
+        ? `${controlCached.controls.length} from cache, 0 Qloo calls`
+        : `${controlCached.controls.length} built, ${controlCached.droppedControls.length} dropped`,
+      controlCached.calls[0]?.id,
     ),
   );
 
@@ -247,16 +253,15 @@ export async function runPipeline(
     notFoundTitles: exclRes.notFoundTitles,
   };
 
-  const audiences = [
-    hypothesis,
-    ...rivalRes.rivals,
-    ...controlRes.controls,
-    exclusion,
-  ];
-  const { all, calls: tasteCalls } = await fetchAllAudienceTastes(
+  // Control tastes arrive from the cache; only the pitch-dependent
+  // audiences are fetched here. The merged list below is identical in
+  // shape to the old single batch, so scoring is unaffected.
+  const audiences = [hypothesis, ...rivalRes.rivals, exclusion];
+  const { all: freshTastes, calls: tasteCalls } = await fetchAllAudienceTastes(
     audiences,
     input.workType,
   );
+  const all = [...freshTastes, ...controlCached.tastes];
   calls.push(...tasteCalls);
   steps.push(
     doneStep(
@@ -346,7 +351,7 @@ export async function runPipeline(
     conceptAudience.id,
     ...rivalRes.rivals.map((r) => r.id),
   ].map((id) => tasteById.get(id) ?? missingTastes(id));
-  const controlTastes = controlRes.controls.map(
+  const controlTastes = controlCached.controls.map(
     (c) => tasteById.get(c.id) ?? missingTastes(c.id),
   );
 
@@ -421,6 +426,18 @@ export async function runPipeline(
     ),
   );
 
+  // Package A4: Qloo calls per run, before and after. `before` is the
+  // post-reset snapshot (zeros); `after` is the run total. The adapter
+  // also derives the same totals from `calls` for the UI.
+  const quotaAfter = getQuotaUsage();
+  steps.push(
+    doneStep(
+      "quota",
+      "Qloo usage",
+      `${quotaBefore.calls} → ${quotaAfter.calls} network, ${quotaAfter.cached} cached`,
+    ),
+  );
+
   const knownTitleIds = audiences.flatMap((a) => a.titles.map((t) => t.qlooId));
   const knownTagIds = [
     ...pitchTags.map((t) => t.qlooTagId),
@@ -441,8 +458,9 @@ export async function runPipeline(
     input: pitch,
     hypothesis,
     rivals: [...rivalRes.rivals, conceptAudience],
-    controls: controlRes.controls,
+    controls: controlCached.controls,
     tags: pitchTags,
+    notFoundWords: tagRes.notFoundWords,
     coverage: tagRes.coverage,
     scores: [...contenderScores, ...controlScores],
     verdict,

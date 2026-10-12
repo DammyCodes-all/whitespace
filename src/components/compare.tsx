@@ -56,7 +56,7 @@ function ChatbotTitles({
 
 function verdictColor(verdict: VerdictResult["verdict"]): string {
   if (verdict === "Strong") return "text-measured";
-  if (verdict === "Split") return "text-split";
+  if (verdict === "Split") return "text-split-ink";
   return "text-ink-3";
 }
 

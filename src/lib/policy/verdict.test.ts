@@ -32,6 +32,44 @@ function controls(score: number): FitScore[] {
   return [judged("control-1", score)];
 }
 
+describe("decideVerdict control ceiling honesty", () => {
+  it("never turns an unjudged control batch into a Strong", () => {
+    // Every control is a placeholder 0 (unjudgeable). Before the fix
+    // this read as a ceiling of 0 and the top audience cleared it.
+    const result = decideVerdict({
+      hypothesisId: "a",
+      scores: [judged("a", 0.5), judged("b", 0.2)],
+      controlScores: [unjudged("control-1"), unjudged("control-2")],
+      coverage: 0.9,
+    });
+    assert.equal(result.clearsControl, false);
+    assert.equal(result.verdict, "Inconclusive");
+    assert.equal(result.inconclusiveReason, "no-control");
+  });
+
+  it("still returns Weak when no control exists at all", () => {
+    const result = decideVerdict({
+      hypothesisId: "a",
+      scores: [judged("a", 0.9)],
+      controlScores: [],
+      coverage: 0.9,
+    });
+    assert.equal(result.verdict, "Weak");
+  });
+
+  it("uses the best JUDGEABLE control, ignoring placeholder 0s", () => {
+    const result = decideVerdict({
+      hypothesisId: "a",
+      scores: [judged("a", 0.5)],
+      controlScores: [unjudged("control-1"), judged("control-2", 0.48)],
+      coverage: 0.9,
+    });
+    // Ceiling 0.48, gap 0.02: below MARGIN, so Weak rather than Strong.
+    assert.equal(result.clearsControl, false);
+    assert.equal(result.verdict, "Weak");
+  });
+});
+
 describe("decideVerdict margins", () => {
   it("ignores a failed runner-up instead of inflating the margin", () => {
     const result = decideVerdict({

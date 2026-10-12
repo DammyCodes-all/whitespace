@@ -92,7 +92,7 @@ function GapList({
 }) {
   const covered = hasTastes && gaps.length === 0 && unlabeledCount === 0;
   return (
-    <div className="mt-4 border border-rule bg-surface p-4 sm:p-5">
+    <div className="card mt-4 p-4 sm:p-5">
       <h3 className="text-base tracking-tight text-ink">
         What {audienceName} loves that your pitch doesn&apos;t mention yet
       </h3>

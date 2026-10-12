@@ -89,14 +89,23 @@ export function RankedList({
                 </p>
               </div>
               <div
-                className="relative mt-2 h-2 bg-rule"
+                className="relative mt-6"
                 role="img"
                 aria-label={`${audience.name} scores ${score.score}, control ceiling ${controlCeiling}`}
               >
-                <div
-                  className="absolute inset-y-0 left-0 bg-measured"
-                  style={{ width: `${pct}%` }}
-                />
+                <span
+                  className="control-pill absolute -top-5 -translate-x-1/2"
+                  style={{ left: `${Math.round(controlCeiling * 100)}%` }}
+                  aria-hidden="true"
+                >
+                  control
+                </span>
+                <div className="relative h-7 overflow-hidden rounded-full border-2 border-outline bg-surface">
+                  <div
+                    className="bar-grow absolute inset-y-0 left-0 bg-strong"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
                 <div
                   className="control-line absolute inset-y-[-4px]"
                   style={{ left: `${Math.round(controlCeiling * 100)}%` }}

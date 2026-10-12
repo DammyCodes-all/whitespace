@@ -1,5 +1,7 @@
 # Whitespace build plan: 10 build days, then harden
 
+> This is the v1 implementation plan. The proposed replacement is [Audience-discovery pipeline: proposed v2](pipeline-redesign.md); it is not implemented or adopted into the product spec yet.
+
 Ten working days, Oct 6 to 17. After that no new features. Oct 19 to 29 is polish and demo hardening only. Spec is `docs/product-spec.md` (§12, §6, §10).
 
 ## Ownership

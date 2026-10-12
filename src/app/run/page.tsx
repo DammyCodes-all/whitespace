@@ -348,7 +348,7 @@ export default async function RunPage({
                   />
                   <button
                     type="submit"
-                    className="shrink-0 bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
+                    className="btn-primary shrink-0 px-5 py-2.5 text-sm"
                   >
                     Check change
                   </button>
@@ -408,14 +408,14 @@ export default async function RunPage({
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <Link
             href="/"
-            className="inline-block bg-ink px-5 py-2.5 text-sm text-paper transition-colors transition-transform duration-150 ease-out hover:bg-ink-2 active:scale-[0.97]"
+            className="btn-primary inline-block px-5 py-2.5 text-sm"
           >
             Back to start
           </Link>
           {live ? (
             <Link
               href={`/case?input=${encodeURIComponent(JSON.stringify(pipelineInput))}`}
-              className="inline-block border border-rule px-5 py-2.5 text-sm text-ink transition-colors hover:border-ink"
+              className="btn-secondary inline-block px-5 py-2.5 text-sm"
             >
               Audience case
             </Link>
