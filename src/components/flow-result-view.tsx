@@ -9,7 +9,7 @@
  */
 
 import type { FlowBarRow, FlowResult } from "@/lib/flow/contract";
-import { barRows } from "@/lib/flow/contract";
+import { barRows, isCloseCall } from "@/lib/flow/contract";
 
 const VERDICT_WORDS: Record<FlowResult["verdict"], string> = {
   strong: "Strong fit",
@@ -49,6 +49,12 @@ function VerdictHeadline({ result }: { result: FlowResult }) {
           ? "Your best fit is not the audience you named."
           : verdictSentence(result)}
       </h2>
+      {isCloseCall(result) && (
+        <p className="mt-2 max-w-prose text-body text-ink-2">
+          Close call — this sits near the control line, so a re-run may read
+          differently. Tighten the words and run again.
+        </p>
+      )}
       <p data-numeric className="tnum mt-2 font-mono text-sm text-ink-2">
         {result.ceiling === null
           ? "control ceiling: not measured"
@@ -261,6 +267,11 @@ export function FlowResultView({ result }: { result: FlowResult }) {
                   ? "not measured"
                   : result.ceiling.toFixed(2)
               }`,
+              ...(isCloseCall(result)
+                ? [
+                    "Close call: near the control line — a re-run may read differently.",
+                  ]
+                : []),
               `Qloo calls: ${result.qlooCalls.network} network, ${result.qlooCalls.cached} cached`,
               "",
               "## Reach plan",
