@@ -33,10 +33,25 @@ function Cite({ evidenceId }: { evidenceId: string | null }) {
   );
 }
 
-function VerdictHeadline({ result }: { result: FlowResult }) {
+function VerdictHeadline({
+  result,
+  orange,
+}: {
+  result: FlowResult;
+  orange: boolean;
+}) {
   return (
-    <div className={`card px-6 py-5 ${VERDICT_FILLS[result.verdict]}`}>
-      <p className="font-mono text-xs tracking-tight text-ink-2">
+    <div
+      className={`card px-6 py-5 ${VERDICT_FILLS[result.verdict]}`}
+      style={
+        orange
+          ? { backgroundColor: "#f76743", color: "#17151F" }
+          : undefined
+      }
+    >
+      <p
+        className={`font-mono text-xs tracking-tight ${orange ? "text-white" : "text-ink"}`}
+      >
         {VERDICT_WORDS[result.verdict]}
       </p>
       <h2 className="mt-1 font-serif text-2xl tracking-tight text-ink">
@@ -216,10 +231,16 @@ function ReachBlock({ result }: { result: FlowResult }) {
   );
 }
 
-export function FlowResultView({ result }: { result: FlowResult }) {
+export function FlowResultView({
+  result,
+  orangeVerdict = false,
+}: {
+  result: FlowResult;
+  orangeVerdict?: boolean;
+}) {
   return (
     <div>
-      <VerdictHeadline result={result} />
+      <VerdictHeadline result={result} orange={orangeVerdict} />
       <Bars result={result} />
       <ReachBlock result={result} />
       <section aria-label="Targeting brief" className="mt-8">
