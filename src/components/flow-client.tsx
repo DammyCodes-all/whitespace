@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlowResultView } from "@/components/flow-result-view";
 import { TagChips } from "@/components/tag-chips";
+import LoadingState from "@/components/ui/loading-state";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowResult } from "@/lib/flow/contract";
 import type { FlowStepRow } from "@/lib/flow/view-types";
@@ -194,14 +195,20 @@ export function FlowClient({
               />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={extractTags}
-            disabled={busy || pitchText.trim() === ""}
-            className="btn-primary mt-6 px-6 py-3 text-sm"
-          >
-            {busy ? "Reading the pitch…" : "Read the tags"}
-          </button>
+          {busy ? (
+            <output aria-live="polite" className="mt-6">
+              <LoadingState label="Running pitch" variant="Dots" />
+            </output>
+          ) : (
+            <button
+              type="button"
+              onClick={extractTags}
+              disabled={pitchText.trim() === ""}
+              className="btn-primary mt-6 px-6 py-3 text-sm"
+            >
+              Read the tags
+            </button>
+          )}
           {error && (
             <p role="alert" className="mt-3 text-sm text-ink-2">
               {error}
@@ -248,14 +255,20 @@ export function FlowClient({
             </section>
           )}
           <div className="mt-6 flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={run}
-              disabled={busy || matched < MIN_MATCHED_TAGS}
-              className="btn-primary px-6 py-3 text-sm"
-            >
-              {busy ? "Running…" : "Run the analysis"}
-            </button>
+            {busy ? (
+              <output aria-live="polite">
+                <LoadingState label="Running pitch" variant="Dots" />
+              </output>
+            ) : (
+              <button
+                type="button"
+                onClick={run}
+                disabled={matched < MIN_MATCHED_TAGS}
+                className="btn-primary px-6 py-3 text-sm"
+              >
+                Run the analysis
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setPhase("input")}
@@ -274,7 +287,9 @@ export function FlowClient({
 
       {phase === "running" && (
         <section aria-label="Run">
-          <h2 className="text-lg tracking-tight text-ink">Working</h2>
+          <output aria-live="polite">
+            <LoadingState label="Running pitch" variant="Dots" />
+          </output>
           <ul className="mt-4 space-y-2">
             {steps.length === 0 && (
               <li className="font-mono text-sm text-ink-3">

@@ -145,3 +145,4 @@ Format:
 | 2026-10-12 | Merge origin/main keeping both build-tracker histories, dedupe hijacked row | n/a | tsc clean; node --test 172 pass; tracker ignored by biome |
 | 2026-10-12 | Resolve build-tracker merge conflict and preserve both histories | n/a | pnpm typecheck and pnpm build pass; pnpm check reports pre-existing issues outside tracker |
 | 2026-10-12 | Soften primary button to ink-2 with ink hover plus pointer cursor on both buttons | design-direction §§1–5 | tsc clean; biome pre-existing CRLF fail on globals.css |
+| 2026-10-12 | Replace running-pitch buttons with Dots loading status in ink tokens plus keyframes | design-direction §1 | tsc clean; biome lint clean; 172 pass node --test |
