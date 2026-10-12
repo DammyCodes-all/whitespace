@@ -104,7 +104,13 @@ function bestScore(scores: FitScore[]): number {
 
 function inconclusive(
   scores: FitScore[],
-  reason: "coverage" | "nodata" | "top-unjudgeable" | "empty" | "no-control",
+  reason:
+    | "coverage"
+    | "nodata"
+    | "top-unjudgeable"
+    | "empty"
+    | "no-control"
+    | "no-signal",
 ): VerdictResult {
   const ranked = sortedByScore(scores);
   const top = ranked[0] ?? null;
@@ -187,6 +193,14 @@ export function decideVerdict(
   const hasControls = controlScores.length > 0;
   const hasCeiling = judgeableControls.length > 0;
   const controlBest = hasCeiling ? bestScore(judgeableControls) : 0;
+  // A judgeable ceiling of exactly 0 means no control audience matched
+  // any pitch tag: the baseline is uninformative, and a degraded Qloo
+  // window reads exactly this way (repeat probe 2026-10-12: a Strong
+  // won against 0.000 and never recurred). A real Strong needs a real
+  // baseline, so this is Inconclusive — never Strong, never Weak.
+  if (hasCeiling && controlBest === 0) {
+    return inconclusive(scores, "no-signal");
+  }
   const marginTopVsControl = hasCeiling ? top.score - controlBest : 0;
   const clearsControl =
     hasCeiling && marginTopVsControl + MARGIN_EPSILON >= controlMargin;
