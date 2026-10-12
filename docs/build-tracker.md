@@ -144,3 +144,4 @@ Format:
 | 2026-10-12 | Guard won-against-nothing (judgeable ceiling 0 → Inconclusive/no-signal), seed discovery with all matched tags (was first 5), close-call flag within 0.06 of the line in results + brief | §6.7, §6.3, §10 #4 | 43/43 touched suites pass; tsc+biome clean; live: 8-tag discovery check throttled (429s, key hot after ~2k probe calls) — re-check scheduled |
 | 2026-10-12 | Merge origin/main keeping both build-tracker histories, dedupe hijacked row | n/a | tsc clean; node --test 172 pass; tracker ignored by biome |
 | 2026-10-12 | Resolve build-tracker merge conflict and preserve both histories | n/a | pnpm typecheck and pnpm build pass; pnpm check reports pre-existing issues outside tracker |
+| 2026-10-12 | Soften primary button to ink-2 with ink hover plus pointer cursor on both buttons | design-direction §§1–5 | tsc clean; biome pre-existing CRLF fail on globals.css |
