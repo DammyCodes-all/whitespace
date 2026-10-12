@@ -20,19 +20,6 @@ const VERDICT_FILLS: Record<FlowResult["verdict"], string> = {
   inconclusive: "bg-paper",
 };
 
-function Cite({ evidenceId }: { evidenceId: string | null }) {
-  if (evidenceId === null) return null;
-  return (
-    <a
-      href={`#${evidenceId}`}
-      className="cite ml-1"
-      aria-label="Open the Qloo call behind this claim"
-    >
-      [e]
-    </a>
-  );
-}
-
 function VerdictHeadline({
   result,
   orange,
@@ -124,7 +111,6 @@ function Bars({ result }: { result: FlowResult }) {
                 </p>
                 <p data-numeric className="tnum font-mono text-sm text-ink">
                   {row.score.toFixed(2)}
-                  <Cite evidenceId={row.evidenceId} />
                 </p>
               </div>
               <div className="relative mt-2 h-7 bg-surface">
@@ -215,7 +201,6 @@ function ReachBlock({ result }: { result: FlowResult }) {
                             className="tnum shrink-0 font-mono text-sm text-ink"
                           >
                             #{item.rank}
-                            <Cite evidenceId={item.evidenceId} />
                           </p>
                         </li>
                       ))}
