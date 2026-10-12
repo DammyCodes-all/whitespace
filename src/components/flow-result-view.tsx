@@ -191,7 +191,10 @@ function ReachBlock({ result }: { result: FlowResult }) {
             {REACH_SLOTS.map(({ slot, label }) => {
               const items = group[slot];
               return (
-                <div key={String(slot)} className="bg-paper p-4">
+                <div
+                  key={String(slot)}
+                  className={`card p-4 ${slot === "places" ? "sm:col-span-2" : ""}`}
+                >
                   <h4 className="text-base tracking-tight text-ink">{label}</h4>
                   {items.length === 0 ? (
                     <p className="nodata mt-3 px-2 py-2 font-mono text-xs text-ink-2">
