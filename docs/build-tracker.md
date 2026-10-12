@@ -103,6 +103,10 @@ Format:
 | 2026-10-09 | Show the guess on confirm: hypothesis titles, rival readings, words, is-that-your-crowd | §5, §6.2, §6.3 | biome+tsc clean; build pass |
 | 2026-10-09 | Use live taste names for gaps plus honest empty states, drop untracked line | §6.8 | biome+tsc clean on touched files; node --test 23 pass (gaps/change/reach-targets) |
 | 2026-10-09 | Remove hijacked api.js dropper, restore scripts, surface LLM error causes | §7 | tsc clean; agent tests 16 pass; live /api/propose 200 (biome format pre-existing CRLF fail) |
+| 2026-10-10 | Remove dead dark-mode variant from tokens | n/a | grep confirms no .dark/dark: refs remain; tsc clean |
+| 2026-10-10 | Restore dark-mode variant block, owner-authored Oct 5 | n/a | git diff empty vs HEAD on globals.css; tsc clean |
+| 2026-10-10 | Redesign saved-run replay as editorial list plus detail | §6.12 | tsc clean; 113 pass node --test; next build pass |
+| 2026-10-10 | Collapse saved-run list to selected plus all-runs toggle | §6.12 | tsc clean; 113 pass node --test; next build pass |
 | 2026-10-10 | Propose discovery-led v2 pipeline, glossary, spec deltas, capability gates, and phased migration | §1–§4, §5–§8, §10, §12 | Docs only; static code and public Qloo docs reviewed; no live API tests; shell validation blocked by TTY setup |
 | 2026-10-10 | Run v2 capability pilot live (10 calls, aggregates only, no payloads stored) | pipeline-redesign §8 | Overlap 0 at top-20/50 all pairs+cats; take=100 empty; exclude honored; book-seeded reach 5/5; repeat deterministic |
 | 2026-10-10 | Add lean v2 contracts, overlap-only discovery, states, synthetic fixtures, 18 tests | pipeline-redesign §§4–5 | biome+tsc clean on new files; node24 18/18 v2, 142/142 full; next build pass |
@@ -138,3 +142,4 @@ Format:
 | 2026-10-12 | Probe repeatability (cyberpunk x3, mystery-noir x5, full LLM path): LLM wording wobbles verdicts (cyberpunk flips Strong→Weak dropping dystopia/robot); first live Split + rival-led Strong observed; identical words repeat identically | §6.7, §10 #7 | node24 live 8 flows (~90–98 calls); words vary 5–8/run, titles stable; runs 4/5 identical → Qloo side deterministic, wobble is LLM-side |
 | 2026-10-12 | Instrument cyberpunk x3 for 0-ceiling mystery: no recurrence (ceilings 0.11–0.15, all 200s, 0 nulls); verdict is flaky-window data, fix is an all-zero-opposition guard, not scoring | §6.7, §10 #4 | node24 live 3 flows with per-stage statuses + per-control scores; 14–16/20 controls at judged 0 normally |
 | 2026-10-12 | Guard won-against-nothing (judgeable ceiling 0 → Inconclusive/no-signal), seed discovery with all matched tags (was first 5), close-call flag within 0.06 of the line in results + brief | §6.7, §6.3, §10 #4 | 43/43 touched suites pass; tsc+biome clean; live: 8-tag discovery check throttled (429s, key hot after ~2k probe calls) — re-check scheduled |
+| 2026-10-12 | Merge origin/main keeping both build-tracker histories, dedupe hijacked row | n/a | tsc clean; node --test 172 pass; tracker ignored by biome |
