@@ -128,6 +128,10 @@ export interface VerdictResult {
    * Day 11 S: "scope" added — the pitch is a tool/app, not a creative
    * work (§3), so taste data cannot judge it. Unfreeze noted in
    * docs/build-tracker.md alongside Day 9.
+   * Repeat probe 2026-10-12: "no-signal" added — no control audience
+   * matched any pitch tag, so the baseline is uninformative (a
+   * degraded Qloo window reads exactly this way). Unfreeze noted in
+   * docs/build-tracker.md.
    */
   inconclusiveReason?:
     | "coverage"
@@ -135,7 +139,8 @@ export interface VerdictResult {
     | "top-unjudgeable"
     | "empty"
     | "scope"
-    | "no-control";
+    | "no-control"
+    | "no-signal";
 }
 
 /** §8 grounding check: every title/tag in output came from Qloo. */

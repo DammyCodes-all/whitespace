@@ -21,6 +21,15 @@
 export const MARGIN = 0.05;
 export const CONTROL_MARGIN = MARGIN;
 
+/**
+ * §6.7, display-only: a judged Strong/Weak verdict this close to the
+ * control line reads as a close call (repeat probe 2026-10-12: gaps at
+ * or below 0.03 are noise, wins at +0.055 still flip on LLM
+ * rewording). The verdict itself never changes here — the UI just
+ * says a re-run may read differently.
+ */
+export const CLOSE_CALL_GAP = 0.06;
+
 /** §6.7: the top two both clear control and sit within this of each other. */
 export const SPLIT_MARGIN = 0.05;
 

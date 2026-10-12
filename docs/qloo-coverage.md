@@ -221,3 +221,80 @@ Findings:
    Either the tag namespaces genuinely miss those audiences or the
    taste depth is thin there; worth one targeted probe before
    trusting 0.00 as "doesn't care" (§10 #4).
+
+## LLM-path re-run (2026-10-12, hackathon Qloo)
+
+Same 6 pitches, no hand-picked anything: `extractPitchTags` (words +
+type + suggested titles) → `resolvePitchTags` → `runFlowPitch` with
+all suggested titles as similar-to. One process, controls cached.
+
+| Pitch | LLM words (matched/not-found) | Suggested titles | Verdict | vs hand-tagged hunt |
+|---|---|---|---|---|
+| cyberpunk | cyberpunk/hacker/android/rogue/neon/dystopia 6/6 | Blade Runner, Matrix, Ghost in the Shell, RoboCop | **Strong** + reach | holds |
+| space-survival | alien/crash/scientist/station/survival/dystopia/colony 7/7 | Martian, Gravity, Alien | Weak | holds |
+| mystery-noir | detective/murder/killer/city/shadows/secret/hidden/noir 8/8 | Chinatown, L.A. Confidential, Maltese Falcon | **Strong** + reach | flips (was Weak −0.03) |
+| folk-horror | witch/curse/ghost/island/village/grief 6/6 | Witch, Wicker Man, Midsommar, Others | Weak | holds |
+| heist-crime | crime/heist/robbery/betrayal/undercover/crew 6/7 (`cop` no-data) | Heat, The Town, Inside Man | Weak, 0 rivals | holds |
+| western-revenge | western/outlaw/frontier/showdown/gunfighter/brother/revenge/brutal 8/8 | Unforgiven, Outlaw Josey Wales, True Grit | **Strong** + reach | flips (was 0.00 Weak) |
+
+Findings:
+
+1. **Fixes work.** Coverage 1.0 on 5/6 (heist 6/7); suggestions all
+    real, sensible titles; no stops, no vacuous runs — every run
+    built a named audience from suggestions.
+2. **Verdicts are word-choice sensitive.** Mystery-noir and western
+    flip on LLM wording alone (8 concrete words vs 6 hand tags).
+    The prompt fix is doing real work, but margins near ±0.05 will
+    swing run to run — calibration needs word-set repeats, not just
+    pitch repeats.
+3. **Heist discovery still returns 0 rivals** (tag-seeded, all 3
+    domain calls same shape). Run stays honest Weak via the named
+    audience; the guard correctly does not fire when a hypothesis
+    exists. Rival-seeding is parked per user call.
+
+## Repeatability probe (2026-10-12, hackathon Qloo)
+
+Cyberpunk x3, mystery-noir x5, full LLM path per run.
+
+| Run | Words | Named | Ceiling | Gap | Verdict |
+|---|---|---|---|---|---|
+| cyberpunk 1 | cyberpunk/hacker/android/rogue/neon/corporate/dystopia | 0.083 | 0.000 | +0.083 | Strong |
+| cyberpunk 2 | …/rogue/robot/neon/dystopia (no corporate) | 0.191 | 0.129 | +0.063 | Strong |
+| cyberpunk 3 | …/rogue/neon/city/corporate (no dystopia/robot) | 0.083 | 0.103 | −0.020 | Weak |
+| mystery 1 | detective/murder/killer/city/shadows/suspense | 0.127 | 0.163 | −0.037 | Weak |
+| mystery 2 | …/shadows/secret (no suspense) | 0.133 | 0.163 | −0.030 | Strong (rival-led) |
+| mystery 3 | +hidden (7 words) | 0.114 | 0.140 | −0.026 | Split |
+| mystery 4 | 5 words, no secret/suspense | 0.160 | 0.196 | −0.036 | Weak |
+| mystery 5 | identical to 4 | 0.160 | 0.196 | −0.036 | Weak |
+
+Findings:
+
+1. **Wobble is LLM-side.** Runs 4/5 with identical words repeat
+    exactly — Qloo scoring is deterministic. Verdicts move because
+    the word set moves (5–8 words, different picks per run).
+2. **First live Split (mystery 3) and first rival-led Strong
+    (mystery 2)** — Split/surprise are no longer test-only. Run 2
+    needs the surprise flag checked: named loses, a rival clears.
+3. **Cyberpunk 1 won against a 0.000 ceiling** — a Strong that beat
+    nothing. Verify whether that 0 is judged or placeholder; if
+    placeholder, the unjudged-control fix has a hole on this path.
+4. **The UI confirm step mitigates all of this**: a human locks the
+    word set before the run, so shipped wobble is smaller than probe
+    wobble. Still, near-margin (±0.05) verdicts should read as
+    provisional.
+
+## Zero-ceiling verdict (2026-10-12, hackathon Qloo)
+
+Repeat-probe cyberpunk run 1 won against a 0.000 ceiling. Instrumented
+re-runs (3x, per-stage statuses + per-control scores): ceilings
+0.1125–0.15, every call 200, zero nulls — the anomaly never recurred.
+
+Verdict: a ~2-minute degraded Qloo window during that run's fresh
+taste fetches (same window also zeroed its fresh rival tastes; later
+runs in the same process were healthy). Not a scoring bug — scoring
+was correct given degraded inputs. 14–16/20 controls at judged 0 is
+NORMAL for niche tags, so the guard must trigger on
+ceiling-is-0-with-empty-top-tagHits, not on "many zeros".
+
+Fix queued (not built): all-zero opposition → provisional, never
+Strong (§6.7, §10 #4).

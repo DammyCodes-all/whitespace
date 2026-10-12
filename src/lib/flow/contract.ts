@@ -23,6 +23,7 @@
  * past the ceiling), §6.12 (evidence per claim), §11 (ranks only).
  */
 
+import { CLOSE_CALL_GAP } from "../config.ts";
 import { selectReachTargets } from "../demo/reach-targets.ts";
 import { interestsFromTastes } from "../qloo/interests.ts";
 import type { RelatedResult } from "../qloo/related.ts";
@@ -202,6 +203,21 @@ export function barRows(result: FlowResult): FlowBarRow[] {
       evidenceId: a.evidenceId,
     }))
     .sort((x, y) => y.score - x.score);
+}
+
+/**
+ * Display-only close-call flag (§6.7): a judged Strong/Weak verdict
+ * whose top score sits within CLOSE_CALL_GAP of the control line.
+ * Split already says "close pair", Inconclusive says nothing decisive,
+ * and a null ceiling has no line to be near — all three are never
+ * close calls. The verdict itself never changes here.
+ */
+export function isCloseCall(result: FlowResult): boolean {
+  if (result.verdict !== "strong" && result.verdict !== "weak") return false;
+  if (result.ceiling === null) return false;
+  const top = barRows(result)[0]?.score ?? null;
+  if (top === null) return false;
+  return Math.abs(top - result.ceiling) < CLOSE_CALL_GAP;
 }
 
 /**
