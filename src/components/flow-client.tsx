@@ -175,7 +175,7 @@ export function FlowClient({
             onChange={(e) => setPitchText(e.target.value)}
             rows={6}
             placeholder="A tender sci-fi drama for people who like slow-burn stories, with a lonely and hopeful feel."
-            className="mt-4 min-h-32 w-full resize-y border-2 border-outline bg-surface px-4 py-3 text-[15px] leading-relaxed text-ink placeholder:text-ink-3"
+            className="mt-4 min-h-32 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-4 py-3 text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3"
           />
           <div className="mt-4">
             <div>

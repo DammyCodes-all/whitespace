@@ -45,7 +45,7 @@ export function FlowEntry() {
         onFocus={() => setEmptyNudge(false)}
         rows={5}
         placeholder={EXAMPLE_PITCH}
-        className="mt-3 min-h-40 w-full resize-y border border-ink-2 bg-surface px-5 py-4 text-left text-[15px] leading-relaxed text-ink placeholder:text-ink-3 transition-colors focus:border-ink focus:outline-none focus:ring-2 focus:ring-measured/30"
+        className="mt-3 min-h-40 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-5 py-4 text-left text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3 transition-colors focus:outline-none focus:ring-2 focus:ring-measured/30"
       />
       {emptyNudge && (
         <p role="alert" className="mt-3 text-center text-sm text-ink-2">
