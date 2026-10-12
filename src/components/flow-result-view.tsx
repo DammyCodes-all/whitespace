@@ -8,15 +8,10 @@
  * always carries its word), §6 (no number without evidence).
  */
 
+import { CopyBriefButton } from "@/components/copy-brief-button";
+import { REACH_SLOTS, VERDICT_WORDS } from "@/lib/flow/brief";
 import type { FlowBarRow, FlowResult } from "@/lib/flow/contract";
 import { barRows, isCloseCall } from "@/lib/flow/contract";
-
-const VERDICT_WORDS: Record<FlowResult["verdict"], string> = {
-  strong: "Strong fit",
-  split: "Split fit",
-  weak: "Weak fit",
-  inconclusive: "Inconclusive",
-};
 
 const VERDICT_FILLS: Record<FlowResult["verdict"], string> = {
   strong: "bg-strong",
@@ -151,17 +146,6 @@ function Bars({ result }: { result: FlowResult }) {
   );
 }
 
-const REACH_SLOTS: Array<{
-  slot: "interests" | "people" | "podcasts" | "brands" | "places";
-  label: string;
-}> = [
-  { slot: "interests", label: "Interests" },
-  { slot: "people", label: "People" },
-  { slot: "podcasts", label: "Podcasts" },
-  { slot: "brands", label: "Brands" },
-  { slot: "places", label: "Places" },
-];
-
 function ReachBlock({ result }: { result: FlowResult }) {
   const reach = result.reach;
   if (reach === null) {
@@ -243,60 +227,7 @@ export function FlowResultView({ result }: { result: FlowResult }) {
         <p className="mt-1 max-w-prose text-body text-ink-2">
           One-page markdown you can paste anywhere.
         </p>
-        <button
-          type="button"
-          className="btn-primary mt-3 px-5 py-2.5 text-sm"
-          onClick={() => {
-            const rows = barRows(result);
-            const lines = [
-              `# Targeting brief — ${VERDICT_WORDS[result.verdict]}`,
-              "",
-              `Pitch: ${result.pitch}`,
-              `Type: ${result.type}`,
-              "",
-              "## Fit scores",
-              ...rows.map(
-                (r) =>
-                  `- ${r.name} (${r.role}): ${r.score.toFixed(2)}${
-                    r.evidenceId ? ` [evidence: ${r.evidenceId}]` : ""
-                  }`,
-              ),
-              "",
-              `Control ceiling: ${
-                result.ceiling === null
-                  ? "not measured"
-                  : result.ceiling.toFixed(2)
-              }`,
-              ...(isCloseCall(result)
-                ? [
-                    "Close call: near the control line — a re-run may read differently.",
-                  ]
-                : []),
-              `Qloo calls: ${result.qlooCalls.network} network, ${result.qlooCalls.cached} cached`,
-              "",
-              "## Reach plan",
-              ...(result.reach === null
-                ? ["None: nothing beat the control ceiling."]
-                : result.reach.flatMap((g) => [
-                    `### ${g.audienceName}`,
-                    ...REACH_SLOTS.flatMap(({ slot, label }) => [
-                      `${label}: ${
-                        g[slot].length === 0
-                          ? "not measured"
-                          : g[slot]
-                              .map((i) => `${i.name} (#${i.rank})`)
-                              .join(", ")
-                      }`,
-                    ]),
-                  ])),
-              "",
-              "Built from group-level taste data. Does not predict outcomes.",
-            ];
-            void navigator.clipboard?.writeText(lines.join("\n"));
-          }}
-        >
-          Copy as targeting brief
-        </button>
+        <CopyBriefButton result={result} />
       </section>
     </div>
   );
