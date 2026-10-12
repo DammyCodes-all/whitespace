@@ -28,6 +28,12 @@ function marginLine(score: number, ceiling: number | null): string | null {
   return "Right on the bar.";
 }
 
+function barFill(index: number): string {
+  if (index === 0) return "bg-strong";
+  if (index === 1) return "bg-split";
+  return "bg-weak";
+}
+
 function VerdictHeadline({
   result,
   orange,
@@ -96,8 +102,9 @@ function Bars({ result }: { result: FlowResult }) {
             not measured
           </p>
         ) : (
-          rows.map((row) => {
+          rows.map((row, index) => {
             const margin = marginLine(row.score, ceiling);
+            const fill = barFill(index);
             return (
               <div key={row.id} className="border-b border-rule py-3">
               <div className="flex items-baseline justify-between gap-4">
@@ -108,9 +115,9 @@ function Bars({ result }: { result: FlowResult }) {
                   {Math.round(row.score * 100)}%
                 </p>
               </div>
-              <div className="relative mt-2 h-7 bg-surface">
+              <div className="relative mt-2 h-7 rounded-full bg-surface">
                 <div
-                  className="bar-grow absolute inset-y-0 left-0 bg-strong"
+                  className={`bar-grow absolute inset-y-0 left-0 ${fill}`}
                   style={{
                     width: `${row.score * 100}%`,
                     borderRadius: "999px",
