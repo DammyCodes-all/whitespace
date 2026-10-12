@@ -149,7 +149,12 @@ export async function discoverRivals(
       take: DISCOVERY_TAKE,
     };
     if (tagIds.length > 0) {
-      params["signal.interests.tags"] = tagIds.slice(0, 5).join(",");
+      // Every matched tag seeds discovery (at most TAG_WORDS.max = 8
+      // ids, fine for one query string). Truncating to the first 5
+      // made rival sets depend on LLM word order: identical titles
+      // produced unrelated rivals (repeat probe 2026-10-12). Entity
+      // ids stay capped — titles are unbounded user input (§11).
+      params["signal.interests.tags"] = tagIds.join(",");
     } else {
       params["signal.interests.entities"] = entityIds.slice(0, 5).join(",");
     }

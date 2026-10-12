@@ -68,6 +68,33 @@ describe("decideVerdict control ceiling honesty", () => {
     assert.equal(result.clearsControl, false);
     assert.equal(result.verdict, "Weak");
   });
+
+  it("returns Inconclusive/no-signal when the judgeable ceiling is exactly 0", () => {
+    // The repeat-probe shape (2026-10-12): a top with real hits wins
+    // against a baseline where no control matched anything — a
+    // degraded Qloo window reads exactly this way, so it must never
+    // be Strong.
+    const result = decideVerdict({
+      hypothesisId: "a",
+      scores: [judged("a", 0.5), judged("b", 0.2)],
+      controlScores: [judged("control-1", 0), judged("control-2", 0)],
+      coverage: 0.9,
+    });
+    assert.equal(result.verdict, "Inconclusive");
+    assert.equal(result.inconclusiveReason, "no-signal");
+    assert.equal(result.clearsControl, false);
+  });
+
+  it("returns no-signal instead of Weak when nothing matched anything", () => {
+    const result = decideVerdict({
+      hypothesisId: "a",
+      scores: [judged("a", 0)],
+      controlScores: [judged("control-1", 0)],
+      coverage: 0.9,
+    });
+    assert.equal(result.verdict, "Inconclusive");
+    assert.equal(result.inconclusiveReason, "no-signal");
+  });
 });
 
 describe("decideVerdict margins", () => {

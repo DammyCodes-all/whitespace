@@ -13,6 +13,7 @@ import {
   barRows,
   type FlowAudienceScore,
   type FlowResult,
+  isCloseCall,
   isPlaceholderScore,
   reachableScores,
 } from "./contract.ts";
@@ -89,5 +90,45 @@ describe("no placeholder 0 reaches a bar or reach list", () => {
       assert.notEqual(row.score, null);
     }
     assert.equal(reachableScores(result).length, 1);
+  });
+});
+
+describe("close-call flag", () => {
+  function judgedResult(
+    verdict: FlowResult["verdict"],
+    ceiling: number | null,
+    topScore: number | null,
+  ): FlowResult {
+    return {
+      ...rowsFrom(
+        topScore === null
+          ? []
+          : [
+              {
+                id: "a",
+                name: "Named",
+                role: "named",
+                score: topScore,
+                tagHits: ["x"],
+                evidenceId: null,
+              },
+            ],
+      ),
+      verdict,
+      ceiling,
+    };
+  }
+
+  it("flags strong and weak verdicts within the gap of the line", () => {
+    assert.equal(isCloseCall(judgedResult("strong", 0.15, 0.2)), true);
+    assert.equal(isCloseCall(judgedResult("weak", 0.15, 0.14)), true);
+  });
+
+  it("ignores clear verdicts, split, inconclusive and null ceilings", () => {
+    assert.equal(isCloseCall(judgedResult("strong", 0.1, 0.9)), false);
+    assert.equal(isCloseCall(judgedResult("split", 0.15, 0.2)), false);
+    assert.equal(isCloseCall(judgedResult("inconclusive", 0.15, 0.2)), false);
+    assert.equal(isCloseCall(judgedResult("strong", null, 0.2)), false);
+    assert.equal(isCloseCall(judgedResult("weak", 0.15, null)), false);
   });
 });
