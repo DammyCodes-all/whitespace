@@ -88,7 +88,7 @@ function Bars({ result }: { result: FlowResult }) {
   return (
     <section aria-label="Ranked audiences" className="mt-8">
       <h3 className="text-base tracking-tight text-ink">
-        Fit against the control ceiling
+        Who fits best
       </h3>
       <div className="mt-4">
         {rows.length === 0 ? (
@@ -101,12 +101,9 @@ function Bars({ result }: { result: FlowResult }) {
               <div className="flex items-baseline justify-between gap-4">
                 <p className="text-[15px] tracking-tight text-ink">
                   {row.name}
-                  <span className="ml-2 font-mono text-xs text-ink-3">
-                    {row.role}
-                  </span>
                 </p>
                 <p data-numeric className="tnum font-mono text-sm text-ink">
-                  {row.score.toFixed(2)}
+                  {Math.round(row.score * 100)}%
                 </p>
               </div>
               <div className="relative mt-2 h-7 bg-surface">
