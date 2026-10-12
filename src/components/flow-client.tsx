@@ -196,7 +196,7 @@ export function FlowClient({
             </div>
           </div>
           {busy ? (
-            <output aria-live="polite" className="mt-6">
+            <output aria-live="polite" className="mt-6 block">
               <LoadingState label="Running pitch" variant="Dots" />
             </output>
           ) : (
@@ -256,7 +256,7 @@ export function FlowClient({
           )}
           <div className="mt-6 flex flex-wrap items-center gap-4">
             {busy ? (
-              <output aria-live="polite">
+              <output aria-live="polite" className="block py-1">
                 <LoadingState label="Running pitch" variant="Dots" />
               </output>
             ) : (
@@ -287,7 +287,7 @@ export function FlowClient({
 
       {phase === "running" && (
         <section aria-label="Run">
-          <output aria-live="polite">
+          <output aria-live="polite" className="block py-2">
             <LoadingState label="Running pitch" variant="Dots" />
           </output>
           <ul className="mt-4 space-y-2">
