@@ -157,28 +157,31 @@ function ReachBlock({ result }: { result: FlowResult }) {
   const reach = result.reach;
   if (reach === null) {
     return (
-      <section aria-label="Reach plan" className="mt-8">
-        <h3 className="text-base tracking-tight text-ink">Reach plan</h3>
+      <section aria-label="Where to find them" className="mt-8">
+        <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
         <p className="mt-2 text-body text-ink-2">
-          Nothing beat the control ceiling, so there is no reach plan. The app
-          says so instead of inventing one.
+          Nothing beat the bar, so there is no list of where to find them.
+          The app says so instead of inventing one.
         </p>
       </section>
     );
   }
   if (reach.length === 0) {
     return (
-      <section aria-label="Reach plan" className="mt-8">
-        <h3 className="text-base tracking-tight text-ink">Reach plan</h3>
+      <section aria-label="Where to find them" className="mt-8">
+        <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
         <p className="mt-2 text-body text-ink-2">
-          This audience beat the ceiling, but no reach items were measured.
+          This audience beat the bar, but nothing they love was measured.
         </p>
       </section>
     );
   }
   return (
-    <section aria-label="Reach plan" className="mt-8">
-      <h3 className="text-base tracking-tight text-ink">Reach plan</h3>
+    <section aria-label="Where to find them" className="mt-8">
+      <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
+      <p className="mt-1 max-w-prose text-body text-ink-2">
+        What these audiences already love.
+      </p>
       {reach.map((group) => (
         <div key={group.audienceId} className="mt-4">
           <p className="font-serif text-lg tracking-tight text-ink">
@@ -206,7 +209,7 @@ function ReachBlock({ result }: { result: FlowResult }) {
                             data-numeric
                             className="tnum shrink-0 font-mono text-sm text-ink"
                           >
-                            #{item.rank}
+                            their #{item.rank}
                           </p>
                         </li>
                       ))}
@@ -237,7 +240,7 @@ export function FlowResultView({
       <section aria-label="Targeting brief" className="mt-8">
         <h3 className="text-base tracking-tight text-ink">Targeting brief</h3>
         <p className="mt-1 max-w-prose text-body text-ink-2">
-          One-page markdown you can paste anywhere.
+          A one-page summary you can paste anywhere.
         </p>
         <CopyBriefButton result={result} />
       </section>
