@@ -40,6 +40,15 @@ export interface QlooCall {
   fromCache: boolean;
   /** Bounded, key-free summary of the returned payload for evidence review. */
   responseSummary?: string;
+  /**
+   * Raw JSON response text as it arrived, never reconstructed. Truncated
+   * at `MAX_EVIDENCE_RESPONSE_CHARS` with `responseTruncated` set.
+   * Absent when the call failed before a body arrived. Additive optional
+   * field — types unfreeze noted in docs/build-tracker.md (Package A).
+   */
+  responseBody?: string;
+  /** True when `responseBody` is a prefix of the real body, not the whole. */
+  responseTruncated?: boolean;
 }
 
 /** §6.2: a title Qloo resolved. Queries it could not find live in `notFoundTitles`. */
@@ -125,7 +134,8 @@ export interface VerdictResult {
     | "nodata"
     | "top-unjudgeable"
     | "empty"
-    | "scope";
+    | "scope"
+    | "no-control";
 }
 
 /** §8 grounding check: every title/tag in output came from Qloo. */
@@ -165,6 +175,13 @@ export interface PipelineResult {
   grounding: GroundingResult;
   calls: QlooCall[];
   steps: RunStep[];
+  /**
+   * Words the tag search could not match (§6.5). Never enter scoring;
+   * shown as "not found in Qloo". Additive optional field — absent on
+   * older saved runs, which the adapter reads as []. Types unfreeze
+   * noted in docs/build-tracker.md (Package A).
+   */
+  notFoundWords?: string[];
 }
 
 export type RunPipeline = (input: PitchInput) => Promise<PipelineResult>;

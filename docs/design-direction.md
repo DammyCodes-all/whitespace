@@ -1,10 +1,10 @@
 # Design direction
 
-Status: agreed direction, Oct 5. Owner: U. Source of truth for how Whitespace looks and feels.
+Status: agreed direction, Oct 10. Replaces the Oct 5 "instrument" direction. Owner: U. Source of truth for how Whitespace looks and feels.
 
-The spec is silent on visual design. That makes this document the source of truth instead. Where a choice exists to serve a behavior the spec *does* define, the section is cited. If a screen change contradicts this file, change this file first.
+The spec is silent on visual design, so this document fills the gap. Where a choice serves a behavior the spec does define, the section is cited. If a screen change contradicts this file, change this file first.
 
-One-line read: **this product is an instrument, not a wizard.** Its pitch is "we don't make things up" (§1, §2), so it should look like a lab report rather than a SaaS landing page.
+One-line read: this product is a sharp-eyed friend with opinions. It is not a lab and it is not a wizard. The pitch is "we don't make things up" (§1, §2), so the playfulness goes into the look and the voice, and the honesty goes into the rules below. The rules are not negotiable. The look is.
 
 ---
 
@@ -12,116 +12,136 @@ One-line read: **this product is an instrument, not a wizard.** Its pitch is "we
 
 | Principle | Ties to |
 |---|---|
-| **Measured, not magical.** The run (§5.4) is a protocol executing, not a genie thinking. Steps get timestamps and counts, e.g. "21 titles checked · 19 found · 2 not found", set in mono. No sparkle, no typing dots, no shimmer. | §5.4, §6.12 |
-| **Skepticism is the brand.** The loudest styling goes to the surprise ("Your best fit is not the audience you named") and the refusal (a withheld change). Those are the two moments no other hackathon entry will have. Never style the happy path loudly. | §6.7, §6.9 |
-| **Absence is a first-class visual state.** Three states, not two: measured-high, measured-low, unmeasured. No-data gets texture plus a dashed border plus never a number. System rule, not a per-screen decision, so "no data" never quietly ships as a zero. | §6.6, App. B |
-| **Links look like citations, not buttons.** Superscript markers, a 24px minimum touch target, and an underline on hover and focus; on touch, the hit area remains visible without relying on hover. Opens a drawer with the request and response in mono. | §6.12 |
-| **Paper, not neon.** Light-first, warm neutral, no shadows, no glass, no gradients. Judges use the demo on their own screens, and the output is a printable one-pager. The print stylesheet is a free win. | §6.10, §9 |
-| **One accent, spent only on measurement.** The accent means "this value was measured." Everything else is neutral. Inconclusive and withheld get no accent at all, because an honest "I don't know" must not be tinted like a result. | §6.7 |
+| Loud on color, strict on meaning. Big flat color blocks, but every color means exactly one thing. Mint is a strong fit. Nothing is colored for decoration. | §6.7 |
+| Surprise gets the stage. The loudest block on any screen is "Your best fit is not the audience you named": full width, coral, biggest type. The refusal (a withheld change) is second loudest, in solid ink. The happy path stays in the calmer colors. | §6.7, §6.9 |
+| Absence stays visible. Three states, not two: measured-high, measured-low, not measured. Not measured gets a hatch, a dashed border, the words "not measured", and never a number. This is a system rule so that "no data" never quietly ships as a zero. | §6.6, App. B |
+| Runs show real work. A step appears when it actually finishes, with its counts: "21 titles checked, 19 found, 2 not found". Friendly pills, no fake progress bar, no typing dots. | §5.4, §6.12 |
+| Links look like citations. A small numbered dot sits next to every claim, with a 24px minimum touch target and an underline on hover and focus. On touch the dot stays visible without hover. Tapping opens a drawer with the request and response in mono. | §6.12 |
+| Chunky but flat. 2px ink outlines, rounded corners, and a hard offset shadow with no blur on cards and primary buttons. No glass, no gradients, no glow. | §6.10 |
+| Light first. Soft off-white canvas, pure white cards. Judges use the demo on their own screens, and the output is a printable one-pager, so the print stylesheet is a free win. | §6.10, §9 |
 
-Motion, briefly: fit scores counting up at ~200ms with no bounce, the ranked list re-ordering with FLIP so the margin change is visible, and the control line sliding if it moves. Nothing else animates.
+Voice: plain words, short sentences, contractions, a bit of attitude. "Here's who it's actually for." The one place the attitude stops is uncertainty. Say "not measured", never "hmm, couldn't find that!". A joke about missing data reads as a dodge.
+
+Motion is short. Bars grow from zero over about 300ms with ease-out when a result lands. Fit scores count up over about 200ms. The ranked list re-orders with FLIP so the margin change is visible, and the control line slides if it moves. The surprise block pops in from 96% scale over 220ms. Nothing else animates, and a not-measured state never animates into a number. Everything goes still under `prefers-reduced-motion`.
 
 ## 2. The one graphic that is the product
 
-A horizontal bar per audience, with a vertical hairline across all of them marking the control ceiling, labeled in the margin. The app's whole argument is §6.7, "clears control", so render that comparison as a single object rather than a number plus a sentence. If the bar stops at the line, that is the thesis in one image.
+A horizontal bar per audience, with a vertical line across all of them marking the control ceiling, labeled in the margin. The app's whole argument is §6.7, "clears control", so the comparison is one object instead of a number plus a sentence. If the bar stops short of the line, that is the thesis in one image.
+
+Bars are 28px tall with a 2px ink outline and fully rounded ends. The fill is the verdict color. The control line is solid ink, 2.5px, with a small pill at the top reading "control". It is never dashed, because dashes are reserved for not measured.
 
 ## 3. Color
 
-Light is primary. Three neutrals, one accent, two semantics, one texture for absence.
+Light only. Four neutrals, four verdict fills, two text-safe colors, one texture for absence.
 
 ```css
-/* light, "paper" */
---paper:         #F7F6F2;   /* canvas */
---surface:       #FFFFFF;   /* cards, the case page */
---rule:          #E2DFD6;   /* hairlines, borders */
---ink:           #191814;   /* 16.4:1 on paper */
---ink-2:         #56534A;   /*  7.1:1  secondary */
---ink-3:         #6E6B60;   /*  4.9:1  labels; the readable-text floor */
---measured:      #0E6A5F;   /*  6.0:1  THE accent, teal */
---measured-soft: #DCEAE7;   /*  5.2:1 for measured text on this fill */
---split:         #8F5E12;   /*  5.1:1  ochre */
---weak:          #6E6B60;   /*  4.9:1  deliberately the same as ink-3 */
---nodata-bg:     #EDEBE4;   /* plus a 45 degree hatch in #C9C5B8, 4px pitch */
---clay:          #8A5636;   /*  5.6:1  "not found in Qloo" only */
+:root {
+  --paper:    #F7F7F4;  /* canvas, a soft off-white */
+  --surface:  #FFFFFF;  /* cards, the case page */
+  --outline:  #17151F;  /* chunky 2px borders, same value as ink */
+  --rule:     #E9DEC6;  /* decorative hairlines only */
+  --ink:      #17151F;  /* 16.8:1 on paper */
+  --ink-2:    #4A4658;  /*  8.5:1 secondary */
+  --ink-3:    #625E75;  /*  5.8:1 labels, the readable-text floor */
+
+  /* verdict fills, ink text on all of them */
+  --strong:   #5FE3A1;  /* mint,   11.2:1 with ink */
+  --split:    #FFCB3D;  /* yellow, 11.9:1 */
+  --weak:     #C4D8F5;  /* soft blue, 12.5:1 */
+  --surprise: #FF6B4A;  /* coral,   6.4:1 */
+
+  /* text-safe versions, for when a verdict color has to be text on paper */
+  --measured: #0A6B47;  /* 6.1:1 on paper */
+  --split-ink:#8A5A00;  /* 5.5:1 on paper */
+
+  --nodata-bg:#EEECE6;  /* ink-3 text on it is 5.3:1 */
+  --clay:     #8A4B2D;  /* 6.3:1, "not found in Qloo" only */
+}
+
+.nodata {
+  background-color: var(--nodata-bg);
+  background-image: repeating-linear-gradient(45deg, #C9C6BC 0 1px, transparent 1px 4px);
+  border: 2px dashed var(--ink-3);
+}
 ```
 
-Verdict to state mapping:
-
-| Verdict | Token | Why |
+| Verdict | Treatment | Why |
 |---|---|---|
-| Strong fit | `--measured` | The one win the product offers |
-| Split | `--split` | Genuinely ambiguous, not an error |
-| Weak fit | `--ink-3`, no accent | Measured, and it is low, so it recedes. Red here would punish the product for telling the truth. |
-| Inconclusive | no hue, dashed rule, hatched fill | Must never be confusable with Weak. Weak means "we measured and it is low" (§6.7); Inconclusive means "we could not measure" (App. B). These two are the top thing to keep visually distinct. |
+| Strong fit | `--strong` fill | The one win the product offers |
+| Split | `--split` fill | Genuinely ambiguous, not an error |
+| Weak fit | `--weak` fill | Measured, and it is low, so it gets the quietest color. Red here would punish the product for telling the truth. |
+| Inconclusive | `.nodata`, no fill color | Must never be confusable with Weak. Weak means "we measured and it is low" (§6.7). Inconclusive means "we could not measure" (App. B). Keep these two visually apart above everything else. |
+| Surprise | `--surprise` block | A finding, not a verdict. It only appears as the banner. |
+| Withheld | solid `--ink` block, paper text | A refusal (§6.9). |
 
-Deliberately absent: red as an error color, purple and indigo gradients, green success checkmarks, orange warnings. If the only saturated color on screen is the teal number that cleared the bar, the eye lands there on a projector.
+Color never carries a verdict alone. Every verdict wears its word, because mint, yellow and soft blue sit close in brightness and collapse together in grayscale print.
 
-Optional dark mode, if there is time:
+Deliberately absent: red as an error color, purple or indigo gradients, glow effects, green success checkmarks, orange warnings. An error is a plain sentence in a card with an ink outline.
 
-```css
---paper: #131311; --surface: #1B1B18; --rule: #2C2B27;
---ink: #EDEBE4;   /* 15.6:1 */
---ink-2: #A5A196; /*  7.2:1 */
---ink-3: #8A8578; /*  5.1:1 */
---measured: #4FBFAE;  /* 8.3:1 */
---split:    #D9A441;  /* 8.3:1 */
-```
+No dark mode. If the schedule is tight, the time goes to the print stylesheet.
 
-Note `--ink-3` moves to `#8A8578` in dark, not `#7A7669`: that one is 4.1:1 on the canvas and fails at surface level. Ship light-only and spend the time on the print stylesheet instead if the schedule is tight.
+Print: fills drop to white, outlines stay, shadows go, the hatch stays, and the verdict word does the work the color did on screen. The case page fits on one sheet.
 
 ## 4. Fonts
 
-**Instrument Serif + Instrument Sans + IBM Plex Mono.** All three are on Google Fonts, so `next/font/google` gives zero licensing friction, which matters on a 25-day sprint with three people.
+Bricolage Grotesque, Figtree and IBM Plex Mono. All three are on Google Fonts, so `next/font/google` gives zero licensing friction on a 25-day sprint with three people.
 
-- **Instrument Serif** — the verdict sentence, the audience name, the one-line idea on the case page. High-contrast editorial; it reads as criticism rather than startup. Its whole job is making the §6.10 one-pager look like something a filmmaker would be proud to hand a producer.
-- **Instrument Sans** — all UI and body. A quiet grotesque with good numerals and enough quirk to not read as default.
-- **IBM Plex Mono** — scores, ranks, coverage fractions, and the raw Qloo payloads in the evidence drawer. Institutional, reads as an actual API response rather than an IDE screenshot. When the chatbot's ungrounded output sits beside ours (§6.11), mono is what makes it *look* raw: same visual weight as our panel, visibly unprocessed. The comparison does its own work.
+- Bricolage Grotesque: headlines, the verdict sentence, audience names, the surprise banner, and the one-line idea on the case page. Use weights 600 to 800 at 28px and up, with tight leading. It has attitude without turning into a gimmick.
+- Figtree: all UI and body text at 15 to 16px, leading around 1.5, measure capped near 68ch.
+- IBM Plex Mono: every number that changes while a run streams, coverage fractions, and the raw Qloo payloads in the evidence drawer (13px, tight, scrollable). Request 400 and 500 and nothing heavier. Its tabular numerals are explicit and reliable, so streaming scores don't jitter. A final score that no longer updates, such as the hero number on the case page, can be set in Bricolage at display size.
 
-One typeface per function, no font doing two jobs.
+When the chatbot's ungrounded output sits next to ours (§6.11), mono makes it look raw: same weight as our panel, visibly unprocessed. Our side is colored and labeled, theirs is plain text with no citations, and the comparison makes the point on its own.
 
-Instrument Serif stays regular (and italic where needed); never request a heavier weight that would make the browser synthesize one. Use it for editorial display text at roughly 28px and up. Longer sentences stay in Instrument Sans. Scores use IBM Plex Mono, whose tabular numerals are explicit and reliable.
-
-Fallback if we would rather have a single superfamily: IBM Plex Sans + Plex Serif + Plex Mono. Bulletproof and cohesive, less distinctive.
-
-The Geist wiring that shipped with `create-next-app` has been removed. It read as an untouched scaffold in about half a second.
-
-Two typographic rules that are functional rather than decorative:
-
-1. `font-variant-numeric: tabular-nums` on every number, or scores jitter while a run streams.
-2. Body and UI at 15 to 16px, generous leading, max measure around 68ch. The evidence drawer is the opposite: 13px mono, tight, scrollable.
+One typeface per function. If Bricolage feels too quirky once real screens exist, drop it from everything except the surprise banner and the case page title, and let Figtree carry the rest.
 
 ## 5. Where this lives in code
 
-Wired Oct 5. Do not re-declare these in a component.
+Wired Oct 5, changed Oct 10. Do not re-declare any of this in a component.
 
 | What | Where |
 |---|---|
-| Tokens, `--measured` and friends | `src/app/globals.css`, `:root` plus `.dark` |
-| Tailwind utilities (`bg-paper`, `text-ink-3`, `border-rule`) | same file, `@theme inline` |
-| Font variables | `src/app/layout.tsx` via `next/font/google` |
-| `tabular-nums` on numbers | global, applied via `[data-numeric]` or `.tnum` |
-| `.nodata` hatch utility | `globals.css`, `@layer utilities` |
-| `.cite` evidence marker | `globals.css`, `@layer utilities` |
+| Tokens, `--strong` and friends | `src/app/globals.css`, `:root` (the `.dark` block can go) |
+| Tailwind utilities (`bg-paper`, `text-ink-3`, `border-rule`, `bg-strong`) | same file, `@theme inline` |
+| Font variables | `src/app/layout.tsx` via `next/font/google`, replacing the Instrument trio |
+| `.card`, `.nodata`, `.cite` | `globals.css`, `@layer utilities` |
 | Print rules | `globals.css`, `@media print` |
 
-There is no automatic dark mode. `.dark` holds the optional dark values but nothing sets the class, because the design is light-first. Add a toggle only if a screen needs it.
+Token names from the Oct 5 wiring are kept so existing utilities keep working, but a few changed meaning:
+
+- `--measured` is now the dark green text color. It used to be the teal accent.
+- `--strong` is new and is the mint fill. Anything that used `bg-measured` as a fill needs `bg-strong`.
+- `--split` and `--weak` are fills now. Use `--split-ink` when a verdict color has to be text.
+- `--measured-soft` is gone. `--outline` and `--surprise` are new.
+
+The card and button shape, so nobody improvises it:
+
+```css
+.card {
+  background: var(--surface);
+  border: 2px solid var(--outline);
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 var(--outline);
+}
+/* primary buttons use the same shape, and on :active they translate(2px, 2px)
+   while the shadow shrinks to 2px 2px 0 */
+```
 
 ### Responsive rules
 
-- At the mobile breakpoint (`640px`), primary and secondary actions wrap as full-width or content-width rows; no action depends on hover.
-- Ranked bars remain horizontal and use the full available width. The control line is `--ink`, 1.5px wide, so it remains a semantic mark at narrow widths.
-- Citation markers retain a minimum 24px hit area even though their glyph is visually small.
-- Evidence is a bottom sheet on mobile and an anchored drawer on larger screens; its mono request/response content scrolls independently.
+- At the mobile breakpoint (`640px`), primary and secondary actions wrap as full-width or content-width rows, and no action depends on hover.
+- Ranked bars stay horizontal and use the full available width. The control line stays solid ink at 2.5px so it still reads as a mark at narrow widths.
+- Citation dots keep a 24px hit area even though the glyph is small.
+- Evidence is a bottom sheet on mobile and an anchored drawer on larger screens. Its mono request and response content scrolls independently.
 
-No-data is always written as **“not measured”** alongside the hatch. The hatch is supporting texture, not the semantic signal. Meaning-carrying dashed borders use `--ink-3`; hairline rules remain decorative.
+No-data is always written as "not measured" next to the hatch. The hatch is supporting texture, and the words are the signal. The dashed border uses `--ink-3` and carries meaning, while hairline rules stay decorative.
 
 ## 6. Rules for whoever builds a screen
 
 - No screen renders a number for a value Qloo did not return enough to judge (§6.6).
-- No verdict gets a color that a reader could mistake for another verdict.
-- Every claim that shows a value has a citation marker next to it (§6.12).
-- Anything printed must be legible in black on white with the accent removed (§6.10).
+- No verdict gets a color that a reader could mistake for another verdict, and every verdict carries its word.
+- Every claim that shows a value has a citation dot next to it (§6.12).
+- Anything printed must be legible in black on white with every fill removed (§6.10).
 
 ## Verification
 
-Contrast ratios above were computed against `#F7F6F2` and `#131311`. Re-check any new pair before it ships; the readable-text floor is 4.5:1, and the values chosen for large text or hairlines are noted as such.
+Contrast ratios above were computed against the listed backgrounds. Re-check any new pair before it ships. The floor for readable text is 4.5:1, and the hatch and hairlines are decorative, so they are exempt.

@@ -134,3 +134,90 @@ no surprise — the guess was right).
 for film and music, 6 fallbacks for book and game. Seeds are famous,
 pre-2026 titles chosen so Qloo is likely to hold them; misses are
 expected signal, not errors. Live: film and music both resolved 20/20.
+
+## V2 capability pilot (2026-10-10, live)
+
+Bounded §8 gate check for `docs/pipeline-redesign.md`. Ten live HTTP
+calls, aggregates only — no response payloads are stored in this repo
+(hackathon guide: private caching only, never commit Qloo data).
+Raw output stayed in server-local temp; only counts and conclusions
+below are public.
+
+Protocol: resolve 2 film lenses (`/search`, exact-name match), then
+`GET /v2/insights` with `signal.interests.entities=<lens id>` into
+`urn:entity:movie` + `urn:entity:book` at `take=20`. Pairs tested:
+Interstellar×Moonlight (far), Interstellar×Dune, Interstellar×Blade
+Runner 2049, Her×Moonlight (near). Depth sweep take=20/50/100 on the
+close pair; exclude-filter check; book-seeded podcast/person reach;
+unknown-param check; repeat-query stability.
+
+Findings (all 200s):
+
+1. **Identity:** exact-name match beat the first hit on every resolve
+   (5 candidates each). `/search` hits carried no usable type info
+   (null), so name+alias matching plus the `types` request param is the
+   identity signal — never first-hit acceptance.
+2. **Discovery works:** movie and book categories each returned a full
+   page (20/20) with entity metadata (`entity_id`, name, type/subtype,
+   properties, popularity, tags on 18–20/20, external links).
+   `take` honored at 20 and 50. `take=100` returned **zero** results —
+   treat ~50 as the practical page cap, not an error.
+3. **Overlap is sparse (the gate result):** entity overlap between two
+   lenses was **0 at top-20 in every pair and category**, including
+   near pairs (Interstellar×Dune, Interstellar×BR2049), and still 0 at
+   take=50. Shared *tag* vocabulary is large (~900–1300 shared tags of
+   ~3500–4200 per set) but generic. Per §8 this is a stop/revise
+   signal: entity-overlap grouping will usually yield zero supported
+   neighborhoods, so the honest first release is **reference-led
+   exploration**, not fabricated discovery.
+4. **Exclusion honored:** `filter.exclude.entities` removed both the
+   seed and a planted result id (re-query returned 20 without them).
+5. **Reach from non-film seeds works:** 3 book ids seeded podcast and
+   person queries (5/5 each, all with tags). Artist as a discovery
+   fallback also returns 20/20 with tags.
+6. **Silent ignoring confirmed:** an unknown query param returned 200
+   with identical counts — a 200 alone never proves a signal was
+   honored. Repeat queries are deterministic (20/20 identical), which
+   keeps client-side replay honest.
+
+Decision: build the lean MVP (2 discovery lenses × 2 categories,
+overlap-only grouping, `explorations` fallback; supporting lens,
+reach, detail enrichment, comparison overlay deferred). Zero
+neighborhoods is a valid result, not a failure.
+
+## Flow-path live Strong hunt (2026-10-11, hackathon Qloo)
+
+Six sharp-genre film pitches through `runFlowPitch` (6 hand-matched
+tags each — tag probe 36/36 matched at coverage 1.0; 3 famous similar
+titles each). First run cost 90 calls, runs 2–6 ~87 with ~80 cached
+(controls cached after run 1, per design).
+
+| Pitch (tags) | Top | Ceiling | Gap | Verdict |
+|---|---|---|---|---|
+| cyberpunk (cyberpunk/android/hacker/neon/dystopia/robot; BR2049/Matrix/Ghost in the Shell) | Named 0.26 | 0.15 Blockbuster action | **+0.11** | **Strong** |
+| space-survival (alien/survival/dystopia/scientist/space/future; Interstellar/Arrival/Martian) | Named 0.19 | 0.28 Sci-fi epic | −0.09 | Weak |
+| mystery-noir (mystery/detective/murder/suspense/secret/noir; Se7en/Gone Girl/Knives Out) | Named 0.14 | 0.16 Crime | −0.03 | Weak |
+| folk-horror (horror/ghost/witch/curse/grief/isolated; Hereditary/Witch/Midsommar) | Named 0.08 | 0.30 Fantasy | −0.22 | Weak |
+| heist-crime (crime/heist/betrayal/robbery/undercover/crew; Heat/Ocean's Eleven/Inside Man) | Named 0.00 | 0.15 Documentary | −0.15 | Weak |
+| western-revenge (western/revenge/outlaw/frontier/showdown/gunfighter; Unforgiven/True Grit/No Country) | Named 0.00 | 0.09 Thriller | −0.09 | Weak |
+
+Findings:
+
+1. **First live reach plan with real data** (cyberpunk Strong):
+   interests (Classics, mature animation, military, alien,
+   surrealism) plus 5 people, 5 podcasts, 5 brands, 5 places. The
+   runner-up is a genuine film rival (Fans of Mute, 0.10), no
+   surprise (top is the named audience).
+2. **Cross-domain book/artist rivals never contend** (0–0.15,
+   usually ~0.06 or 0): their taste vocabularies barely intersect
+   film tags. Split and surprise remain test-only; both need rival
+   scores near the named score, which this discovery path rarely
+   produces.
+3. **Folk-horror and mystery-noir discovered zero rivals** (all 3
+   domain calls same status) — rival absence is honest (run
+   continues, verdict Weak) but narrows those runs to hyp-vs-ceiling.
+4. **Heist/western named scored flat 0.00** despite famous titles
+   resolving 3/3 — tastes hold none of those tag ids at take=50.
+   Either the tag namespaces genuinely miss those audiences or the
+   taste depth is thin there; worth one targeted probe before
+   trusting 0.00 as "doesn't care" (§10 #4).

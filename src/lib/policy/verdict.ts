@@ -16,17 +16,31 @@
  * - Surprise headline: the top audience is not the hypothesis and beats
  *   it clearly.
  *
- * All cutoffs live in one tunable place. §6.7 says the exact margins get
- * set in week one by testing on real pitches; Day 10 records margins v1.
- * The values here are stubs, not findings.
+ * All cutoffs live in one tunable place: `src/lib/config.ts`. §6.7 says
+ * the exact margins get set in week one by testing on real pitches;
+ * Margins v1 are recorded in docs/qloo-coverage.md (2026-10-09).
  *
  * Spec ref: §6.7 (verdict), §6.6 (scores in, ranks only), §6.5
  * (coverage in), §10 #4 (no-data never reads as a low score: an
  * unjudgeable top can never be Strong or Split), §7 (our code ranks).
  */
 
+import {
+  CONTROL_MARGIN,
+  COVERAGE_FLOOR,
+  MAX_UNJUDGEABLE_SHARE,
+  SPLIT_MARGIN,
+  SURPRISE_MARGIN,
+} from "../config.ts";
 import { isUnjudgeable } from "../scoring/fit.ts";
 import type { FitScore, VerdictResult } from "../types.ts";
+
+export {
+  CONTROL_MARGIN,
+  COVERAGE_FLOOR,
+  SPLIT_MARGIN,
+  SURPRISE_MARGIN,
+} from "../config.ts";
 
 /**
  * Margins v1, set 2026-10-09 from live runs (was: provisional stubs).
@@ -53,11 +67,6 @@ import type { FitScore, VerdictResult } from "../types.ts";
  * otherwise the change bar would accept a move smaller than the verdict
  * policy calls a tie. The Day 8 pack fixture note tracks this.
  */
-export const CONTROL_MARGIN = 0.05;
-export const SPLIT_MARGIN = 0.05;
-export const SURPRISE_MARGIN = 0.1;
-export const COVERAGE_FLOOR = 0.34;
-export const MAX_UNJUDGEABLE_SHARE = 0.5;
 
 /** Float hygiene: a 0.0999… gap from rank fractions must read as 0.1. */
 const MARGIN_EPSILON = 1e-9;
@@ -95,7 +104,7 @@ function bestScore(scores: FitScore[]): number {
 
 function inconclusive(
   scores: FitScore[],
-  reason: "coverage" | "nodata" | "top-unjudgeable" | "empty",
+  reason: "coverage" | "nodata" | "top-unjudgeable" | "empty" | "no-control",
 ): VerdictResult {
   const ranked = sortedByScore(scores);
   const top = ranked[0] ?? null;
@@ -168,13 +177,26 @@ export function decideVerdict(
   const measured = ranked.filter((s) => !isUnjudgeable(s));
   const second = measured[1] ?? null;
 
-  // No control baseline means nothing can clear it: Weak, not Strong.
+  // Control ceiling (§6.7). Only JUDGEABLE controls set the ceiling: a
+  // placeholder 0 from an unjudgeable control is not a measured low, so
+  // it must never act as a floor the top audience can beat. A control
+  // batch with nothing judgeable in it has NO ceiling, which is
+  // Inconclusive — a real Strong needs a real baseline. Untested
+  // book/game scopes land here first (docs/qloo-coverage.md).
+  const judgeableControls = controlScores.filter((s) => !isUnjudgeable(s));
   const hasControls = controlScores.length > 0;
-  const controlBest = hasControls ? bestScore(controlScores) : 0;
-  const marginTopVsControl = top.score - controlBest;
+  const hasCeiling = judgeableControls.length > 0;
+  const controlBest = hasCeiling ? bestScore(judgeableControls) : 0;
+  const marginTopVsControl = hasCeiling ? top.score - controlBest : 0;
   const clearsControl =
-    hasControls && marginTopVsControl + MARGIN_EPSILON >= controlMargin;
+    hasCeiling && marginTopVsControl + MARGIN_EPSILON >= controlMargin;
   if (!clearsControl) {
+    // Controls exist but none could be judged: the baseline itself was
+    // not measured, so this is Inconclusive, never Weak ("measured and
+    // low") and never Strong (nothing was beaten).
+    if (hasControls && !hasCeiling) {
+      return inconclusive(scores, "no-control");
+    }
     return {
       verdict: "Weak",
       topAudienceId: top.audienceId,

@@ -28,7 +28,13 @@ export function VerdictHeadline({
 }) {
   return (
     <div>
-      <h1 className="mt-4 font-serif text-3xl leading-tight tracking-tight sm:text-4xl">
+      <h1
+        className={`mt-4 font-serif text-3xl leading-tight tracking-tight sm:text-4xl ${
+          verdict.surprise
+            ? "surprise-pop rounded-2xl border-2 border-outline bg-surprise p-5 sm:p-6"
+            : ""
+        }`}
+      >
         {verdict.surprise
           ? "Your best fit is not the audience you named."
           : "Where the pitch lands."}

@@ -1,4 +1,4 @@
-import { PitchFlow } from "@/components/pitch-flow";
+import { FlowEntry } from "@/components/flow-entry";
 
 export default function Home() {
   return (
@@ -15,7 +15,7 @@ export default function Home() {
           </p>
 
           <div className="flex w-full max-w-[720px] flex-col">
-            <PitchFlow />
+            <FlowEntry />
 
             <p className="mt-10 text-center text-sm text-ink-3">
               Results are a hypothesis built from group-level taste data. They
