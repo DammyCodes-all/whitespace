@@ -20,6 +20,14 @@ const VERDICT_FILLS: Record<FlowResult["verdict"], string> = {
   inconclusive: "bg-paper",
 };
 
+const SLOT_FILLS: Record<string, string> = {
+  interests: "bg-strong",
+  people: "bg-split",
+  podcasts: "bg-weak",
+  brands: "bg-strong",
+  places: "bg-split",
+};
+
 function marginLine(score: number, ceiling: number | null): string | null {
   if (ceiling === null) return null;
   const diff = Math.round((score - ceiling) * 100);
@@ -193,7 +201,7 @@ function ReachBlock({ result }: { result: FlowResult }) {
               return (
                 <div
                   key={String(slot)}
-                  className={`card p-4 ${slot === "places" ? "sm:col-span-2" : ""}`}
+                  className={`card p-4 ${SLOT_FILLS[slot] ?? "bg-paper"} ${slot === "places" ? "sm:col-span-2" : ""}`}
                 >
                   <h4 className="text-base tracking-tight text-ink">{label}</h4>
                   {items.length === 0 ? (
