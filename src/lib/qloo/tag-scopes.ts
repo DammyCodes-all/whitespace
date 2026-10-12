@@ -11,7 +11,13 @@
  *   ranks `ambient` #2; mood words resolve 8/10 in-scope.
  * - Day 10 calibration widened all domains to also include mood/theme/setting
  *   so taste-shaped pitch words share a namespace with audience tastes.
- * Book/game reuse the film set untested — Day 10 calibration revisits.
+ * - 2026-10-12: game moved to Qloo's own (`:qloo`) namespaces. Live probe:
+ *   a game entity's tastes are 50 rich tags unscoped but collapse to 19
+ *   genre labels under media scopes, while game-pitch words (lighthouse,
+ *   hacker, android, monastery, detective…) resolve exactly in
+ *   `setting:qloo` / `keyword:qloo`. Media scopes stay for film/book;
+ *   book entities return 0 taste tags even unscoped (hackathon data gap,
+ *   not a scope bug) so book keeps the film set pending Qloo data.
  */
 
 import type { WorkType } from "@/lib/types";
@@ -22,5 +28,5 @@ export const TAG_SCOPES: Record<WorkType, string> = {
   music:
     "urn:tag:genre:music,urn:tag:keyword:media,urn:tag:mood:media,urn:tag:theme:media,urn:tag:setting:media",
   book: "urn:tag:genre:media,urn:tag:keyword:media,urn:tag:mood:media,urn:tag:theme:media,urn:tag:setting:media",
-  game: "urn:tag:genre:media,urn:tag:keyword:media,urn:tag:mood:media,urn:tag:theme:media,urn:tag:setting:media",
+  game: "urn:tag:genre:qloo,urn:tag:keyword:qloo,urn:tag:mood:qloo,urn:tag:theme:qloo,urn:tag:setting:qloo,urn:tag:motif:qloo,urn:tag:plot:qloo,urn:tag:category:qloo,urn:tag:audience:qloo,urn:tag:occupation:qloo,urn:tag:content:qloo,urn:tag:style:qloo,urn:tag:archetype:qloo,urn:tag:subgenre:qloo,urn:tag:emotional_tone:qloo",
 };

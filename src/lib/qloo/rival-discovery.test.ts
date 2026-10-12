@@ -118,6 +118,40 @@ describe("discoverRivals", () => {
     assert.equal(seen.length, 0);
   });
 
+  it("seeds discovery with every matched tag, not just the first five", async () => {
+    // Repeat probe 2026-10-12: truncating the seed to 5 made rival
+    // sets swing with LLM word order. All 8 ids must reach the query.
+    process.env.QLOO_API_KEY = "test-key";
+    const signals: string[] = [];
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = String(input);
+      signals.push(
+        new URL(url).searchParams.get("signal.interests.tags") ?? "",
+      );
+      return new Response(
+        JSON.stringify({
+          success: true,
+          results: {
+            entities: [{ entity_id: "e1", name: "Lead" }],
+          },
+        }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const tagIds = Array.from({ length: 8 }, (_, i) => `urn:tag:t${i}`);
+    const out = await discoverRivals({
+      tagIds,
+      entityIds: [],
+      workType: "film",
+      count: 3,
+    });
+    assert.equal(signals.length, 3);
+    for (const signal of signals) {
+      assert.equal(signal, tagIds.join(","));
+    }
+    assert.ok(out.rivals.length > 0);
+  });
+
   it("cross domains are parameterized per work type", () => {
     assert.ok(
       !CROSS_DOMAIN_RIVALS.film.includes(WORK_TYPE_TO_ENTITY_TYPE.film),
