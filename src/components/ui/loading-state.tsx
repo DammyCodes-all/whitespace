@@ -64,7 +64,7 @@ export default function LoadingState({
   const { delays, dur, round } = PATTERNS[variant] ?? PATTERNS.Drive;
 
   return (
-    <div className="flex w-fit items-center gap-2.5">
+    <div className="flex w-fit items-center gap-2.5 py-1">
       <span aria-hidden className="grid grid-cols-[repeat(3,4px)] gap-[1.5px]">
         {delays.map((d, i) => (
           <span

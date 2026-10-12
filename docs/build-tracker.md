@@ -148,3 +148,4 @@ Format:
 | 2026-10-12 | Replace running-pitch buttons with Dots loading status in ink tokens plus keyframes | design-direction §1 | tsc clean; biome lint clean; 172 pass node --test |
 | 2026-10-12 | Match pitch input border and radius to buttons (2px outline, 16px) | design-direction §§1–5 | tsc clean; biome lint clean on 3 files |
 | 2026-10-12 | Add button-style offset shadow to pitch inputs | design-direction §§1–5 | tsc clean; biome lint clean; next build pass, shadow in built CSS |
+| 2026-10-12 | Give Running-pitch loader breathing room: block outputs plus vertical padding | n/a (spec silent on loader spacing) | tsc clean; biome CRLF-only pre-existing fail |
