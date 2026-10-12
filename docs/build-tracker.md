@@ -154,3 +154,13 @@ Format:
 | 2026-10-12 | Check live APIs: Qloo still rate-limited on monthly quota (0 of 10000 remaining, resets in ~23 days), Groq healthy | n/a | live probes: Qloo 429 x3 with x-month-ratelimit-remaining 0; Groq 200 on gpt-oss-120b; /api/tags 200 with LLM fine but 0/6 tags matched (Qloo calls degrade to not_found) |
 | 2026-10-12 | Add /demo design-system showcase: every token and component in 15 sections, server-rendered with fixtures | n/a (spec silent; design-direction §6 rules) | tsc clean; biome lint clean; 185 pass node --test; next build pass; /demo 200 static, all 22 anchors resolve |
 | 2026-10-12 | Make FlowResultView honestly a Server Component: extract the targeting-brief builder to lib/flow/brief.ts (7 tests) and move its clipboard button into a client island | design-direction §6, §6.12 | tsc clean; biome lint clean; 185 pass node --test; next build pass; /demo /flow /case all render |
+| 2026-10-12 | Show orange surprise banner on demo result page (black headline, white verdict word) | design-direction §3 (label white per user override) | tsc clean |
+| 2026-10-12 | Remove [e] evidence links from flow results view per user request (conflicts with §6.12 checkability) | §6.12 (removed despite spec) | tsc clean |
+| 2026-10-12 | Rewrite banner baseline as a plain sentence and drop Qloo-calls count | §6.7 | tsc clean |
+| 2026-10-12 | Show bar scores as percentages with a Who fits best heading, drop role tags | n/a (spec silent on number format) | tsc clean |
+| 2026-10-12 | Scale result bars to 100 and rename the line pill to the bar (design-direction §2 updated) | n/a (spec silent on bar scale) | tsc clean |
+| 2026-10-12 | Add per-row beats and misses lines under each bar | §6.7 | tsc clean |
+| 2026-10-12 | Color bars by rank, round the track edges (design-direction §2 updated) | n/a (spec silent; user override) | tsc clean |
+| 2026-10-12 | Rename reach plan to where to find them in plain words | §6.7 | tsc clean |
+| 2026-10-12 | Render reach slots as cards with Places spanning full width | design-direction §§1, 3 | tsc clean |
+| 2026-10-12 | Give each reach slot a fixed fill (interests mint, people yellow, podcasts blue, brands mint, places yellow) | design-direction §3 | tsc clean |
