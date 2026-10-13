@@ -53,18 +53,23 @@ export default function DemoResultPage() {
           <FlowResultView result={DEMO_FLOW_RESULT} orangeVerdict />
         </div>
 
-        <ReachPlan groups={REACH_GROUPS} />
-
-        <section aria-label="Change and re-check" className="mt-12">
-          <h2 className="text-lg tracking-tight text-ink">Change and re-check</h2>
-          <p className="mt-1 max-w-prose text-sm leading-relaxed text-ink-2">
-            A constraint can change the pitch, but the new version still has
-            to clear the same measured bar.
-          </p>
-          <div className="mt-4 max-w-2xl">
-            <ChangeView changed={DEMO_CHANGE_ACCEPTED} />
-          </div>
-        </section>
+        <ReachPlan
+          groups={REACH_GROUPS}
+          gapAside={
+            <div>
+              <h2 className="text-lg tracking-tight text-ink">
+                Change and re-check
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-ink-2">
+                A constraint can change the pitch, but the new version has
+                to score higher to land.
+              </p>
+              <div className="mt-4">
+                <ChangeView changed={DEMO_CHANGE_ACCEPTED} />
+              </div>
+            </div>
+          }
+        />
 
         <CompareView
           chatbot={DEMO_CHATBOT}
