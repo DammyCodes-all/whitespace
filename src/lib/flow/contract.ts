@@ -60,6 +60,21 @@ export interface FlowAudienceScore {
   tagHits: string[];
   /** Null when no Qloo call produced this value. */
   evidenceId: string | null;
+  /** Resolved title entities behind this audience (for re-checks). */
+  titles: Array<{ qlooId: string; name: string }>;
+}
+
+/**
+ * §6.8 gaps: what a winning audience loves that the pitch does not
+ * mention yet. Computed from already-fetched taste tags — zero new
+ * Qloo calls. `hasTastes` false means unknown loves, never zero gaps.
+ */
+export interface FlowGapGroup {
+  audienceId: string;
+  audienceName: string;
+  gaps: GapItem[];
+  unlabeledCount: number;
+  hasTastes: boolean;
 }
 
 export type FlowVerdict = "strong" | "mixed" | "weak" | "inconclusive";
@@ -106,6 +121,8 @@ export interface FlowResult {
   verdict: FlowVerdict;
   surprise: boolean;
   reach: FlowReach[] | null;
+  /** Gap groups for the reach targets; [] when nothing beat the ceiling. */
+  gaps: FlowGapGroup[];
   evidence: Record<string, FlowEvidence>;
   qlooCalls: FlowQlooUsage;
 }
@@ -256,6 +273,10 @@ export function toFlowResult(
       score: fit ? scoreForBar(fit) : null,
       tagHits: fit && !isUnjudgeable(fit) ? fit.matchedTags : [],
       evidenceId: evidenceIdFor(audience),
+      titles: audience.titles.map((t) => ({
+        qlooId: t.qlooId,
+        name: t.name,
+      })),
     };
   };
 
@@ -327,6 +348,39 @@ export function toFlowResult(
     evidence[call.id] = evidenceOf(call);
   }
 
+  // §6.8 gaps for the same targets the reach plan serves, from the
+  // already-fetched taste tags (zero new calls). Unknown loves stay
+  // unknown: hasTastes false renders the no-data state, never an
+  // empty claim.
+  let gaps: FlowGapGroup[] = [];
+  if (pipeline.verdict.clearsControl) {
+    const targets = selectReachTargets(
+      pipeline.verdict,
+      pipeline.scores,
+      contenders,
+    );
+    gaps = targets.map((target) => {
+      const tastes = reachInput.tastesByAudienceId?.[target.id];
+      if (tastes === undefined || tastes.failed === true) {
+        return {
+          audienceId: target.id,
+          audienceName: target.name,
+          gaps: [],
+          unlabeledCount: 0,
+          hasTastes: false,
+        };
+      }
+      const labels = labelsForTastes(tastes, {});
+      return {
+        audienceId: target.id,
+        audienceName: target.name,
+        gaps: findGaps(tastes, pipeline.tags, labels),
+        unlabeledCount: countUnlabeled(tastes, pipeline.tags, labels),
+        hasTastes: true,
+      };
+    });
+  }
+
   const network = pipeline.calls.filter((c) => !c.fromCache).length;
   const cached = pipeline.calls.length - network;
 
@@ -339,6 +393,7 @@ export function toFlowResult(
     verdict: verdictFor(pipeline.verdict.verdict),
     surprise: pipeline.verdict.surprise,
     reach,
+    gaps,
     evidence,
     qlooCalls: { network, cached, total: pipeline.calls.length },
   };
