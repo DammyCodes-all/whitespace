@@ -60,13 +60,18 @@ function verdictBand(verdict: VerdictResult["verdict"]): string | null {
   return null;
 }
 
+function barSentence(barDelta: number): string {
+  if (barDelta > 0) return `Beats the bar by ${barDelta}.`;
+  if (barDelta < 0) return `Misses the bar by ${-barDelta}.`;
+  return "Right on the bar.";
+}
+
 export function CompareView({
   chatbot,
   error,
   audiences,
   scores,
   verdict,
-  topCallId,
   chatbotCallId,
 }: {
   chatbot: ChatbotView | null;
@@ -74,7 +79,6 @@ export function CompareView({
   audiences: Audience[];
   scores: FitScore[];
   verdict: VerdictResult;
-  topCallId?: string;
   chatbotCallId?: string;
 }) {
   const top = audiences.find(
@@ -92,10 +96,6 @@ export function CompareView({
     : undefined;
   const secondName =
     top === undefined ? "second" : (runnerUpAudience?.name ?? "second");
-  const controlCeilingValue =
-    topScore === undefined
-      ? undefined
-      : topScore.score - verdict.marginTopVsControl;
   const foundCount = chatbot?.found.length ?? 0;
   const totalCount = foundCount + (chatbot?.notFoundTitles.length ?? 0);
   const emptyMessage =
@@ -109,6 +109,8 @@ export function CompareView({
         ? "Weak fit"
         : verdict.verdict;
   const band = verdictBand(verdict.verdict);
+  const barDelta = Math.round(verdict.marginTopVsControl * 100);
+  const secondDelta = Math.round(verdict.marginTopVsSecond * 100);
   const takeaway =
     verdict.verdict === "Inconclusive"
       ? "Not enough Qloo data to judge. Both sides are withheld."
@@ -146,32 +148,22 @@ export function CompareView({
             <span className="font-serif text-base text-ink">
               {top === undefined
                 ? "No audience could be judged"
-                : `Best measured: ${top.name}`}
+                : `Best fit: ${top.name}`}
             </span>
             {topScore !== undefined && (
               <span
                 data-numeric
                 className="tnum ml-2 font-mono text-sm text-ink"
               >
-                {topScore.score.toFixed(2)}
-                {topCallId !== undefined && (
-                  <a
-                    href={`#${topCallId}`}
-                    className="cite ml-1 font-mono text-xs"
-                    aria-label="Evidence for Whitespace verdict"
-                  >
-                    [e]
-                  </a>
-                )}
+                {Math.round(topScore.score * 100)}%
               </span>
             )}
           </p>
-          <p className="mt-2 font-mono text-xs text-ink-3">
-            <span data-numeric className="tnum">
-              Margin {verdict.marginTopVsSecond.toFixed(2)} over {secondName} ·{" "}
-              {verdict.marginTopVsControl.toFixed(2)} over control
-            </span>
-          </p>
+          {topScore !== undefined && (
+            <p className="mt-2 text-sm leading-relaxed text-ink-2">
+              {barSentence(barDelta)} Ahead of {secondName} by {secondDelta}.
+            </p>
+          )}
           {top !== undefined && top.titles.length > 0 && (
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
               Measured from: {top.titles.map((title) => title.name).join(", ")}
@@ -183,17 +175,6 @@ export function CompareView({
               )}
             </p>
           )}
-          <p className="mt-3 font-mono text-xs text-ink-3">
-            {verdict.clearsControl
-              ? "Beat the unrelated control audiences by a clear margin."
-              : "Did not beat the unrelated control audiences by a clear margin."}
-            {controlCeilingValue !== undefined && (
-              <span data-numeric className="tnum">
-                {" "}
-                Ceiling {controlCeilingValue.toFixed(2)}.
-              </span>
-            )}
-          </p>
         </div>
         <div className="bg-paper p-5 sm:p-6 md:col-span-5">
           <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">

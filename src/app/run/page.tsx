@@ -385,12 +385,6 @@ export default async function RunPage({
               audiences={audiences}
               scores={result.scores}
               verdict={result.verdict}
-              topCallId={
-                result.verdict.topAudienceId === null
-                  ? undefined
-                  : audienceCallIds[result.verdict.topAudienceId]
-              }
-              chatbotCallId={chatbotCalls[0]?.id}
             />
           </>
         )}
