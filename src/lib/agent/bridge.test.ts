@@ -13,6 +13,7 @@ import { bridgesToWeightedTags } from "../scoring/semantic.ts";
 import {
   availableFromTastes,
   BRIDGE_MAX_TOKENS,
+  BRIDGE_PER_LIST_TASTES,
   BRIDGE_TEMPERATURE,
   buildBridgeMessages,
   isBridgeConfigured,
@@ -145,6 +146,27 @@ describe("availableFromTastes", () => {
     const out = availableFromTastes([{ audienceId: "a", tagIds: ids }], 4);
     assert.equal(out.length, 4);
     assert.equal(out[0]?.name, "urn:tag:0");
+  });
+
+  it("trims each audience list to 15, contenders-first order kept", () => {
+    const aIds = Array.from({ length: 20 }, (_, i) => `urn:tag:a${i}`);
+    const bIds = Array.from({ length: 20 }, (_, i) => `urn:tag:b${i}`);
+    const out = availableFromTastes([
+      { audienceId: "a", tagIds: aIds },
+      { audienceId: "b", tagIds: bIds },
+    ]);
+    assert.equal(BRIDGE_PER_LIST_TASTES, 15);
+    assert.equal(out.length, 30);
+    assert.deepEqual(
+      out.slice(0, 15).map((a) => a.id),
+      aIds.slice(0, 15),
+    );
+    assert.deepEqual(
+      out.slice(15).map((a) => a.id),
+      bIds.slice(0, 15),
+    );
+    assert.ok(!out.some((a) => a.id === "urn:tag:a15"));
+    assert.ok(!out.some((a) => a.id === "urn:tag:b19"));
   });
 });
 

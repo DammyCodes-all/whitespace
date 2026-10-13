@@ -99,4 +99,40 @@ describe("runFlowPitch", () => {
     );
     assert.match(out.steps[1]?.detail ?? "", /nothing to judge/);
   });
+
+  it("names a failed bridge attempt and scores exact matches only", async (t) => {
+    // Synthetic keys only; the stubbed transport throws so no request
+    // ever leaves the process and the bridge path yields nothing.
+    const savedGroq = process.env.GROQ_API_KEY;
+    const savedRouter = process.env.OPENROUTER_API_KEY;
+    process.env.GROQ_API_KEY = "synthetic-test-key";
+    delete process.env.OPENROUTER_API_KEY;
+    try {
+      t.mock.method(globalThis, "fetch", async () => {
+        throw new Error("Synthetic LLM failure.");
+      });
+      const out = await runFlowPitch({
+        ...base,
+        tags: tags(MIN_MATCHED_TAGS),
+      });
+      assert.equal(out.stopped, false);
+      const score = out.steps.find((s) => s.id === "score");
+      assert.match(
+        score?.detail ?? "",
+        /bridges unavailable, exact matches scored/,
+      );
+      assert.doesNotMatch(
+        score?.detail ?? "",
+        /groq|openrouter|\b4\d\d\b|\b5\d\d\b/i,
+      );
+      assert.ok(!(score?.detail ?? "").includes("+"));
+      // Exact-only: the mock path leaves every audience unjudgeable.
+      assert.ok(out.result.audiences.every((a) => a.score === null));
+    } finally {
+      if (savedGroq === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = savedGroq;
+      if (savedRouter === undefined) delete process.env.OPENROUTER_API_KEY;
+      else process.env.OPENROUTER_API_KEY = savedRouter;
+    }
+  });
 });
