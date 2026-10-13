@@ -36,10 +36,14 @@ function verdictBand(verdict: VerdictResult["verdict"]): string | null {
   return null;
 }
 
-function barSentence(barDelta: number): string {
-  if (barDelta > 0) return `${barDelta} points above the bar.`;
-  if (barDelta < 0) return `${-barDelta} points below the bar.`;
-  return "Exactly on the bar.";
+/**
+ * §6.7 in plain words. The bar was a metaphor nobody could decode, the old
+ * sentence used the term before defining it, and it made the reader
+ * subtract. The panel now states each score outright: the audience, the
+ * unrelated level, the runner-up. No pronouns, no differences.
+ */
+function unrelatedLevel(topScore: number, marginTopVsControl: number): number {
+  return Math.round((topScore - marginTopVsControl) * 100);
 }
 
 export function CompareView({
@@ -94,8 +98,6 @@ export function CompareView({
           ? "Mixed fit"
           : verdict.verdict;
   const band = verdictBand(verdict.verdict);
-  const barDelta = Math.round(verdict.marginTopVsControl * 100);
-  const secondDelta = Math.round(verdict.marginTopVsSecond * 100);
   const takeaway =
     verdict.verdict === "Inconclusive"
       ? "Not enough Qloo data to judge. Both sides are withheld."
@@ -108,10 +110,6 @@ export function CompareView({
       <h2 className="text-lg tracking-tight text-ink">
         Two answers to the same pitch
       </h2>
-      <p className="mt-1 max-w-prose text-sm leading-relaxed text-ink-2">
-        Same pitch. Ours is measured against Qloo&apos;s taste data; the
-        chatbot&apos;s is not.
-      </p>
       <p className="mt-2 max-w-prose text-sm font-medium leading-relaxed text-ink">
         {takeaway}
       </p>
@@ -137,26 +135,38 @@ export function CompareView({
                 ? "No audience could be judged"
                 : `Best fit: ${top.name}`}
             </span>
-            {topScore !== undefined && (
-              <span
-                data-numeric
-                className="tnum ml-2 font-mono text-sm text-ink"
-              >
-                {Math.round(topScore.score * 100)}% match
-              </span>
-            )}
           </p>
-          {topScore !== undefined && (
+          {topScore === undefined ? (
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              {barSentence(barDelta)} The bar is the best score of audiences
-              with nothing to do with your idea. It is also {secondDelta} points
-              ahead of {secondName}, the next best.
+              No audience could be judged on this run.
             </p>
+          ) : verdict.verdict === "Inconclusive" ? (
+            <p className="mt-2 text-sm leading-relaxed text-ink-2">
+              Not enough Qloo data to judge this audience. The numbers are
+              withheld rather than guessed.
+            </p>
+          ) : (
+            <>
+              <p className="mt-2 text-sm leading-relaxed text-ink-2">
+                {verdict.clearsControl
+                  ? `Their taste matches your idea ${topPct}%.`
+                  : `The closest, ${top?.name}, matches your idea ${topPct}%.`}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-ink-2">
+                An unrelated group matches it {barPct}%.
+              </p>
+              {runnerUp !== undefined && (
+                <p className="mt-2 text-sm leading-relaxed text-ink-2">
+                  {secondName === "second"
+                    ? `The next best audience matches it ${runnerUpPct}%.`
+                    : `The next best, ${secondName}, matches it ${runnerUpPct}%.`}
+                </p>
+              )}
+            </>
           )}
           {top !== undefined && top.titles.length > 0 && (
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              Built from the titles you named:{" "}
-              {top.titles.map((title) => title.name).join(", ")}
+              Based on: {top.titles.map((title) => title.name).join(", ")}
               {top.notFoundTitles.length > 0 && (
                 <span className="font-mono text-xs text-ink-3">
                   {" "}
@@ -189,9 +199,12 @@ export function CompareView({
               <p className="mt-4 max-w-prose text-sm leading-relaxed text-ink-2">
                 {chatbot.answer}
               </p>
-              <p className="mt-4 text-sm leading-relaxed text-ink-2">
-                {foundCount} of {totalCount} titles exist in Qloo. The advice
-                itself wasn&apos;t measured.
+              <p className="mt-4 text-sm font-medium leading-relaxed text-ink">
+                These are guesses. Nothing here was checked.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-ink-2">
+                {foundCount} of the {totalCount} titles it named are real. Its
+                advice about who to reach is not checked.
               </p>
               <ChatbotTitles chatbot={chatbot} />
             </>
