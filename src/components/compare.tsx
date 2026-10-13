@@ -54,10 +54,10 @@ function ChatbotTitles({
   );
 }
 
-function verdictColor(verdict: VerdictResult["verdict"]): string {
-  if (verdict === "Strong") return "text-measured";
-  if (verdict === "Split") return "text-split-ink";
-  return "text-ink-3";
+function verdictBand(verdict: VerdictResult["verdict"]): string | null {
+  if (verdict === "Strong") return "bg-strong";
+  if (verdict === "Split") return "bg-split";
+  return null;
 }
 
 export function CompareView({
@@ -108,6 +108,7 @@ export function CompareView({
       : verdict.verdict === "Weak"
         ? "Weak fit"
         : verdict.verdict;
+  const band = verdictBand(verdict.verdict);
   const takeaway =
     verdict.verdict === "Inconclusive"
       ? "Not enough Qloo data to judge. Both sides are withheld."
@@ -130,11 +131,17 @@ export function CompareView({
           <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
             Whitespace · Qloo-backed
           </p>
-          <p
-            className={`mt-4 font-serif text-2xl ${verdictColor(verdict.verdict)}`}
-          >
-            {verdictLabel}
-          </p>
+          {band !== null ? (
+            <p className="mt-4">
+              <span
+                className={`inline-block rounded-full border-2 border-outline px-4 py-1 font-serif text-2xl text-ink ${band}`}
+              >
+                {verdictLabel}
+              </span>
+            </p>
+          ) : (
+            <p className="mt-4 font-serif text-2xl text-ink">{verdictLabel}</p>
+          )}
           <p className="mt-2 text-sm leading-relaxed text-ink-2">
             <span className="font-serif text-base text-ink">
               {top === undefined
