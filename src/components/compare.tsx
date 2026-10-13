@@ -128,8 +128,8 @@ export function CompareView({
       <p className="mt-2 max-w-prose text-sm font-medium leading-relaxed text-ink">
         {takeaway}
       </p>
-      <div className="mt-4 grid gap-px border border-rule bg-rule md:grid-cols-12">
-        <div className="bg-surface p-5 sm:p-6 md:col-span-7">
+      <div className="mt-4 grid gap-4 md:grid-cols-12">
+        <div className="card p-5 sm:p-6 md:col-span-7">
           <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
             Whitespace · Qloo-backed
           </p>
@@ -176,7 +176,7 @@ export function CompareView({
             </p>
           )}
         </div>
-        <div className="bg-paper p-5 sm:p-6 md:col-span-5">
+        <div className="rounded-2xl border-2 border-dashed border-ink-3 bg-paper p-5 shadow-[4px_4px_0_var(--outline)] sm:p-6 md:col-span-5">
           <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
             Plain chatbot · no Qloo
           </p>
