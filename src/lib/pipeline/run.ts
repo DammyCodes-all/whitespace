@@ -55,6 +55,7 @@ import {
   selectExpansions,
 } from "../scoring/expansion.ts";
 import { MIN_TASTES_FOR_JUDGEMENT, scoreAllWeighted } from "../scoring/fit.ts";
+import { eligibleControls } from "../scoring/overlap.ts";
 
 /**
  * What the pipeline needs beyond the frozen `PitchInput`. Titles, words,
@@ -232,13 +233,26 @@ export async function runPipeline(
   const controlCount = options.controlCount ?? CONTROL_COUNT;
   const controlCached = await loadControlTastes(input.workType, controlCount);
   calls.push(...controlCached.calls);
+  // Pitch-aware ceiling: controls too close to the hypothesis (same
+  // rival-overlap rule) do not set the verdict ceiling. Seeds stay —
+  // only the ceiling inputs shrink, with a fallback to the full set.
+  const controlEligibility = eligibleControls(
+    hypothesis,
+    controlCached.controls,
+  );
+  const controlsBase = controlCached.fromCache
+    ? `${controlCached.controls.length} from cache, 0 Qloo calls`
+    : `${controlCached.controls.length} built, ${controlCached.droppedControls.length} dropped`;
+  const controlsDetail = controlEligibility.filtered
+    ? `${controlsBase}, ${controlEligibility.excluded.length} excluded as too close to hypothesis`
+    : controlEligibility.fellBack
+      ? `${controlsBase}, overlap filter fell back (all too close to hypothesis)`
+      : controlsBase;
   steps.push(
     doneStep(
       "controls",
       "Control audiences",
-      controlCached.fromCache
-        ? `${controlCached.controls.length} from cache, 0 Qloo calls`
-        : `${controlCached.controls.length} built, ${controlCached.droppedControls.length} dropped`,
+      controlsDetail,
       controlCached.calls[0]?.id,
     ),
   );
@@ -412,10 +426,15 @@ export async function runPipeline(
     ),
   );
 
+  const verdictControlScores = controlEligibility.filtered
+    ? controlScores.filter((s) =>
+        controlEligibility.eligible.some((c) => c.id === s.audienceId),
+      )
+    : controlScores;
   const verdict = decideVerdict({
     hypothesisId: hypothesis.id,
     scores: contenderScores,
-    controlScores,
+    controlScores: verdictControlScores,
     coverage: tagRes.coverage,
   });
   steps.push(
