@@ -159,37 +159,40 @@ export function FlowClient({
 
   // Compare sidecar (§6.11): the same pitch answered with no Qloo tools.
   // Runs after the result lands so the measured verdict never waits on
-  // the chatbot; either side may fail independently.
+  // the chatbot; either side may fail independently. The per-result
+  // guard (not a cleanup flag) is what survives StrictMode's double
+  // effect in dev: the remount sees the same result and skips, so one
+  // run spends one LLM call plus one mark batch, never two.
+  const compareForResult = useRef<FlowResult | null>(null);
   useEffect(() => {
     if (phase !== "done" || result === null) return;
-    let cancelled = false;
+    if (compareForResult.current === result) return;
+    compareForResult.current = result;
+    const startedFor = result;
     void (async () => {
       try {
         const res = await fetch("/api/compare", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            pitchText: result.pitch,
-            workType: result.type,
+            pitchText: startedFor.pitch,
+            workType: startedFor.type,
           }),
         });
         const data = (await res.json()) as CompareResponseBody;
-        if (cancelled) return;
-        setChatbot(data.chatbot);
+        if (compareForResult.current !== startedFor) return;
+        setChatbot(data.chatbot ?? null);
         setChatbotError(data.error ?? null);
         setCompareCalls(Array.isArray(data.calls) ? data.calls : []);
       } catch {
-        if (cancelled) return;
+        if (compareForResult.current !== startedFor) return;
         setChatbot(null);
         setChatbotError("Chatbot comparison failed.");
         setCompareCalls([]);
       } finally {
-        if (!cancelled) setCompareLoaded(true);
+        if (compareForResult.current === startedFor) setCompareLoaded(true);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [phase, result]);
 
   async function checkChange() {
