@@ -26,7 +26,7 @@ export function selectReachTargets(
   if (verdict.verdict === "Inconclusive") return [];
   const top = audiences.find((a) => a.id === verdict.topAudienceId);
   if (!top) return [];
-  if (verdict.verdict !== "Split") return [top];
+  if (verdict.verdict !== "Mixed") return [top];
   const byId = new Map(scores.map((s) => [s.audienceId, s]));
   let runnerUp: Audience | null = null;
   let best = -Infinity;

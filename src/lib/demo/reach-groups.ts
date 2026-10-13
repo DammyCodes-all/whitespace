@@ -61,7 +61,7 @@ export async function buildReachGroups(
     }
     groups.push({
       audience,
-      headline: index === 0 ? "Best fit" : "Runner-up · Split verdict",
+      headline: index === 0 ? "Best fit" : "Runner-up · Mixed verdict",
       related,
       gaps,
       unlabeledCount,

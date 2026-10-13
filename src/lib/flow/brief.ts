@@ -14,7 +14,7 @@ import { barRows, isCloseCall } from "./contract.ts";
 
 export const VERDICT_WORDS: Record<FlowResult["verdict"], string> = {
   strong: "Strong fit",
-  split: "Split fit",
+  mixed: "Mixed fit",
   weak: "Weak fit",
   inconclusive: "Inconclusive",
 };

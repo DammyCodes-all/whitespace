@@ -114,7 +114,7 @@ test("every reach slot has a word, so the brief never prints a raw key", () => {
     "brands",
     "places",
   ]);
-  for (const verdict of ["strong", "split", "weak", "inconclusive"] as const) {
+  for (const verdict of ["strong", "mixed", "weak", "inconclusive"] as const) {
     assert.equal(typeof VERDICT_WORDS[verdict], "string");
   }
 });

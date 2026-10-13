@@ -106,7 +106,7 @@ describe("decideVerdict margins", () => {
       coverage: 0.9,
     });
     // Real runner-up is c at 0.78: margin 0.02, both clear control.
-    assert.equal(result.verdict, "Split");
+    assert.equal(result.verdict, "Mixed");
     assert.ok(Math.abs(result.marginTopVsSecond - 0.02) < 1e-9);
   });
 

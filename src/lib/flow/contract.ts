@@ -7,7 +7,7 @@
  * - `verdict` is lowercase (`strong`…); the pipeline's `Strong`… is
  *   mapped, not changed.
  * - `reach` is an ARRAY (`FlowReach[] | null`): step 7 wants both
- *   audiences on a split. `null` means nothing beats the ceiling (say
+ *   audiences on a mixed verdict. `null` means nothing beats the ceiling (say
  *   so, show no reach plan); `[]` means something beats it but no reach
  *   data was supplied yet.
  * - `evidenceId` and `score` are nullable: no call / no data is its own
@@ -56,7 +56,7 @@ export interface FlowAudienceScore {
   evidenceId: string | null;
 }
 
-export type FlowVerdict = "strong" | "split" | "weak" | "inconclusive";
+export type FlowVerdict = "strong" | "mixed" | "weak" | "inconclusive";
 
 export interface FlowReachItem {
   name: string;
@@ -125,8 +125,8 @@ function verdictFor(
   switch (verdict) {
     case "Strong":
       return "strong";
-    case "Split":
-      return "split";
+    case "Mixed":
+      return "mixed";
     case "Weak":
       return "weak";
     default:
@@ -208,7 +208,7 @@ export function barRows(result: FlowResult): FlowBarRow[] {
 /**
  * Display-only close-call flag (§6.7): a judged Strong/Weak verdict
  * whose top score sits within CLOSE_CALL_GAP of the control line.
- * Split already says "close pair", Inconclusive says nothing decisive,
+ * Mixed already says "close pair", Inconclusive says nothing decisive,
  * and a null ceiling has no line to be near — all three are never
  * close calls. The verdict itself never changes here.
  */

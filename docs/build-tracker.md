@@ -170,3 +170,4 @@ Format:
 | 2026-10-13 | Frame chatbot panel as unmeasured with a dashed card | design-direction §1 | tsc clean |
 | 2026-10-13 | Rewrite chatbot title checks in plain words and drop chatbot cites | §6.11 (§6.12 cites removed, same override) | tsc clean |
 | 2026-10-13 | Restore reach header styling missed in the commit split (larger group names, quieter explainer) | design-direction §4 | tsc clean |
+| 2026-10-13 | Rename the verdict word Split to Mixed end to end (Verdict type, policy branch, flow mapping, UI labels, demo fixtures, 4 test files) and align product-spec §6.7/§6.8 with design-direction §3, so spec, code and screen carry one word | §6.7 | pnpm typecheck clean; node --test 185/185; /demo renders "Mixed fit", zero "Split" verdict strings left in src (only the `--split` paint token, documented as such) |

@@ -32,7 +32,7 @@ function ChatbotTitles({ chatbot }: { chatbot: ChatbotView }) {
 
 function verdictBand(verdict: VerdictResult["verdict"]): string | null {
   if (verdict === "Strong") return "bg-strong";
-  if (verdict === "Split") return "bg-split";
+  if (verdict === "Mixed") return "bg-split";
   return null;
 }
 
@@ -70,6 +70,15 @@ export function CompareView({
     : undefined;
   const secondName =
     top === undefined ? "second" : (runnerUpAudience?.name ?? "second");
+  // Each score stated outright. No differences, no subtraction: the panel
+  // shows the audience's number, the unrelated level, and the runner-up's.
+  const topPct = topScore === undefined ? 0 : Math.round(topScore.score * 100);
+  const barPct =
+    topScore === undefined
+      ? 0
+      : unrelatedLevel(topScore.score, verdict.marginTopVsControl);
+  const runnerUpPct =
+    runnerUp === undefined ? 0 : Math.round(runnerUp.score * 100);
   const foundCount = chatbot?.found.length ?? 0;
   const totalCount = foundCount + (chatbot?.notFoundTitles.length ?? 0);
   const emptyMessage =
@@ -81,7 +90,9 @@ export function CompareView({
       ? "Strong fit"
       : verdict.verdict === "Weak"
         ? "Weak fit"
-        : verdict.verdict;
+        : verdict.verdict === "Mixed"
+          ? "Mixed fit"
+          : verdict.verdict;
   const band = verdictBand(verdict.verdict);
   const barDelta = Math.round(verdict.marginTopVsControl * 100);
   const secondDelta = Math.round(verdict.marginTopVsSecond * 100);

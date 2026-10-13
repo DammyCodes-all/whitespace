@@ -219,10 +219,10 @@ export const DEMO_VERDICTS: {
     verdict: { ...baseVerdict, surprise: false },
   },
   {
-    label: "Split · clears control",
+    label: "Mixed · clears control",
     verdict: {
       ...baseVerdict,
-      verdict: "Split",
+      verdict: "Mixed",
       marginTopVsSecond: 0.04,
       clearsControl: true,
       surprise: false,

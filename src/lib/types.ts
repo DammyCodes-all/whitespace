@@ -109,7 +109,7 @@ export interface FitScore {
 }
 
 /** §6.7 verdict table. */
-export type Verdict = "Strong" | "Split" | "Weak" | "Inconclusive";
+export type Verdict = "Strong" | "Mixed" | "Weak" | "Inconclusive";
 
 export interface VerdictResult {
   verdict: Verdict;

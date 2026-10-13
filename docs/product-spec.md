@@ -102,7 +102,7 @@ An audience "clears control" when it beats the best control audience by a clear 
 | Verdict | Meaning |
 |---|---|
 | Strong fit | The top audience clears control and is clearly ahead of the second |
-| Split | The top two audiences both clear control and are close together |
+| Mixed fit | The top two audiences both clear control and are close together |
 | Weak fit | No audience clears control |
 | Inconclusive | Too few of the pitch words matched Qloo tags, or too many audiences had no data |
 
@@ -114,7 +114,7 @@ The exact margins and cutoffs are set in week 1 by testing on real pitches. They
 
 ### 6.8 Reach plan
 
-For the best-fit audience (and the runner-up if the verdict is Split), the app asks Qloo for related podcasts, people, brands and places, about five of each. Titles the user already listed are removed. Each item shows how strongly the audience loves it and links to its source.
+For the best-fit audience (and the runner-up if the verdict is Mixed), the app asks Qloo for related podcasts, people, brands and places, about five of each. Titles the user already listed are removed. Each item shows how strongly the audience loves it and links to its source.
 
 City view (optional): the user picks one city. If Qloo's location data is detailed enough, the app shows where this taste concentrates on a map. If the data is thin, the map is hidden and the app says why. The map shows relative concentration only, never headcounts.
 

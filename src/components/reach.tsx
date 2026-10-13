@@ -14,7 +14,7 @@ import type { Audience } from "@/lib/types";
 
 export interface ReachAudience {
   audience: Audience;
-  /** "Best fit" or "Runner-up · Split verdict". */
+  /** "Best fit" or "Runner-up · Mixed verdict". */
   headline: string;
   related: RelatedResult[];
   gaps: GapItem[];
