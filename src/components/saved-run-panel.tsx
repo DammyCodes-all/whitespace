@@ -59,7 +59,7 @@ function verdictClass(verdict: Verdict): string {
   switch (verdict) {
     case "Strong":
       return "font-medium text-ink";
-    case "Split":
+    case "Mixed":
       return "font-medium text-split";
     case "Weak":
       return "font-medium text-weak";

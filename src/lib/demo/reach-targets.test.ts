@@ -68,9 +68,9 @@ describe("selectReachTargets", () => {
     );
   });
 
-  it("returns top plus runner-up on Split", () => {
+  it("returns top plus runner-up on Mixed", () => {
     const targets = selectReachTargets(
-      verdict("Split", "a"),
+      verdict("Mixed", "a"),
       [judged("a", 0.8), judged("b", 0.78)],
       AUDIENCES,
     );
@@ -80,9 +80,9 @@ describe("selectReachTargets", () => {
     );
   });
 
-  it("skips an unjudgeable second for a real third on Split", () => {
+  it("skips an unjudgeable second for a real third on Mixed", () => {
     const targets = selectReachTargets(
-      verdict("Split", "a"),
+      verdict("Mixed", "a"),
       [judged("a", 0.8), unjudged("b"), judged("hyp", 0.7)],
       AUDIENCES,
     );
@@ -92,9 +92,9 @@ describe("selectReachTargets", () => {
     );
   });
 
-  it("returns only the top when no runner-up qualifies on Split", () => {
+  it("returns only the top when no runner-up qualifies on Mixed", () => {
     const targets = selectReachTargets(
-      verdict("Split", "a"),
+      verdict("Mixed", "a"),
       [judged("a", 0.8), unjudged("b")],
       [audience("a"), audience("b")],
     );

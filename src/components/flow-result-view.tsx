@@ -14,7 +14,7 @@ import { barRows, isCloseCall } from "@/lib/flow/contract";
 
 const VERDICT_FILLS: Record<FlowResult["verdict"], string> = {
   strong: "bg-strong",
-  split: "bg-split",
+  mixed: "bg-split",
   weak: "bg-weak",
   inconclusive: "bg-paper",
 };

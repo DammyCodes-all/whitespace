@@ -62,9 +62,9 @@ function headline(
         : null,
     };
   }
-  if (verdict === "Split") {
+  if (verdict === "Mixed") {
     return {
-      headline: `Split: ${topName} leads a close pair`,
+      headline: `Mixed fit: ${topName} leads a close pair`,
       sub: "The top two both clear control and sit close together.",
     };
   }

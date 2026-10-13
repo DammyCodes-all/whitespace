@@ -9,7 +9,7 @@
  * §6.7 in full, because each row of the table is a branch below:
  * - Strong: the top audience clears control and is clearly ahead of
  *   the second.
- * - Split: the top two both clear control and are close together.
+ * - Mixed: the top two both clear control and are close together.
  * - Weak: no audience clears control.
  * - Inconclusive: too few pitch words matched Qloo tags (coverage
  *   floor), or too many audiences had no data.
@@ -22,7 +22,7 @@
  *
  * Spec ref: §6.7 (verdict), §6.6 (scores in, ranks only), §6.5
  * (coverage in), §10 #4 (no-data never reads as a low score: an
- * unjudgeable top can never be Strong or Split), §7 (our code ranks).
+ * unjudgeable top can never be Strong or Mixed), §7 (our code ranks).
  */
 
 import {
@@ -52,7 +52,7 @@ export {
  *   with Horror control); mood-word pitches -> all zeros, gap 0.
  * - Nonsense stays out via the coverage floor, not the margin.
  * CONTROL_MARGIN 0.05 sits between observed noise (<=0.03) and observed
- * signal (0.10). SPLIT/SURPRISE stay stubbed: no live Split or surprise
+ * signal (0.10). SPLIT/SURPRISE stay stubbed: no live Mixed or surprise
  * case observed yet — do not tune them until one is.
  * Change them here and nothing else in the codebase moves.
  *
@@ -163,7 +163,7 @@ export function decideVerdict(
   }
 
   // §10 #4: an unjudgeable top carries a placeholder 0. It must never
-  // clear control or win a margin, so it cannot be Strong or Split.
+  // clear control or win a margin, so it cannot be Strong or Mixed.
   if (isUnjudgeable(top)) {
     return {
       verdict: "Inconclusive",
@@ -229,7 +229,7 @@ export function decideVerdict(
     second.score - controlBest + MARGIN_EPSILON >= controlMargin;
   if (secondClears && marginTopVsSecond + MARGIN_EPSILON < splitMargin) {
     return {
-      verdict: "Split",
+      verdict: "Mixed",
       topAudienceId: top.audienceId,
       marginTopVsSecond,
       marginTopVsControl,

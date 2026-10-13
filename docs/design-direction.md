@@ -68,7 +68,7 @@ Light only. Four neutrals, four verdict fills, two text-safe colors, one texture
 | Verdict | Treatment | Why |
 |---|---|---|
 | Strong fit | `--strong` fill | The one win the product offers |
-| Split | `--split` fill | Genuinely ambiguous, not an error |
+| Mixed fit | `--split` fill | Genuinely ambiguous, not an error. The token keeps its `--split` name; the word on screen is the plain one. |
 | Weak fit | `--weak` fill | Measured, and it is low, so it gets the quietest color. Red here would punish the product for telling the truth. |
 | Inconclusive | `.nodata`, no fill color | Must never be confusable with Weak. Weak means "we measured and it is low" (§6.7). Inconclusive means "we could not measure" (App. B). Keep these two visually apart above everything else. |
 | Surprise | `--surprise` block | A finding, not a verdict. It only appears as the banner. |

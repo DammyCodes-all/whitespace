@@ -124,9 +124,9 @@ describe("close-call flag", () => {
     assert.equal(isCloseCall(judgedResult("weak", 0.15, 0.14)), true);
   });
 
-  it("ignores clear verdicts, split, inconclusive and null ceilings", () => {
+  it("ignores clear verdicts, mixed, inconclusive and null ceilings", () => {
     assert.equal(isCloseCall(judgedResult("strong", 0.1, 0.9)), false);
-    assert.equal(isCloseCall(judgedResult("split", 0.15, 0.2)), false);
+    assert.equal(isCloseCall(judgedResult("mixed", 0.15, 0.2)), false);
     assert.equal(isCloseCall(judgedResult("inconclusive", 0.15, 0.2)), false);
     assert.equal(isCloseCall(judgedResult("strong", null, 0.2)), false);
     assert.equal(isCloseCall(judgedResult("weak", 0.15, null)), false);

@@ -502,7 +502,7 @@ export function VerdictsSection() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { verdict: "strong", fill: "bg-strong", word: "Strong fit" },
-            { verdict: "split", fill: "bg-split", word: "Split fit" },
+            { verdict: "mixed", fill: "bg-split", word: "Mixed fit" },
             { verdict: "weak", fill: "bg-weak", word: "Weak fit" },
             { verdict: "inconclusive", fill: "bg-paper", word: "Inconclusive" },
           ].map((v) => (
@@ -586,7 +586,7 @@ export function ReachSection() {
             },
             {
               audience: DEMO_MOCK_AUDIENCES[2],
-              headline: "Runner-up · Split verdict",
+              headline: "Runner-up · Mixed verdict",
               related: DEMO_RELATED,
               gaps: [],
               unlabeledCount: 0,
