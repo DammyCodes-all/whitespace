@@ -287,6 +287,10 @@ export const DEMO_FLOW_RESULT: FlowResult = {
       score: 0.61,
       tagHits: ["slow-burn", "space"],
       evidenceId: "ds-call-tastes-1",
+      titles: [
+        { qlooId: "moon-id", name: "Moon" },
+        { qlooId: "arrival-id", name: "Arrival" },
+      ],
     },
     {
       id: "rival-lit",
@@ -295,6 +299,7 @@ export const DEMO_FLOW_RESULT: FlowResult = {
       score: 0.72,
       tagHits: ["solitude", "slow-burn"],
       evidenceId: "ds-call-tastes-2",
+      titles: [{ qlooId: "nlmg-id", name: "Never Let Me Go" }],
     },
     {
       id: "rival-amb",
@@ -303,6 +308,7 @@ export const DEMO_FLOW_RESULT: FlowResult = {
       score: 0.44,
       tagHits: ["quiet"],
       evidenceId: "ds-call-tastes-3",
+      titles: [{ qlooId: "eno-id", name: "Brian Eno" }],
     },
     {
       id: "control-1",
@@ -311,6 +317,7 @@ export const DEMO_FLOW_RESULT: FlowResult = {
       score: null,
       tagHits: [],
       evidenceId: null,
+      titles: [],
     },
     {
       id: "control-2",
@@ -319,6 +326,7 @@ export const DEMO_FLOW_RESULT: FlowResult = {
       score: 0.33,
       tagHits: [],
       evidenceId: "ds-call-tastes-4",
+      titles: [],
     },
   ],
   ceiling: 0.33,
@@ -348,6 +356,18 @@ export const DEMO_FLOW_RESULT: FlowResult = {
     },
   ],
   evidence: {},
+  gaps: [
+    {
+      audienceId: "rival-lit",
+      audienceName: "Literary fiction about isolation",
+      gaps: [
+        { tagId: "urn:tag:mood:media:quiet", label: "quiet", rank: 2 },
+        { tagId: "urn:tag:theme:media:grief", label: "grief", rank: 3 },
+      ],
+      unlabeledCount: 0,
+      hasTastes: true,
+    },
+  ],
   qlooCalls: { network: 2, cached: 9, total: 11 },
 };
 

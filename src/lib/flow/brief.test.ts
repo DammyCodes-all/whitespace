@@ -16,6 +16,7 @@ function fixture(overrides: Partial<FlowResult> = {}): FlowResult {
         score: 0.61,
         tagHits: [],
         evidenceId: "call-tastes-1",
+        titles: [],
       },
     ],
     ceiling: 0.33,
@@ -33,6 +34,7 @@ function fixture(overrides: Partial<FlowResult> = {}): FlowResult {
       },
     ],
     evidence: {},
+    gaps: [],
     qlooCalls: { network: 2, cached: 9, total: 11 },
     ...overrides,
   };
@@ -95,6 +97,7 @@ test("warns on a close call, because a re-run may read differently", () => {
         score: 0.61,
         tagHits: [],
         evidenceId: null,
+        titles: [],
       },
     ],
   });
