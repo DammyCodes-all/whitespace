@@ -36,12 +36,17 @@ function marginLine(score: number, ceiling: number | null): string | null {
 }
 
 /**
- * §6.6 in plain words: Qloo ranks each audience's tastes strongest first,
- * and the score is where your pitch's themes sit in that order. Naming
- * the scale is the point — a bare "72%" tells a reader nothing.
+ * §6.6 in one sentence. The score is how strongly this audience's tastes
+ * match the pitch, so the line says exactly that — and never a difference
+ * the reader has to work out. Show the numbers, never the gap.
  */
-function scoreSentence(percent: number): string {
-  return `Qloo ranks the things this audience loves, strongest first. Your pitch's themes sit ${percent}% of the way up that list — 100% would mean they are its very top tastes.`;
+function scoreLine(result: FlowResult, top: FlowBarRow): string {
+  const percent = Math.round(top.score * 100);
+  if (result.surprise) return `${top.name} matches your idea ${percent}%.`;
+  if (result.verdict === "weak") {
+    return `The closest, ${top.name}, matches your idea ${percent}%.`;
+  }
+  return `Their taste matches your idea ${percent}%.`;
 }
 
 function barFill(index: number): string {
@@ -78,21 +83,21 @@ function VerdictHeadline({
           ? "Your best fit is not the audience you named."
           : verdictSentence(result)}
       </h2>
-      {top !== undefined && !result.surprise && (
+      {top !== undefined && (
         <p className="mt-2 max-w-prose text-body text-ink">
-          {scoreSentence(Math.round(top.score * 100))}
+          {scoreLine(result, top)}
         </p>
       )}
       {isCloseCall(result) && (
         <p className="mt-2 max-w-prose text-body text-ink">
-          Close call — it sits just past the bar, so a re-run may read
-          differently. Adjust the words and run again.
+          Close call — this one sits only just above an unrelated group. A
+          re-run may read differently. Adjust the words and run again.
         </p>
       )}
       <p className="mt-2 max-w-prose text-body text-ink">
         {result.ceiling === null
-          ? "No unrelated audiences were measured, so there is nothing to compare this against."
-          : `Audiences with nothing to do with your idea score up to ${Math.round(result.ceiling * 100)}%. That is the bar your pitch has to beat.`}
+          ? "No unrelated group was measured, so there is nothing to compare this against."
+          : `An unrelated group matches it ${Math.round(result.ceiling * 100)}%.`}
       </p>
     </div>
   );
@@ -105,9 +110,9 @@ function verdictSentence(result: FlowResult): string {
     return "There was not enough measured data to judge this pitch.";
   }
   if (result.verdict === "weak") {
-    return "Nothing beat the bar, so there's no list of where to find them.";
+    return "No audience clearly fits your idea.";
   }
-  if (top === undefined) return "No audience beat the bar.";
+  if (top === undefined) return "No audience matched your idea.";
   return `Best fit: ${top.name}.`;
 }
 
