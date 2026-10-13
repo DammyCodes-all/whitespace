@@ -55,6 +55,15 @@ export interface ChatCompletionOptions extends LlmExecutionContext {
   extraHeaders?: Record<string, string>;
 }
 
+/** True for the 400 class where the provider rejected `response_format: json_object`. */
+function isJsonValidationFailure(status: number, body: string): boolean {
+  if (status !== 400) return false;
+  const lower = body.toLowerCase();
+  return (
+    lower.includes("json_validate") || lower.includes("failed to validate json")
+  );
+}
+
 export async function callChatCompletions(
   url: string,
   apiKey: string,
@@ -88,11 +97,11 @@ export async function callChatCompletions(
   controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
   const timer = setTimeout(() => controller.abort(), 20000);
   let res: Response | undefined;
-  try {
+  const postOnce = async (withJsonFormat: boolean): Promise<Response> => {
     controller.signal.throwIfAborted();
     options.onAttempt?.();
     controller.signal.throwIfAborted();
-    res = await Promise.race([
+    const sent = await Promise.race([
       fetch(url, {
         method: "POST",
         headers: {
@@ -103,7 +112,9 @@ export async function callChatCompletions(
         body: JSON.stringify({
           model,
           messages,
-          response_format: { type: "json_object" },
+          ...(withJsonFormat
+            ? { response_format: { type: "json_object" } }
+            : {}),
           temperature: options.temperature ?? 0.2,
           max_tokens: options.maxTokens ?? 1200,
         }),
@@ -112,16 +123,35 @@ export async function callChatCompletions(
       aborted,
     ]);
     controller.signal.throwIfAborted();
+    return sent;
+  };
+  const failure = (status: number, body: string): LlmError => {
+    const snippet = body.trim().slice(0, 200);
+    return new LlmError(
+      snippet.length > 0
+        ? `${provider} failed with status ${status}: ${snippet}`
+        : `${provider} failed with status ${status}.`,
+      provider,
+      true,
+    );
+  };
+  try {
+    res = await postOnce(true);
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      const snippet = body.trim().slice(0, 200);
-      throw new LlmError(
-        snippet.length > 0
-          ? `${provider} failed with status ${res.status}: ${snippet}`
-          : `${provider} failed with status ${res.status}.`,
-        provider,
-        true,
-      );
+      // Constrained-decoding rejections (Groq `json_validate_failed`)
+      // retry once without `response_format`: callers parse strictly
+      // via `extractJson`, so an unframed reply is fine. Scoped to
+      // this 400 class only — 429s, 5xx and timeouts keep existing
+      // behavior.
+      if (isJsonValidationFailure(res.status, body)) {
+        res = await postOnce(false);
+        if (!res.ok) {
+          throw failure(res.status, await res.text().catch(() => ""));
+        }
+      } else {
+        throw failure(res.status, body);
+      }
     }
     // Fetch headers completing does not end the deadline: a body may still stall.
     const data: unknown = await Promise.race([

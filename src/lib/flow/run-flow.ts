@@ -387,9 +387,11 @@ export async function runFlowPitch(
       if (bridgeWtags.length > 0) {
         bridgeNote = `, +${bridgeWtags.length} AI bridge${bridgeWtags.length === 1 ? "" : "s"} (${bridgeWtags.map((w) => w.label).join("; ")})`;
         bridgeCallId = tasteCalls[0]?.id ?? controlCached.calls[0]?.id;
+      } else {
+        bridgeNote = ", bridges unavailable, exact matches scored";
       }
     } catch {
-      // Silent bonus: the exact matches below are the result.
+      bridgeNote = ", bridges unavailable, exact matches scored";
     }
   }
   const flowWeightedTags: WeightedTag[] = [

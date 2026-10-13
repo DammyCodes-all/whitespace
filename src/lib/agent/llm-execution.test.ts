@@ -209,3 +209,74 @@ describe("callChatCompletions execution", () => {
     );
   });
 });
+
+describe("callChatCompletions JSON-validation retry", () => {
+  it("retries once without response_format after a 400 json_validate failure", async (t) => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetch = t.mock.method(
+      globalThis,
+      "fetch",
+      async (_url: unknown, init: RequestInit) => {
+        bodies.push(JSON.parse(String(init.body)) as Record<string, unknown>);
+        if (bodies.length === 1) {
+          return new Response(
+            JSON.stringify({
+              error: {
+                message:
+                  "Failed to validate JSON: json_validate_failed, constrained decoding stalled",
+                type: "json_validate_failed",
+                code: "json_validate_failed",
+              },
+            }),
+            { status: 400 },
+          );
+        }
+        return response('{"bridges":[]}');
+      },
+    );
+    const content = await complete();
+    assert.equal(content, '{"bridges":[]}');
+    assert.equal(fetch.mock.callCount(), 2);
+    assert.deepEqual((bodies[0] as Record<string, unknown>).response_format, {
+      type: "json_object",
+    });
+    assert.ok(!("response_format" in (bodies[1] ?? {})));
+    // Same prompt, same knobs — only the framing is dropped.
+    assert.deepEqual(bodies[1]?.messages, bodies[0]?.messages);
+    assert.equal(bodies[1]?.model, bodies[0]?.model);
+    assert.equal(bodies[1]?.temperature, bodies[0]?.temperature);
+    assert.equal(bodies[1]?.max_tokens, bodies[0]?.max_tokens);
+  });
+
+  it("still throws on a 400 without JSON-validation wording, with 1 fetch", async (t) => {
+    const fetch = t.mock.method(
+      globalThis,
+      "fetch",
+      async () =>
+        new Response(
+          JSON.stringify({ error: { message: "model not found" } }),
+          { status: 400 },
+        ),
+    );
+    await assert.rejects(complete(), LlmError);
+    assert.equal(fetch.mock.callCount(), 1);
+  });
+
+  it("leaves non-400 failures unchanged (429 and 5xx, 1 fetch each)", async (t) => {
+    let fetch = t.mock.method(
+      globalThis,
+      "fetch",
+      async () => new Response("synthetic rate limit", { status: 429 }),
+    );
+    await assert.rejects(complete(), LlmError);
+    assert.equal(fetch.mock.callCount(), 1);
+    fetch.mock.restore();
+    fetch = t.mock.method(
+      globalThis,
+      "fetch",
+      async () => new Response("synthetic provider outage", { status: 500 }),
+    );
+    await assert.rejects(complete(), LlmError);
+    assert.equal(fetch.mock.callCount(), 1);
+  });
+});

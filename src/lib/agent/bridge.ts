@@ -42,8 +42,16 @@ export interface BridgeRequest {
 
 /** Prompt-size bound: contenders-first order, strongest ranks first. */
 export const MAX_BRIDGE_CANDIDATES = 400;
+/**
+ * Per-audience taste trim: only the strongest 15 ids per list reach the
+ * prompt. Mirrors `EXPANSION_TOP_TASTES = 15`: ranks carry the signal,
+ * so cutting the long tail shortens the ~6k-char prompt and gives
+ * constrained decoding (`response_format: json_object`) better odds of
+ * validating instead of failing with `json_validate_failed`.
+ */
+export const BRIDGE_PER_LIST_TASTES = 15;
 /** Small JSON out: at most 4 bridges. */
-export const BRIDGE_MAX_TOKENS = 500;
+export const BRIDGE_MAX_TOKENS = 1500;
 /** Deterministic pointing, not prose. */
 export const BRIDGE_TEMPERATURE = 0;
 
@@ -56,8 +64,11 @@ export function isBridgeConfigured(): boolean {
 /**
  * Dedupe fetched tastes into the candidate list, preserving first-seen
  * order (callers pass contenders first; taste lists run strongest
- * first). Names fall back to the id when the parallel `tagNames` are
- * absent or misaligned. Pure, no I/O — exported for unit tests.
+ * first). Only the first 15 ids per audience list are taken (cf.
+ * `BRIDGE_PER_LIST_TASTES`): the long tail bloats the prompt and hurts
+ * constrained-decoding odds, while ranks carry the signal. Names fall
+ * back to the id when the parallel `tagNames` are absent or misaligned.
+ * Pure, no I/O — exported for unit tests.
  */
 export function availableFromTastes(
   tastes: readonly AudienceTastes[],
@@ -69,7 +80,8 @@ export function availableFromTastes(
     const aligned =
       taste.tagNames !== undefined &&
       taste.tagNames.length === taste.tagIds.length;
-    for (let index = 0; index < taste.tagIds.length; index += 1) {
+    const take = Math.min(taste.tagIds.length, BRIDGE_PER_LIST_TASTES);
+    for (let index = 0; index < take; index += 1) {
       const id = taste.tagIds[index];
       if (seen.has(id)) continue;
       seen.add(id);
