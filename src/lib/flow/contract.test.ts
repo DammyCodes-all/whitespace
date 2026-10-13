@@ -142,7 +142,54 @@ describe("toFlowResult", () => {
     assert.equal(out.ceiling, null);
   });
 
-  it("reach is null when nothing beats the ceiling, even with reach data", () => {
+  it("computes gaps for reach targets from already-fetched tastes", () => {
+    const pipeline = {
+      ...base(),
+      scores: [
+        measured("hyp", 0.8),
+        measured("rival-1", 0.5),
+        measured("control-1", 0.6),
+        measured("control-2", 0.4),
+      ],
+    };
+    const out = toFlowResult(pipeline, {
+      tastesByAudienceId: {
+        hyp: {
+          audienceId: "hyp",
+          tagIds: ["urn:t1", "urn:t2", "urn:t3"],
+          tagNames: ["T1", "T2", "T3"],
+        },
+      },
+    });
+    assert.ok(out.gaps.length >= 1);
+    const first = out.gaps[0];
+    assert.equal(first?.audienceId, "hyp");
+    assert.equal(first?.hasTastes, true);
+    // urn:t1 is pitched, so only the unpitched tastes are gaps.
+    assert.deepEqual(
+      first?.gaps.map((g) => g.label),
+      ["T2", "T3"],
+    );
+    assert.equal(first?.unlabeledCount, 0);
+  });
+
+  it("reports unknown loves when the target has no tastes", () => {
+    const pipeline = {
+      ...base(),
+      scores: [
+        measured("hyp", 0.8),
+        measured("rival-1", 0.5),
+        measured("control-1", 0.6),
+        measured("control-2", 0.4),
+      ],
+    };
+    const out = toFlowResult(pipeline);
+    assert.ok(out.gaps.length >= 1);
+    assert.equal(out.gaps[0]?.hasTastes, false);
+    assert.deepEqual(out.gaps[0]?.gaps, []);
+  });
+
+  it("reach is null and gaps are empty when nothing beats the ceiling", () => {
     const pipeline = {
       ...base(),
       verdict: {
@@ -164,6 +211,7 @@ describe("toFlowResult", () => {
     });
     assert.equal(out.verdict, "weak");
     assert.equal(out.reach, null);
+    assert.deepEqual(out.gaps, []);
   });
 
   it("no placeholder 0 reaches a reach list: unjudgeable targets are skipped", () => {

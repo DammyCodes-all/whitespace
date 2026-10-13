@@ -83,23 +83,10 @@ export async function POST(request: Request) {
   const top = barRows(result)[0];
   const topRow = result.audiences.find((a) => a.id === top?.id);
   if (top === undefined || topRow === undefined || topRow.titles.length === 0) {
-    return NextResponse.json({
-      changed: {
-        constraint,
-        proposedPitch: "",
-        usedGapLabels: [],
-        bar: { minRise: MIN_RISE, requireControl: true },
-        check: {
-          accepted: false,
-          failedCondition: "rise",
-          before: top?.score ?? 0,
-          after: top?.score ?? 0,
-        },
-        after: null,
-        coverageAfter: coverageBefore,
-        calls,
-      },
-    });
+    return NextResponse.json(
+      { error: "No audience was judged, so there is nothing to re-check." },
+      { status: 400 },
+    );
   }
 
   const audience: Audience = {
@@ -166,23 +153,13 @@ export async function POST(request: Request) {
   const before = scoreAll([tastes], matchedTags)[0];
   const after = scoreAll([tastes], afterTags)[0];
   if (before === undefined || after === undefined) {
-    return NextResponse.json({
-      changed: {
-        constraint,
-        proposedPitch,
-        usedGapLabels,
-        bar: { minRise: MIN_RISE, requireControl: true },
-        check: {
-          accepted: false,
-          failedCondition: "rise",
-          before: top.score,
-          after: top.score,
-        },
-        after: null,
-        coverageAfter,
-        calls,
+    return NextResponse.json(
+      {
+        error:
+          "The rewrite could not be scored, so the change cannot be checked.",
       },
-    });
+      { status: 400 },
+    );
   }
 
   const controlCached = await loadControlTastes(workType, CONTROL_COUNT);
