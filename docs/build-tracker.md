@@ -167,3 +167,4 @@ Format:
 | 2026-10-13 | Remove targeting-brief section from flow results view (builder module and tests stay) | n/a (spec silent on placement) | tsc clean; brief tests pass |
 | 2026-10-13 | Put compare verdict word on a verdict-fill band, neutral for Weak and Inconclusive | §6.11 | tsc clean |
 | 2026-10-13 | Rewrite compare left panel in plain words and drop top-audience cites | §6.11, §6.7 (§6.12 cites removed, same override) | tsc clean |
+| 2026-10-13 | Frame chatbot panel as unmeasured with a dashed card | design-direction §1 | tsc clean |
