@@ -37,9 +37,9 @@ function verdictBand(verdict: VerdictResult["verdict"]): string | null {
 }
 
 function barSentence(barDelta: number): string {
-  if (barDelta > 0) return `Beats the bar by ${barDelta}.`;
-  if (barDelta < 0) return `Misses the bar by ${-barDelta}.`;
-  return "Right on the bar.";
+  if (barDelta > 0) return `${barDelta} points above the bar.`;
+  if (barDelta < 0) return `${-barDelta} points below the bar.`;
+  return "Exactly on the bar.";
 }
 
 export function CompareView({
@@ -89,15 +89,17 @@ export function CompareView({
     verdict.verdict === "Inconclusive"
       ? "Not enough Qloo data to judge. Both sides are withheld."
       : verdict.clearsControl
-        ? "The measured result beats the chatbot guess. Left has Qloo evidence, right is ungrounded by design."
-        : "Neither method earned trust here. The measured result ran low, and the chatbot guess has no measurements.";
+        ? "Our answer is measured against Qloo. The chatbot's is a guess."
+        : "Neither answer can be trusted here. Ours ran low, and the chatbot's was never measured.";
 
   return (
     <section aria-label="Chatbot comparison" className="mt-12">
-      <h2 className="text-lg tracking-tight text-ink">Compare the readings</h2>
+      <h2 className="text-lg tracking-tight text-ink">
+        Two answers to the same pitch
+      </h2>
       <p className="mt-1 max-w-prose text-sm leading-relaxed text-ink-2">
-        Same pitch, two methods: Whitespace uses Qloo taste evidence; the
-        chatbot receives no Qloo tools.
+        Same pitch. Ours is measured against Qloo&apos;s taste data; the
+        chatbot&apos;s is not.
       </p>
       <p className="mt-2 max-w-prose text-sm font-medium leading-relaxed text-ink">
         {takeaway}
@@ -129,18 +131,21 @@ export function CompareView({
                 data-numeric
                 className="tnum ml-2 font-mono text-sm text-ink"
               >
-                {Math.round(topScore.score * 100)}%
+                {Math.round(topScore.score * 100)}% match
               </span>
             )}
           </p>
           {topScore !== undefined && (
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              {barSentence(barDelta)} Ahead of {secondName} by {secondDelta}.
+              {barSentence(barDelta)} The bar is the best score of audiences
+              with nothing to do with your idea. It is also {secondDelta} points
+              ahead of {secondName}, the next best.
             </p>
           )}
           {top !== undefined && top.titles.length > 0 && (
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              Measured from: {top.titles.map((title) => title.name).join(", ")}
+              Built from the titles you named:{" "}
+              {top.titles.map((title) => title.name).join(", ")}
               {top.notFoundTitles.length > 0 && (
                 <span className="font-mono text-xs text-ink-3">
                   {" "}

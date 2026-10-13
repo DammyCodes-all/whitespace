@@ -30,9 +30,18 @@ const SLOT_FILLS: Record<string, string> = {
 function marginLine(score: number, ceiling: number | null): string | null {
   if (ceiling === null) return null;
   const diff = Math.round((score - ceiling) * 100);
-  if (diff > 0) return `Beats the bar by ${diff}.`;
-  if (diff < 0) return `Misses the bar by ${-diff}.`;
-  return "Right on the bar.";
+  if (diff > 0) return `${diff} points past the bar.`;
+  if (diff < 0) return `${-diff} points short of the bar.`;
+  return "Exactly on the bar.";
+}
+
+/**
+ * §6.6 in plain words: Qloo ranks each audience's tastes strongest first,
+ * and the score is where your pitch's themes sit in that order. Naming
+ * the scale is the point — a bare "72%" tells a reader nothing.
+ */
+function scoreSentence(percent: number): string {
+  return `Qloo ranks the things this audience loves, strongest first. Your pitch's themes sit ${percent}% of the way up that list — 100% would mean they are its very top tastes.`;
 }
 
 function barFill(index: number): string {
@@ -48,6 +57,8 @@ function VerdictHeadline({
   result: FlowResult;
   orange: boolean;
 }) {
+  const rows = barRows(result);
+  const top = rows[0];
   return (
     <div
       className={`card px-6 py-5 ${VERDICT_FILLS[result.verdict]}`}
@@ -67,16 +78,21 @@ function VerdictHeadline({
           ? "Your best fit is not the audience you named."
           : verdictSentence(result)}
       </h2>
+      {top !== undefined && !result.surprise && (
+        <p className="mt-2 max-w-prose text-body text-ink">
+          {scoreSentence(Math.round(top.score * 100))}
+        </p>
+      )}
       {isCloseCall(result) && (
         <p className="mt-2 max-w-prose text-body text-ink">
-          Close call — this sits near the bar, so a re-run may read
-          differently. Tighten the words and run again.
+          Close call — it sits just past the bar, so a re-run may read
+          differently. Adjust the words and run again.
         </p>
       )}
       <p className="mt-2 max-w-prose text-body text-ink">
         {result.ceiling === null
-          ? "No unrelated baseline was measured, so there is no bar to beat."
-          : `Even people with nothing to do with your idea match it up to ${Math.round(result.ceiling * 100)}%. That's the bar your pitch has to beat.`}
+          ? "No unrelated audiences were measured, so there is nothing to compare this against."
+          : `Audiences with nothing to do with your idea score up to ${Math.round(result.ceiling * 100)}%. That is the bar your pitch has to beat.`}
       </p>
     </div>
   );
@@ -86,7 +102,7 @@ function verdictSentence(result: FlowResult): string {
   const rows = barRows(result);
   const top = rows[0];
   if (result.verdict === "inconclusive") {
-    return "Too little matched data to judge this pitch.";
+    return "There was not enough measured data to judge this pitch.";
   }
   if (result.verdict === "weak") {
     return "Nothing beat the bar, so there's no list of where to find them.";
@@ -103,6 +119,10 @@ function Bars({ result }: { result: FlowResult }) {
       <h3 className="text-base tracking-tight text-ink">
         Who fits best
       </h3>
+      <p className="mt-1 max-w-prose text-sm text-ink-2">
+        One bar per audience, best first. The ink line is the bar: the best
+        score of any audience that has nothing to do with your idea.
+      </p>
       <div className="mt-4">
         {rows.length === 0 ? (
           <p className="nodata px-3 py-2 font-mono text-xs text-ink-2">
