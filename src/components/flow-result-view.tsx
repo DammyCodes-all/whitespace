@@ -182,8 +182,8 @@ function ReachBlock({ result }: { result: FlowResult }) {
       <section aria-label="Where to find them" className="mt-8">
         <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
         <p className="mt-2 text-body text-ink-2">
-          Nothing beat the bar, so there is no list of where to find them.
-          The app says so instead of inventing one.
+          No audience scored above an unrelated group, so there is no list of
+          where to find them. The app says so instead of inventing one.
         </p>
       </section>
     );
@@ -193,7 +193,8 @@ function ReachBlock({ result }: { result: FlowResult }) {
       <section aria-label="Where to find them" className="mt-8">
         <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
         <p className="mt-2 text-body text-ink-2">
-          This audience beat the bar, but nothing they love was measured.
+          This audience scored above an unrelated group, but nothing they love
+          was measured.
         </p>
       </section>
     );
