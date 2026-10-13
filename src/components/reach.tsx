@@ -6,11 +6,11 @@ import type { ReactNode } from "react";
 /**
  * Day 7 U: reach plan with source links. Owned by U.
  *
- * Server Component rendering one block per reach audience: four
- * category shelves plus the loves-but-lacks gap list. Every item links
- * its Qloo call (§6.12); empty categories render the no-data state,
- * never a zero (§10 #4). Gaps are research leads, never pitch copy,
- * and say so (§6.8).
+ * Server Component rendering one block per reach audience: the picks
+ * regrouped as three ordered steps (listen, find, fit in) plus the
+ * loves-but-lacks gap list. Every item keeps its rank (§6.8); empty
+ * kinds render the no-data state, never a zero (§10 #4). Gaps are
+ * research leads, never pitch copy, and say so (§6.8).
  */
 
 export interface ReachAudience {
@@ -35,46 +35,57 @@ const KIND_LABELS: Record<RelatedKind, string> = {
   place: "Places",
 };
 
-/** Same kind, same color everywhere: mirrors the flow-side slot fills. */
-const SHELF_FILLS: Record<RelatedKind, string> = {
-  podcast: "bg-weak",
-  person: "bg-split",
-  brand: "bg-strong",
-  place: "bg-split",
-};
-
 function byKindOrder(a: RelatedResult, b: RelatedResult): number {
   return KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind);
 }
 
-function CategoryShelf({ group }: { group: RelatedResult }) {
+function itemsOf(
+  groups: RelatedResult[],
+  kind: RelatedKind,
+): RelatedResult["items"] {
+  return groups.filter((g) => g.kind === kind).flatMap((g) => g.items);
+}
+
+function PickRows({ items }: { items: RelatedResult["items"] }) {
   return (
-    <div className={`card p-4 sm:p-5 ${SHELF_FILLS[group.kind]}`}>
-      <h3 className="text-base tracking-tight text-ink">
-        {KIND_LABELS[group.kind]}
-      </h3>
-      {group.items.length === 0 ? (
-        <p className="nodata mt-3 px-2 py-2 font-mono text-xs text-ink-2">
-          not measured
-        </p>
-      ) : (
-        <ul className="mt-2 divide-y divide-rule">
-          {group.items.map((item) => (
-            <li
-              key={item.entityId}
-              className="flex items-baseline justify-between gap-4 py-2"
-            >
-              <p className="text-[15px] tracking-tight text-ink">{item.name}</p>
-              <p
-                data-numeric
-                className="tnum shrink-0 font-mono text-sm text-ink"
-              >
-                their #{item.affinityRank}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
+    <ul className="mt-2 divide-y divide-rule">
+      {items.map((item) => (
+        <li
+          key={item.entityId}
+          className="flex items-baseline justify-between gap-4 py-2"
+        >
+          <p className="text-[15px] tracking-tight text-ink">{item.name}</p>
+          <p
+            data-numeric
+            className="tnum shrink-0 font-mono text-sm text-ink"
+          >
+            their #{item.affinityRank}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function EmptyKind() {
+  return (
+    <p className="nodata mt-3 px-2 py-2 font-mono text-xs text-ink-2">
+      not measured
+    </p>
+  );
+}
+
+function KindBlock({
+  label,
+  items,
+}: {
+  label: string;
+  items: RelatedResult["items"];
+}) {
+  return (
+    <div className="mt-3">
+      <h4 className="text-base tracking-tight text-ink">{label}</h4>
+      {items.length === 0 ? <EmptyKind /> : <PickRows items={items} />}
     </div>
   );
 }
@@ -174,13 +185,47 @@ export function ReachPlan({
                 {totalItems} picks across {kindsMeasured} of the 4 kinds.
               </span>
             </p>
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              {sorted.map((related, index) => (
-                <CategoryShelf
-                  key={`${related.kind}-${index}`}
-                  group={related}
+            <div className="mt-4 grid gap-4">
+              <div className="card bg-weak p-4 sm:p-5">
+                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
+                  Step 1 · Listen first
+                </p>
+                <p className="mt-1 text-sm text-ink-2">
+                  Start with what they listen to.
+                </p>
+                <KindBlock
+                  label={KIND_LABELS.podcast}
+                  items={itemsOf(sorted, "podcast")}
                 />
-              ))}
+              </div>
+              <div className="card bg-split p-4 sm:p-5">
+                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
+                  Step 2 · Find them
+                </p>
+                <p className="mt-1 text-sm text-ink-2">
+                  Voices they follow, places they go.
+                </p>
+                <KindBlock
+                  label={KIND_LABELS.person}
+                  items={itemsOf(sorted, "person")}
+                />
+                <KindBlock
+                  label={KIND_LABELS.place}
+                  items={itemsOf(sorted, "place")}
+                />
+              </div>
+              <div className="card bg-strong p-4 sm:p-5">
+                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
+                  Step 3 · Fit in
+                </p>
+                <p className="mt-1 text-sm text-ink-2">
+                  Brands already in their lives.
+                </p>
+                <KindBlock
+                  label={KIND_LABELS.brand}
+                  items={itemsOf(sorted, "brand")}
+                />
+              </div>
             </div>
             {groupIndex === 0 && gapAside !== undefined ? (
               <div className="mt-4 grid gap-4 md:grid-cols-12">
