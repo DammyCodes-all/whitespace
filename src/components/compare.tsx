@@ -1,13 +1,7 @@
 import type { ChatbotView } from "@/components/chatbot-preview";
 import type { Audience, FitScore, VerdictResult } from "@/lib/types";
 
-function ChatbotTitles({
-  chatbot,
-  callId,
-}: {
-  chatbot: ChatbotView;
-  callId?: string;
-}) {
+function ChatbotTitles({ chatbot }: { chatbot: ChatbotView }) {
   return (
     <ul className="mt-4 divide-y divide-rule border-y border-rule">
       {chatbot.found.map((title) => (
@@ -16,18 +10,9 @@ function ChatbotTitles({
           className="flex items-baseline justify-between gap-4 py-2"
         >
           <span className="text-sm text-ink">{title.name}</span>
-          {callId === undefined ? (
-            <span className="shrink-0 font-mono text-xs text-ink-2">
-              found in Qloo
-            </span>
-          ) : (
-            <a
-              href={`#${callId}`}
-              className="cite shrink-0 font-mono text-xs text-ink-2"
-            >
-              found in Qloo [e]
-            </a>
-          )}
+          <span className="shrink-0 font-mono text-xs text-ink-2">
+            in Qloo&apos;s catalog
+          </span>
         </li>
       ))}
       {chatbot.notFoundTitles.map((query) => (
@@ -36,18 +21,9 @@ function ChatbotTitles({
           className="flex items-baseline justify-between gap-4 py-2"
         >
           <span className="text-sm text-ink-3">{query}</span>
-          {callId === undefined ? (
-            <span className="shrink-0 font-mono text-xs text-clay">
-              not found
-            </span>
-          ) : (
-            <a
-              href={`#${callId}`}
-              className="cite shrink-0 font-mono text-xs text-clay"
-            >
-              not found [e]
-            </a>
-          )}
+          <span className="shrink-0 font-mono text-xs text-clay">
+            Qloo doesn&apos;t know it
+          </span>
         </li>
       ))}
     </ul>
@@ -72,14 +48,12 @@ export function CompareView({
   audiences,
   scores,
   verdict,
-  chatbotCallId,
 }: {
   chatbot: ChatbotView | null;
   error: string | null;
   audiences: Audience[];
   scores: FitScore[];
   verdict: VerdictResult;
-  chatbotCallId?: string;
 }) {
   const top = audiences.find(
     (audience) => audience.id === verdict.topAudienceId,
@@ -199,22 +173,11 @@ export function CompareView({
               <p className="mt-4 max-w-prose text-sm leading-relaxed text-ink-2">
                 {chatbot.answer}
               </p>
-              <p className="mt-4 font-mono text-xs text-ink-2">
-                <span data-numeric className="tnum">
-                  Titles check: {foundCount}/{totalCount} exist in Qloo. Advice
-                  unmeasured.
-                </span>
-                {chatbotCallId !== undefined && (
-                  <a
-                    href={`#${chatbotCallId}`}
-                    className="cite ml-1"
-                    aria-label="Evidence for chatbot title checks"
-                  >
-                    [e]
-                  </a>
-                )}
+              <p className="mt-4 text-sm leading-relaxed text-ink-2">
+                {foundCount} of {totalCount} titles exist in Qloo. The advice
+                itself wasn&apos;t measured.
               </p>
-              <ChatbotTitles chatbot={chatbot} callId={chatbotCallId} />
+              <ChatbotTitles chatbot={chatbot} />
             </>
           )}
         </div>
