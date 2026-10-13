@@ -259,7 +259,12 @@ describe("bridged scoring", () => {
       exact.map((s) => s.score),
     );
     assert.ok(
-      withDistant[0]?.matchedTags.includes("lonely→Bridged Name (AI: distant)"),
+      withDistant[0]?.zeroTags.includes("lonely→Bridged Name (AI: distant)"),
+    );
+    assert.ok(
+      !withDistant[0]?.matchedTags.includes(
+        "lonely→Bridged Name (AI: distant)",
+      ),
     );
   });
 

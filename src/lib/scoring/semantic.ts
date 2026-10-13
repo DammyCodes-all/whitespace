@@ -143,7 +143,8 @@ export function bridgeLabel(
  * Turn validated bridges into weighted tags following the
  * `WeightedTag` pattern (`fit.ts`): fixed bucket weights, pinned
  * false, label `word→Tag Name (AI: bucket)`. Distant-zero entries are
- * kept so they render as considered-but-zero. Deterministic.
+ * kept so they render as considered-but-zero (the scorer files them
+ * under `zeroTags`, never `matchedTags`). Deterministic.
  */
 export function bridgesToWeightedTags(
   bridges: readonly Bridge[],

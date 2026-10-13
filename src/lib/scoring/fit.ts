@@ -155,6 +155,14 @@ export function scoreAudienceWeighted(
       zeroTags.push(label);
       continue;
     }
+    // Considered-but-zero entries (distant AI bridges carry weight 0):
+    // the label renders so the reader sees the consideration, but the
+    // tag reads as a zero, never a match — nothing downstream may count
+    // it as evidence.
+    if (weight === 0) {
+      zeroTags.push(label);
+      continue;
+    }
 
     matchedTags.push(label);
     weightedStrength += weight * rankStrength(rank, total);
