@@ -8,7 +8,6 @@
  * always carries its word), §6 (no number without evidence).
  */
 
-import { CopyBriefButton } from "@/components/copy-brief-button";
 import { REACH_SLOTS, VERDICT_WORDS } from "@/lib/flow/brief";
 import type { FlowBarRow, FlowResult } from "@/lib/flow/contract";
 import { barRows, isCloseCall } from "@/lib/flow/contract";
@@ -248,13 +247,6 @@ export function FlowResultView({
       <VerdictHeadline result={result} orange={orangeVerdict} />
       <Bars result={result} />
       <ReachBlock result={result} />
-      <section aria-label="Targeting brief" className="mt-8">
-        <h3 className="text-base tracking-tight text-ink">Targeting brief</h3>
-        <p className="mt-1 max-w-prose text-body text-ink-2">
-          A one-page summary you can paste anywhere.
-        </p>
-        <CopyBriefButton result={result} />
-      </section>
     </div>
   );
 }
