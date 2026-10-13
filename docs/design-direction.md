@@ -103,7 +103,8 @@ Wired Oct 5, changed Oct 10. Do not re-declare any of this in a component.
 | Tokens, `--strong` and friends | `src/app/globals.css`, `:root` (the `.dark` block can go) |
 | Tailwind utilities (`bg-paper`, `text-ink-3`, `border-rule`, `bg-strong`) | same file, `@theme inline` |
 | Font variables | `src/app/layout.tsx` via `next/font/google`, replacing the Instrument trio |
-| `.card`, `.nodata`, `.cite` | `globals.css`, `@layer utilities` |
+| `.card` | `globals.css`, `@layer components` (one layer below utilities, so fill classes win over the default surface) |
+| `.nodata`, `.cite` | `globals.css`, `@layer utilities` |
 | Print rules | `globals.css`, `@media print` |
 
 Token names from the Oct 5 wiring are kept so existing utilities keep working, but a few changed meaning:
