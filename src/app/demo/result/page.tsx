@@ -72,8 +72,6 @@ export default function DemoResultPage() {
           audiences={DEMO_MOCK_AUDIENCES}
           scores={DEMO_MOCK_SCORES}
           verdict={DEMO_MOCK_VERDICT}
-          topCallId="ds-call-tastes-2"
-          chatbotCallId="ds-call-chatbot"
         />
       </div>
     </main>
