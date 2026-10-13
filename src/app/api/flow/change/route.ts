@@ -107,23 +107,13 @@ export async function POST(request: Request) {
   );
   if (tasteCall !== null) calls.push(tasteCall);
   if (tastes.failed === true) {
-    return NextResponse.json({
-      changed: {
-        constraint,
-        proposedPitch: "",
-        usedGapLabels: [],
-        bar: { minRise: MIN_RISE, requireControl: true },
-        check: {
-          accepted: false,
-          failedCondition: "rise",
-          before: top.score,
-          after: top.score,
-        },
-        after: null,
-        coverageAfter: coverageBefore,
-        calls,
+    return NextResponse.json(
+      {
+        error:
+          "The audience's tastes could not be measured, so the change cannot be checked.",
       },
-    });
+      { status: 400 },
+    );
   }
 
   const labels = labelsForTastes(tastes, {});
