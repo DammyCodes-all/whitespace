@@ -164,3 +164,4 @@ Format:
 | 2026-10-12 | Rename reach plan to where to find them in plain words | §6.7 | tsc clean |
 | 2026-10-12 | Render reach slots as cards with Places spanning full width | design-direction §§1, 3 | tsc clean |
 | 2026-10-12 | Give each reach slot a fixed fill (interests mint, people yellow, podcasts blue, brands mint, places yellow) | design-direction §3 | tsc clean |
+| 2026-10-13 | Remove targeting-brief section from flow results view (builder module and tests stay) | n/a (spec silent on placement) | tsc clean; brief tests pass |
