@@ -6,37 +6,381 @@
  * fixture: nothing in this file touches Qloo or the LLM, and nothing it
  * renders may pass for a live run (design-direction.md §6).
  *
- * Existing mock fixtures are reused rather than copied, so the showcase
- * and the /run skeleton cannot drift apart. Audience ids still double as
- * keys into src/lib/fixtures/taste-lists.ts (see mock-run.ts).
+ * The small mock fixtures below used to live in the deleted v1 modules
+ * (`src/lib/demo/mock-run.ts`, `src/lib/agent/propose.ts`,
+ * `src/components/pitch-form-utils.ts`). They are inlined here so the
+ * /demo showcase keeps rendering without the v1 pipeline.
  */
 
 import type { ChatbotView } from "@/components/chatbot-preview";
 import type { EvidenceLine } from "@/components/evidence";
-import type { Suggestion } from "@/components/pitch-form-utils";
-import type { ProposeRival } from "@/lib/agent/propose";
-import {
-  mockAudiences,
-  mockChangedAccepted,
-  mockChangedWithheld,
-  mockGaps,
-  mockInput,
-  mockRelated,
-  mockScores,
-  mockSteps,
-  mockUnlabeledCount,
-  mockVerdict,
-} from "@/lib/demo/mock-run";
 import type { FlowEvidence, FlowResult, FlowTag } from "@/lib/flow/contract";
 import type { ChangedRun } from "@/lib/pipeline/change";
 import type { RelatedResult } from "@/lib/qloo/related";
+import type { GapItem } from "@/lib/scoring/gaps";
 import type {
   Audience,
+  FitScore,
+  PitchInput,
   QlooCall,
   RunStep,
   VerdictResult,
   WorkType,
 } from "@/lib/types";
+
+/** Inlined from the deleted `src/components/pitch-form-utils.ts`. */
+export interface Suggestion {
+  key: string;
+  name: string;
+}
+
+/** Inlined from the deleted `src/lib/agent/propose.ts`. */
+export interface ProposeRival {
+  id: string;
+  name: string;
+  reason: string;
+  titles: string[];
+}
+
+/* ─────────────────────────────────────────────────────────
+ * Inlined v1 mock fixtures (were `src/lib/demo/mock-run.ts`).
+ * Shapes conform to src/lib/types.ts.
+ * ───────────────────────────────────────────────────────── */
+
+const mockInput: PitchInput = {
+  pitchText:
+    "A quiet science-fiction film about a lonely worker on a space station.",
+  workType: "film",
+  nothingLike: ["Fast franchise action"],
+};
+
+const mockSteps: RunStep[] = [
+  {
+    id: "hypothesis",
+    label: "Hypothesis audience",
+    status: "done",
+    detail: "4 checked, 3 found, 1 not found",
+    callId: "call-search-1",
+  },
+  {
+    id: "rivals",
+    label: "Rival readings",
+    status: "done",
+    detail: "3 built, 0 replaced",
+    callId: "call-search-2",
+  },
+  {
+    id: "controls",
+    label: "Control audiences",
+    status: "done",
+    detail: "20 unrelated",
+    callId: "call-insights-1",
+  },
+  {
+    id: "tags",
+    label: "Pitch tags",
+    status: "done",
+    detail: "coverage 4 of 6",
+    callId: "call-search-3",
+  },
+  {
+    id: "score",
+    label: "Fit scores",
+    status: "done",
+    detail: "rank-normalized 0 to 1",
+  },
+  {
+    id: "verdict",
+    label: "Control test and verdict",
+    status: "done",
+    detail: "Strong, top rival-lit",
+  },
+];
+
+const mockAudiences: Audience[] = [
+  {
+    id: "hyp",
+    kind: "hypothesis",
+    name: "Slow science-fiction",
+    titles: [
+      {
+        query: "Moon",
+        qlooId: "moon-id",
+        name: "Moon",
+        type: "urn:entity:movie",
+      },
+      {
+        query: "Arrival",
+        qlooId: "arrival-id",
+        name: "Arrival",
+        type: "urn:entity:movie",
+      },
+    ],
+    notFoundTitles: ["Dune"],
+  },
+  {
+    id: "rival-lit",
+    kind: "rival",
+    name: "Literary fiction about isolation",
+    reason: "Reads the station as solitude, not spectacle.",
+    titles: [
+      {
+        query: "Never Let Me Go",
+        qlooId: "nlmg-id",
+        name: "Never Let Me Go",
+        type: "urn:entity:book",
+      },
+    ],
+    notFoundTitles: [],
+  },
+  {
+    id: "rival-amb",
+    kind: "rival",
+    name: "Ambient music listeners",
+    reason: "Reads the quiet as the point, not the setting.",
+    titles: [
+      {
+        query: "Brian Eno",
+        qlooId: "eno-id",
+        name: "Brian Eno",
+        type: "urn:entity:artist",
+      },
+    ],
+    notFoundTitles: [],
+  },
+];
+
+const mockScores: FitScore[] = [
+  {
+    audienceId: "rival-lit",
+    score: 0.72,
+    matchedTags: ["solitude", "slow-burn"],
+    zeroTags: ["space"],
+    noDataTags: [],
+  },
+  {
+    audienceId: "hyp",
+    score: 0.61,
+    matchedTags: ["slow-burn", "space"],
+    zeroTags: ["solitude"],
+    noDataTags: [],
+  },
+  {
+    audienceId: "rival-amb",
+    score: 0.44,
+    matchedTags: ["quiet"],
+    zeroTags: ["solitude"],
+    noDataTags: ["slow-burn"],
+  },
+];
+
+const mockVerdict: VerdictResult = {
+  verdict: "Strong",
+  topAudienceId: "rival-lit",
+  marginTopVsSecond: 0.11,
+  marginTopVsControl: 0.28,
+  clearsControl: true,
+  surprise: true,
+};
+
+const mockCalls: QlooCall[] = [
+  {
+    id: "call-search-1",
+    endpoint: "/search",
+    method: "GET",
+    params: { query: "Moon", types: "urn:entity:movie" },
+    status: 200,
+    durationMs: 212,
+    at: new Date().toISOString(),
+    fromCache: true,
+  },
+  {
+    id: "call-search-2",
+    endpoint: "/search",
+    method: "GET",
+    params: { query: "Never Let Me Go" },
+    status: 200,
+    durationMs: 188,
+    at: new Date().toISOString(),
+    fromCache: true,
+  },
+  {
+    id: "call-insights-1",
+    endpoint: "/v2/insights",
+    method: "GET",
+    params: { "signal.interests.entities": "moon-id" },
+    status: 200,
+    durationMs: 342,
+    at: new Date().toISOString(),
+    fromCache: true,
+  },
+  {
+    id: "call-search-3",
+    endpoint: "/v2/insights",
+    method: "GET",
+    params: { query: "slow-burn tag" },
+    status: 200,
+    durationMs: 96,
+    at: new Date().toISOString(),
+    fromCache: true,
+  },
+];
+
+const mockRelated: RelatedResult[] = [
+  {
+    kind: "podcast",
+    items: [
+      {
+        entityId: "p01",
+        name: "Deep Dive Podcast",
+        kind: "podcast",
+        affinityRank: 1,
+        callId: "call-search-1",
+      },
+      {
+        entityId: "p02",
+        name: "Slow Burn Audio",
+        kind: "podcast",
+        affinityRank: 2,
+        callId: "call-search-1",
+      },
+      {
+        entityId: "p05",
+        name: "Quiet Minds",
+        kind: "podcast",
+        affinityRank: 3,
+        callId: "call-search-1",
+      },
+      {
+        entityId: "p07",
+        name: "Static Bloom",
+        kind: "podcast",
+        affinityRank: 4,
+        callId: "call-search-1",
+      },
+      {
+        entityId: "p08",
+        name: "Night Signal",
+        kind: "podcast",
+        affinityRank: 5,
+        callId: "call-search-1",
+      },
+    ],
+    call: mockCalls[0],
+  },
+  {
+    kind: "person",
+    items: [
+      {
+        entityId: "pe01",
+        name: "Mara Voss",
+        kind: "person",
+        affinityRank: 1,
+        callId: "call-search-2",
+      },
+      {
+        entityId: "pe02",
+        name: "Jonas Feld",
+        kind: "person",
+        affinityRank: 2,
+        callId: "call-search-2",
+      },
+      {
+        entityId: "pe03",
+        name: "Ayo Balogun",
+        kind: "person",
+        affinityRank: 3,
+        callId: "call-search-2",
+      },
+      {
+        entityId: "pe04",
+        name: "Suki Tanaka",
+        kind: "person",
+        affinityRank: 4,
+        callId: "call-search-2",
+      },
+    ],
+    call: mockCalls[1],
+  },
+  {
+    kind: "brand",
+    items: [
+      {
+        entityId: "b01",
+        name: "Field Notes",
+        kind: "brand",
+        affinityRank: 1,
+        callId: "call-search-3",
+      },
+      {
+        entityId: "b02",
+        name: "Teenage Engineering",
+        kind: "brand",
+        affinityRank: 2,
+        callId: "call-search-3",
+      },
+      {
+        entityId: "b04",
+        name: "Muji",
+        kind: "brand",
+        affinityRank: 3,
+        callId: "call-search-3",
+      },
+    ],
+    call: mockCalls[3],
+  },
+  {
+    kind: "place",
+    items: [],
+    call: mockCalls[2],
+  },
+];
+
+const mockGaps: GapItem[] = [
+  { tagId: "urn:tag:theme:media:solitude", label: "solitude", rank: 1 },
+  { tagId: "urn:tag:mood:media:quiet", label: "quiet", rank: 2 },
+  { tagId: "urn:tag:theme:media:grief", label: "grief", rank: 3 },
+];
+
+const mockUnlabeledCount = 2;
+
+function mockChanged(
+  failedCondition: ChangedRun["check"]["failedCondition"],
+  after: number,
+): ChangedRun {
+  return {
+    constraint: "Lower budget",
+    proposedPitch:
+      "A quiet science-fiction film, within lower budget: solitude.",
+    usedGapLabels: ["solitude"],
+    bar: { minRise: 0.05, requireControl: true },
+    check:
+      failedCondition === undefined
+        ? { accepted: true, before: 0.61, after }
+        : { accepted: false, failedCondition, before: 0.61, after },
+    after:
+      failedCondition === undefined
+        ? {
+            audienceId: "rival-lit",
+            score: after,
+            matchedTags: ["solitude", "slow-burn"],
+            zeroTags: [],
+            noDataTags: [],
+          }
+        : null,
+    coverageAfter: 0.8,
+    calls: [mockCalls[2]],
+  };
+}
+
+const mockChangedAccepted: ChangedRun = mockChanged(undefined, 0.72);
+
+const mockChangedWithheld: Record<string, ChangedRun> = {
+  rise: mockChanged("rise", 0.62),
+  coverage: mockChanged("coverage", 0.7),
+  grounding: mockChanged("grounding", 0.7),
+  control: mockChanged("control", 0.7),
+};
 
 /* ─────────────────────────────────────────────────────────
  * Tokens, restated for the swatch grid.

@@ -4,7 +4,6 @@ import {
   ChangeSection,
   ColorSection,
   CompareSection,
-  ConfirmSection,
   EvidenceSection,
   InputsSection,
   LoadersSection,
@@ -49,7 +48,6 @@ const NAV = [
   { id: "reach", label: "Reach" },
   { id: "change", label: "Change" },
   { id: "compare", label: "Compare" },
-  { id: "confirm", label: "Confirm" },
   { id: "screens", label: "Screens" },
 ];
 
@@ -122,7 +120,6 @@ export default function DemoPage() {
           <ReachSection />
           <ChangeSection />
           <CompareSection />
-          <ConfirmSection />
           <ScreensSection />
         </div>
       </main>

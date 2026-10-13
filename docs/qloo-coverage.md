@@ -298,3 +298,26 @@ ceiling-is-0-with-empty-top-tagHits, not on "many zeros".
 
 Fix queued (not built): all-zero opposition → provisional, never
 Strong (§6.7, §10 #4).
+
+## AI word-bridge scoring (2026-10-13, no live calls)
+
+Why it exists: strict word-for-word scoring understates fit whenever
+the pitch's language and Qloo's taste language sit at different
+levels. Live symptom: heist/western runs scored flat 0.00 despite 3/3
+titles resolving — the meaning was in the tastes, the exact tag IDs
+were not. Mood/atmosphere pitches suffer most; genre-label pitches
+suffer least. The older expansion retry (`space`→`Outer Space`) proved
+a capped, labeled second chance can flip Weak to Strong with no new
+Qloo calls; the bridge generalizes it to true semantic links
+(`lonely`→`solitude`) that strict containment can never catch.
+
+Locked rules (spec refs §6.6, §7, §8): the AI only points leftover
+words at already-fetched taste ids plus a bucket — strong 0.75,
+related 0.5, distant 0 (considered, not counted). Max 4 bridges per
+run; pinned must-haves stay exact-only; buckets-only output or the
+run continues on exact matches; AI failure falls back silently;
+every bridge renders as `word→Tag (AI: bucket)`. Fixed weights live
+in code, so the AI points and our code scores — determinism (§10 #7)
+and grounding (§8, §6.12) survive. Acceptance bar: bridges must widen
+gaps (right audience rises, wrong ones stay), never inflate everyone
+together — re-check on the 6-pitch table.
