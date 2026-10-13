@@ -29,6 +29,12 @@ import { interestsFromTastes } from "../qloo/interests.ts";
 import type { RelatedResult } from "../qloo/related.ts";
 import type { AudienceTastes } from "../scoring/fit.ts";
 import { isUnjudgeable } from "../scoring/fit.ts";
+import type { GapItem } from "../scoring/gaps.ts";
+import {
+  countUnlabeled,
+  findGaps,
+  labelsForTastes,
+} from "../scoring/gaps.ts";
 import type {
   Audience,
   FitScore,
