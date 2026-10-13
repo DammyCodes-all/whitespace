@@ -28,6 +28,7 @@ function rowsFrom(scores: FlowAudienceScore[]): FlowResult {
     verdict: "strong",
     surprise: false,
     reach: [],
+    gaps: [],
     evidence: {},
     qlooCalls: { network: 0, cached: 0, total: 0 },
   };
@@ -43,6 +44,7 @@ describe("no placeholder 0 reaches a bar or reach list", () => {
         score: 0,
         tagHits: [],
         evidenceId: null,
+        titles: [],
       },
       {
         id: "b",
@@ -51,6 +53,7 @@ describe("no placeholder 0 reaches a bar or reach list", () => {
         score: null,
         tagHits: [],
         evidenceId: null,
+        titles: [],
       },
     ]);
     const rows = barRows(result);
@@ -76,6 +79,7 @@ describe("no placeholder 0 reaches a bar or reach list", () => {
         score: null,
         tagHits: [],
         evidenceId: null,
+        titles: [],
       },
       {
         id: "b",
@@ -84,6 +88,7 @@ describe("no placeholder 0 reaches a bar or reach list", () => {
         score: 0.42,
         tagHits: ["x"],
         evidenceId: null,
+        titles: [],
       },
     ]);
     for (const row of reachableScores(result)) {
@@ -111,6 +116,7 @@ describe("close-call flag", () => {
                 score: topScore,
                 tagHits: ["x"],
                 evidenceId: null,
+                titles: [],
               },
             ],
       ),
