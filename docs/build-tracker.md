@@ -169,3 +169,4 @@ Format:
 | 2026-10-13 | Rewrite compare left panel in plain words and drop top-audience cites | §6.11, §6.7 (§6.12 cites removed, same override) | tsc clean |
 | 2026-10-13 | Frame chatbot panel as unmeasured with a dashed card | design-direction §1 | tsc clean |
 | 2026-10-13 | Rewrite chatbot title checks in plain words and drop chatbot cites | §6.11 (§6.12 cites removed, same override) | tsc clean |
+| 2026-10-13 | Restore reach header styling missed in the commit split (larger group names, quieter explainer) | design-direction §4 | tsc clean |

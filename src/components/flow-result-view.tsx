@@ -186,12 +186,12 @@ function ReachBlock({ result }: { result: FlowResult }) {
   return (
     <section aria-label="Where to find them" className="mt-8">
       <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
-      <p className="mt-1 max-w-prose text-body text-ink-2">
+      <p className="mt-1 max-w-prose text-sm text-ink-3">
         What these audiences already love.
       </p>
       {reach.map((group) => (
-        <div key={group.audienceId} className="mt-4">
-          <p className="font-serif text-lg tracking-tight text-ink">
+        <div key={group.audienceId} className="mt-5">
+          <p className="font-serif text-3xl leading-tight tracking-tight text-ink">
             {group.audienceName}
           </p>
           <div className="mt-2 grid gap-4 sm:grid-cols-2">
