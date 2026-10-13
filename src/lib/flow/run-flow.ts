@@ -43,6 +43,7 @@ import {
 } from "../qloo/index.ts";
 import type { RelatedResult } from "../qloo/related.ts";
 import { type AudienceTastes, scoreAll } from "../scoring/fit.ts";
+import { eligibleControls } from "../scoring/overlap.ts";
 import type {
   Audience,
   PipelineResult,
@@ -283,13 +284,32 @@ export async function runFlowPitch(
     options.controlCount ?? CONTROL_COUNT,
   );
   calls.push(...controlCached.calls);
+  // Pitch-aware ceiling, same rule as the v1 pipeline: controls too
+  // close to the named audience do not set the verdict ceiling. No
+  // named audience means nothing to compare against, so all controls
+  // stay eligible.
+  const controlEligibility =
+    hypothesis === null
+      ? {
+          eligible: controlCached.controls,
+          excluded: [],
+          filtered: false,
+          fellBack: false,
+        }
+      : eligibleControls(hypothesis, controlCached.controls);
+  const flowControlsBase = controlCached.fromCache
+    ? `${controlCached.controls.length} from cache, 0 Qloo calls`
+    : `${controlCached.controls.length} built, ${controlCached.droppedControls.length} dropped`;
+  const flowControlsDetail = controlEligibility.filtered
+    ? `${flowControlsBase}, ${controlEligibility.excluded.length} excluded as too close to hypothesis`
+    : controlEligibility.fellBack
+      ? `${flowControlsBase}, overlap filter fell back (all too close to hypothesis)`
+      : flowControlsBase;
   steps.push(
     doneStep(
       "controls",
       "Control audiences",
-      controlCached.fromCache
-        ? `${controlCached.controls.length} from cache, 0 Qloo calls`
-        : `${controlCached.controls.length} built, ${controlCached.droppedControls.length} dropped`,
+      flowControlsDetail,
       controlCached.calls[0]?.id,
     ),
   );
@@ -341,10 +361,16 @@ export async function runFlowPitch(
     ),
   );
 
+  const eligibleControlIds = new Set(
+    controlEligibility.eligible.map((c) => c.id),
+  );
+  const verdictControlScores = controlEligibility.filtered
+    ? controlScores.filter((s) => eligibleControlIds.has(s.audienceId))
+    : controlScores;
   const verdict = decideVerdict({
     hypothesisId: "hyp",
     scores: contenderScores,
-    controlScores,
+    controlScores: verdictControlScores,
     coverage,
   });
   steps.push(

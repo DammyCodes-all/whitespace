@@ -185,3 +185,4 @@ Format:
 | 2026-10-14 | Set gaps footer to white per user request (note: ~1.4:1 on yellow, below the 4.5:1 floor, rule left intact) | design-direction §Verification (violates) | tsc clean; served HTML verified |
 | 2026-10-14 | Raise change-card body and Addresses lines to full ink on the mint fill (11.2:1, per verdict-fill rule) | design-direction §3 | tsc clean; biome lint clean; served HTML verified |
 | 2026-10-14 | Redesign reach shelves as filled cards (same kind colors as flow side), their-N ranks, cites out, plain coverage line, per council verdict | §6.8 (§6.12 cites removed, same override) | tsc clean; biome lint clean; 200/200 tests; /demo serves fills with zero shelf cites |
+| 2026-10-13 | Exclude hypothesis-neighbor controls from verdict ceiling with full-set fallback | §6.4, §6.7 | tsx 16 pass (4 new); tsc clean; biome clean |
