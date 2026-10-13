@@ -1,5 +1,6 @@
 import type { ChatbotView } from "@/components/chatbot-preview";
 import type { Audience, FitScore, VerdictResult } from "@/lib/types";
+import { buildCopy } from "@/lib/compare/copy";
 
 function ChatbotTitles({ chatbot }: { chatbot: ChatbotView }) {
   return (
@@ -36,16 +37,6 @@ function verdictBand(verdict: VerdictResult["verdict"]): string | null {
   return null;
 }
 
-/**
- * §6.7 in plain words. The bar was a metaphor nobody could decode, the old
- * sentence used the term before defining it, and it made the reader
- * subtract. The panel now states each score outright: the audience, the
- * unrelated level, the runner-up. No pronouns, no differences.
- */
-function unrelatedLevel(topScore: number, marginTopVsControl: number): number {
-  return Math.round((topScore - marginTopVsControl) * 100);
-}
-
 export function CompareView({
   chatbot,
   error,
@@ -72,32 +63,35 @@ export function CompareView({
   const runnerUpAudience = runnerUp
     ? audiences.find((audience) => audience.id === runnerUp.audienceId)
     : undefined;
-  const secondName =
-    top === undefined ? "second" : (runnerUpAudience?.name ?? "second");
-  // Each score stated outright. No differences, no subtraction: the panel
-  // shows the audience's number, the unrelated level, and the runner-up's.
-  const topPct = topScore === undefined ? 0 : Math.round(topScore.score * 100);
-  const barPct =
-    topScore === undefined
-      ? 0
-      : unrelatedLevel(topScore.score, verdict.marginTopVsControl);
-  const runnerUpPct =
-    runnerUp === undefined ? 0 : Math.round(runnerUp.score * 100);
   const foundCount = chatbot?.found.length ?? 0;
   const totalCount = foundCount + (chatbot?.notFoundTitles.length ?? 0);
   const emptyMessage =
     error?.startsWith("not measured") === true
       ? error
       : `not measured: ${error ?? "Chatbot comparison unavailable."}`;
-  const verdictLabel =
-    verdict.verdict === "Strong"
-      ? "Strong fit"
-      : verdict.verdict === "Weak"
-        ? "Weak fit"
-        : verdict.verdict === "Mixed"
-          ? "Mixed fit"
-          : verdict.verdict;
   const band = verdictBand(verdict.verdict);
+  const copy = buildCopy({
+    verdict: verdict.verdict,
+    best:
+      top !== undefined && topScore !== undefined
+        ? { label: top.name, score: topScore.score }
+        : null,
+    controlScore:
+      topScore === undefined
+        ? null
+        : topScore.score - verdict.marginTopVsControl,
+    runnerUp:
+      runnerUp === undefined
+        ? null
+        : {
+            label:
+              top === undefined
+                ? "second"
+                : (runnerUpAudience?.name ?? "second"),
+            score: runnerUp.score,
+          },
+    titles: top?.titles.map((title) => title.name) ?? [],
+  });
   const takeaway =
     verdict.verdict === "Inconclusive"
       ? "Not enough Qloo data to judge. Both sides are withheld."
@@ -123,50 +117,23 @@ export function CompareView({
               <span
                 className={`inline-block rounded-full border-2 border-outline px-4 py-1 font-serif text-2xl text-ink ${band}`}
               >
-                {verdictLabel}
+                {copy.badge}
               </span>
             </p>
           ) : (
-            <p className="mt-4 font-serif text-2xl text-ink">{verdictLabel}</p>
+            <p className="mt-4 font-serif text-2xl text-ink">{copy.badge}</p>
           )}
-          <p className="mt-2 text-sm leading-relaxed text-ink-2">
-            <span className="font-serif text-base text-ink">
-              {top === undefined
-                ? "No audience could be judged"
-                : `Best fit: ${top.name}`}
-            </span>
-          </p>
-          {topScore === undefined ? (
-            <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              No audience could be judged on this run.
+          {copy.body.map((line) => (
+            <p
+              key={line}
+              className="mt-2 text-sm leading-relaxed text-ink-2"
+            >
+              {line}
             </p>
-          ) : verdict.verdict === "Inconclusive" ? (
+          ))}
+          {copy.source !== null && top !== undefined && (
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              Not enough Qloo data to judge this audience. The numbers are
-              withheld rather than guessed.
-            </p>
-          ) : (
-            <>
-              <p className="mt-2 text-sm leading-relaxed text-ink-2">
-                {verdict.clearsControl
-                  ? `Their taste matches your idea ${topPct}%.`
-                  : `The closest, ${top?.name}, matches your idea ${topPct}%.`}
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-ink-2">
-                An unrelated group matches it {barPct}%.
-              </p>
-              {runnerUp !== undefined && (
-                <p className="mt-2 text-sm leading-relaxed text-ink-2">
-                  {secondName === "second"
-                    ? `The next best audience matches it ${runnerUpPct}%.`
-                    : `The next best, ${secondName}, matches it ${runnerUpPct}%.`}
-                </p>
-              )}
-            </>
-          )}
-          {top !== undefined && top.titles.length > 0 && (
-            <p className="mt-2 text-sm leading-relaxed text-ink-2">
-              Based on: {top.titles.map((title) => title.name).join(", ")}
+              {copy.source}
               {top.notFoundTitles.length > 0 && (
                 <span className="font-mono text-xs text-ink-3">
                   {" "}

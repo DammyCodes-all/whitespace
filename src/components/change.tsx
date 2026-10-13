@@ -1,4 +1,11 @@
-import { changeReason, REAL_PEOPLE_LINE } from "@/components/change-copy";
+import {
+  ACCEPTED_TITLE,
+  changeReason,
+  changeScoreLine,
+  gapLine,
+  REAL_PEOPLE_LINE,
+  WITHHELD_FALLBACK,
+} from "@/components/change-copy";
 import type { ChangedRun } from "@/lib/pipeline/change";
 
 /**
@@ -22,31 +29,27 @@ function Delta({
   after: number;
   onInk?: boolean;
 }) {
-  const rise = after - before;
-  const sign = rise >= 0 ? "+" : "";
   return (
     <p
       data-numeric
-      className={`tnum font-mono text-sm ${onInk ? "text-paper" : "text-measured"}`}
+      className={`tnum font-mono text-sm ${onInk ? "text-paper" : "text-ink"}`}
     >
-      {before.toFixed(2)} → {after.toFixed(2)} ({sign}
-      {rise.toFixed(2)})
+      {changeScoreLine(before, after)}
     </p>
   );
 }
 
 export function ChangeView({ changed }: { changed: ChangedRun }) {
   const { check } = changed;
-  const recheckId = changed.calls[0]?.id;
 
   if (!check.accepted) {
     return (
-      <div className="rounded-2xl border-2 border-outline bg-ink p-5">
+      <div className="rounded-2xl border-2 border-outline bg-ink p-5 h-full">
         <p className="font-serif text-base text-paper">Change withheld</p>
         <p className="mt-2 text-sm text-paper">
           {check.failedCondition !== undefined
             ? changeReason(check.failedCondition)
-            : "The change did not clear the bar."}
+            : WITHHELD_FALLBACK}
         </p>
         <div className="mt-2">
           <Delta before={check.before} after={check.after} onInk />
@@ -56,28 +59,18 @@ export function ChangeView({ changed }: { changed: ChangedRun }) {
     );
   }
 
+  const gaps = gapLine(changed.usedGapLabels);
   return (
-    <div className="border-b border-rule py-4">
-      <p className="font-serif text-base text-ink">
-        Change clears the bar
-        {recheckId !== undefined && (
-          <a
-            href={`#${recheckId}`}
-            className="cite ml-1"
-            aria-label="Evidence for the recheck"
-          >
-            [e]
-          </a>
-        )}
-      </p>
-      <Delta before={check.before} after={check.after} />
-      <p className="mt-2 max-w-prose text-body text-ink-2">
+    <div className="card h-full bg-strong p-5">
+      <p className="font-serif text-base text-ink">{ACCEPTED_TITLE}</p>
+      <div className="mt-2">
+        <Delta before={check.before} after={check.after} />
+      </div>
+      <p className="mt-2 max-w-prose text-body text-ink">
         {changed.proposedPitch}
       </p>
-      {changed.usedGapLabels.length > 0 && (
-        <p className="mt-2 font-mono text-xs text-ink-3">
-          Addresses: {changed.usedGapLabels.join(", ")}
-        </p>
+      {gaps !== null && (
+        <p className="mt-2 font-mono text-xs text-ink">{gaps}</p>
       )}
     </div>
   );
