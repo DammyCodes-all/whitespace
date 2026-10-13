@@ -639,7 +639,7 @@ export function CompareSection() {
     <Section
       id="compare"
       title="Compare the readings"
-      lede="Same pitch, two methods. Ours carries Qloo evidence and citation dots; the chatbot gets no taste tools and its titles get checked in Qloo instead of trusted."
+      lede="Same pitch, two methods. Ours carries Qloo evidence; the chatbot gets no taste tools and its titles get checked in Qloo instead of trusted."
     >
       <div className="space-y-12">
         <Specimen label="CompareView · measured" hint="/components/compare.tsx">
