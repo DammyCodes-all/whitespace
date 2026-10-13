@@ -27,14 +27,6 @@ const SLOT_FILLS: Record<string, string> = {
   places: "bg-split",
 };
 
-function marginLine(score: number, ceiling: number | null): string | null {
-  if (ceiling === null) return null;
-  const diff = Math.round((score - ceiling) * 100);
-  if (diff > 0) return `${diff} points past the bar.`;
-  if (diff < 0) return `${-diff} points short of the bar.`;
-  return "Exactly on the bar.";
-}
-
 /**
  * §6.6 in one sentence. The score is how strongly this audience's tastes
  * match the pitch, so the line says exactly that — and never a difference
@@ -121,12 +113,12 @@ function Bars({ result }: { result: FlowResult }) {
   const ceiling = result.ceiling;
   return (
     <section aria-label="Ranked audiences" className="mt-8">
-      <h3 className="text-base tracking-tight text-ink">
-        Who fits best
-      </h3>
+      <h3 className="text-base tracking-tight text-ink">Who fits best</h3>
       <p className="mt-1 max-w-prose text-sm text-ink-2">
-        One bar per audience, best first. The ink line is the bar: the best
-        score of any audience that has nothing to do with your idea.
+        One bar per audience, best first.{" "}
+        {ceiling === null
+          ? "No unrelated group was measured, so there is no line to compare against."
+          : `The ink line marks an unrelated group: ${Math.round(ceiling * 100)}%.`}
       </p>
       <div className="mt-4">
         {rows.length === 0 ? (
@@ -135,38 +127,34 @@ function Bars({ result }: { result: FlowResult }) {
           </p>
         ) : (
           rows.map((row, index) => {
-            const margin = marginLine(row.score, ceiling);
             const fill = barFill(index);
             return (
               <div key={row.id} className="border-b border-rule py-3">
-              <div className="flex items-baseline justify-between gap-4">
-                <p className="text-[15px] tracking-tight text-ink">
-                  {row.name}
-                </p>
-                <p data-numeric className="tnum font-mono text-sm text-ink">
-                  {Math.round(row.score * 100)}%
-                </p>
-              </div>
-              <div className="relative mt-2 h-7 rounded-full bg-surface">
-                <div
-                  className={`bar-grow absolute inset-y-0 left-0 ${fill}`}
-                  style={{
-                    width: `${row.score * 100}%`,
-                    borderRadius: "999px",
-                    border: "2px solid var(--outline)",
-                  }}
-                />
-                {ceiling !== null && (
+                <div className="flex items-baseline justify-between gap-4">
+                  <p className="text-[15px] tracking-tight text-ink">
+                    {row.name}
+                  </p>
+                  <p data-numeric className="tnum font-mono text-sm text-ink">
+                    {Math.round(row.score * 100)}%
+                  </p>
+                </div>
+                <div className="relative mt-2 h-7 rounded-full bg-surface">
                   <div
-                    className="control-line absolute inset-y-[-4px]"
-                    style={{ left: `${ceiling * 100}%` }}
+                    className={`bar-grow absolute inset-y-0 left-0 ${fill}`}
+                    style={{
+                      width: `${row.score * 100}%`,
+                      borderRadius: "999px",
+                      border: "2px solid var(--outline)",
+                    }}
                   />
-                )}
+                  {ceiling !== null && (
+                    <div
+                      className="control-line absolute inset-y-[-4px]"
+                      style={{ left: `${ceiling * 100}%` }}
+                    />
+                  )}
+                </div>
               </div>
-              {margin !== null && (
-                <p className="mt-1 text-sm text-ink-2">{margin}</p>
-              )}
-            </div>
             );
           })
         )}
@@ -176,7 +164,9 @@ function Bars({ result }: { result: FlowResult }) {
               className="absolute top-0 -translate-x-1/2"
               style={{ left: `${ceiling * 100}%` }}
             >
-              <span className="control-pill">the bar</span>
+              <span className="control-pill">
+                unrelated {Math.round((ceiling ?? 0) * 100)}%
+              </span>
             </div>
           </div>
         )}
