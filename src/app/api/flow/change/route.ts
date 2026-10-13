@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { CONTROL_COUNT } from "@/lib/config";
 import { proposeDeterministic } from "@/lib/demo/propose-stub";
 import { barRows, type FlowResult } from "@/lib/flow/contract";
+import type { ChangedRun } from "@/lib/pipeline/change";
 import { checkChange, MIN_RISE } from "@/lib/policy/change";
 import { reportCoverage } from "@/lib/policy/grounding";
 import { CONTROL_MARGIN } from "@/lib/policy/verdict";
 import { loadControlTastes } from "@/lib/qloo/control-cache";
 import { resetQuota } from "@/lib/qloo/index";
 import { resolvePitchTags } from "@/lib/qloo/resolve-tags";
+import { WORK_TYPE_TO_ENTITY_TYPE } from "@/lib/qloo/rival-discovery";
 import { fetchAudienceTastes } from "@/lib/qloo/tastes";
 import { scoreAll } from "@/lib/scoring/fit";
 import { findGaps, labelsForTastes } from "@/lib/scoring/gaps";
@@ -15,12 +17,45 @@ import type { Audience, PitchTag, QlooCall, WorkType } from "@/lib/types";
 
 const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
 
-const ENTITY_TYPE: Record<WorkType, string> = {
-  film: "urn:entity:movie",
-  music: "urn:entity:artist",
-  book: "urn:entity:book",
-  game: "urn:entity:videogame",
-};
+/**
+ * A withheld change is a normal outcome (§10 #5): same shape every
+ * time, so the four early exits cannot drift apart.
+ */
+function withheld({
+  constraint,
+  before,
+  after,
+  coverageAfter,
+  calls,
+  proposedPitch = "",
+  usedGapLabels = [],
+}: {
+  constraint: string;
+  before: number;
+  after: number;
+  coverageAfter: number;
+  calls: QlooCall[];
+  proposedPitch?: string;
+  usedGapLabels?: string[];
+}): { changed: ChangedRun } {
+  return {
+    changed: {
+      constraint,
+      proposedPitch,
+      usedGapLabels,
+      bar: { minRise: MIN_RISE, requireControl: true },
+      check: {
+        accepted: false,
+        failedCondition: "rise",
+        before,
+        after,
+      },
+      after: null,
+      coverageAfter,
+      calls,
+    },
+  };
+}
 
 /**
  * §6.9 on the flow path: POST { result, constraint } -> a judged
@@ -84,8 +119,13 @@ export async function POST(request: Request) {
   const topRow = result.audiences.find((a) => a.id === top?.id);
   if (top === undefined || topRow === undefined || topRow.titles.length === 0) {
     return NextResponse.json(
-      { error: "No audience was judged, so there is nothing to re-check." },
-      { status: 400 },
+      withheld({
+        constraint,
+        before: top?.score ?? 0,
+        after: top?.score ?? 0,
+        coverageAfter: coverageBefore,
+        calls,
+      }),
     );
   }
 
@@ -97,7 +137,7 @@ export async function POST(request: Request) {
       query: t.name,
       qlooId: t.qlooId,
       name: t.name,
-      type: ENTITY_TYPE[workType],
+      type: WORK_TYPE_TO_ENTITY_TYPE[workType],
     })),
     notFoundTitles: [],
   };
@@ -108,11 +148,13 @@ export async function POST(request: Request) {
   if (tasteCall !== null) calls.push(tasteCall);
   if (tastes.failed === true) {
     return NextResponse.json(
-      {
-        error:
-          "The audience's tastes could not be measured, so the change cannot be checked.",
-      },
-      { status: 400 },
+      withheld({
+        constraint,
+        before: top.score,
+        after: top.score,
+        coverageAfter: coverageBefore,
+        calls,
+      }),
     );
   }
 
@@ -144,11 +186,15 @@ export async function POST(request: Request) {
   const after = scoreAll([tastes], afterTags)[0];
   if (before === undefined || after === undefined) {
     return NextResponse.json(
-      {
-        error:
-          "The rewrite could not be scored, so the change cannot be checked.",
-      },
-      { status: 400 },
+      withheld({
+        constraint,
+        before: top.score,
+        after: top.score,
+        coverageAfter,
+        calls,
+        proposedPitch,
+        usedGapLabels,
+      }),
     );
   }
 

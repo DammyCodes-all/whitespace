@@ -10,6 +10,14 @@ import type { FlowGapGroup } from "@/lib/flow/contract";
 export function GapsCard({ group }: { group: FlowGapGroup }) {
   const covered =
     group.hasTastes && group.gaps.length === 0 && group.unlabeledCount === 0;
+  const unlabeled =
+    group.hasTastes && group.unlabeledCount > 0 ? (
+      <p className="mt-2 font-mono text-xs text-ink-2">
+        +{group.unlabeledCount} more{" "}
+        {group.unlabeledCount === 1 ? "taste has" : "tastes have"} no label,
+        counted not shown
+      </p>
+    ) : null;
   return (
     <div className="card h-full bg-split p-4 sm:p-5">
       <h3 className="text-base tracking-tight text-ink">
@@ -25,7 +33,8 @@ export function GapsCard({ group }: { group: FlowGapGroup }) {
         </p>
       ) : group.gaps.length === 0 ? (
         <p className="mt-3 text-sm text-ink-3">
-          No taste data for this audience.
+          Every other love Qloo named had no label, so there is nothing to
+          list.
         </p>
       ) : (
         <ul className="mt-2 divide-y divide-outline">
@@ -45,6 +54,7 @@ export function GapsCard({ group }: { group: FlowGapGroup }) {
           ))}
         </ul>
       )}
+      {unlabeled}
       <p className="mt-2 text-sm text-white">Research leads, not pitch copy.</p>
     </div>
   );
