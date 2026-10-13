@@ -1,4 +1,5 @@
 import type { ChatbotView } from "@/components/chatbot-preview";
+import { ChatbotTitles, verdictBand } from "@/components/compare-shared";
 import { buildCopy } from "@/lib/compare/copy";
 import type { FlowResult } from "@/lib/flow/contract";
 import { barRows } from "@/lib/flow/contract";
@@ -23,41 +24,6 @@ function flowVerdict(result: FlowResult): Verdict {
     default:
       return "Inconclusive";
   }
-}
-
-function ChatbotTitles({ chatbot }: { chatbot: ChatbotView }) {
-  return (
-    <ul className="mt-4 divide-y divide-rule border-y border-rule">
-      {chatbot.found.map((title) => (
-        <li
-          key={title.qlooId}
-          className="flex items-baseline justify-between gap-4 py-2"
-        >
-          <span className="text-sm text-ink">{title.name}</span>
-          <span className="shrink-0 font-mono text-xs text-ink-2">
-            in Qloo&apos;s catalog
-          </span>
-        </li>
-      ))}
-      {chatbot.notFoundTitles.map((query) => (
-        <li
-          key={query}
-          className="flex items-baseline justify-between gap-4 py-2"
-        >
-          <span className="text-sm text-ink-3">{query}</span>
-          <span className="shrink-0 font-mono text-xs text-clay">
-            Qloo doesn&apos;t know it
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function verdictBand(verdict: Verdict): string | null {
-  if (verdict === "Strong") return "bg-strong";
-  if (verdict === "Mixed") return "bg-split";
-  return null;
 }
 
 export function FlowCompareView({

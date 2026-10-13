@@ -12,6 +12,9 @@
  *   data was supplied yet.
  * - `evidenceId` and `score` are nullable: no call / no data is its own
  *   state, never a zero or a dangling id.
+ * - `titles` ride on each audience (resolved entities for re-checks).
+ * - `gaps` carry the §6.8 gap groups for the reach targets, computed
+ *   from already-fetched taste tags (zero new calls).
  * - `evidence` entries carry `status` + `fromCache` beside request and
  *   response, so cached and failed calls render honestly.
  * - `qlooCalls` usage totals (Package A4) ride along for the run header.

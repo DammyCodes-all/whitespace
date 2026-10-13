@@ -1,7 +1,7 @@
+import type { ReactNode } from "react";
 import type { RelatedKind, RelatedResult } from "@/lib/qloo/related";
 import type { GapItem } from "@/lib/scoring/gaps";
 import type { Audience } from "@/lib/types";
-import type { ReactNode } from "react";
 
 /**
  * Day 7 U: reach plan with source links. Owned by U.
@@ -55,10 +55,7 @@ function PickRows({ items }: { items: RelatedResult["items"] }) {
           className="flex items-baseline justify-between gap-4 py-2"
         >
           <p className="text-[15px] tracking-tight text-ink">{item.name}</p>
-          <p
-            data-numeric
-            className="tnum shrink-0 font-mono text-sm text-ink"
-          >
+          <p data-numeric className="tnum shrink-0 font-mono text-sm text-ink">
             their #{item.affinityRank}
           </p>
         </li>
@@ -102,6 +99,14 @@ function GapList({
   hasTastes?: boolean;
 }) {
   const covered = hasTastes && gaps.length === 0 && unlabeledCount === 0;
+  const unlabeled =
+    hasTastes && unlabeledCount > 0 ? (
+      <p className="mt-2 font-mono text-xs text-ink-2">
+        +{unlabeledCount} more{" "}
+        {unlabeledCount === 1 ? "taste has" : "tastes have"} no label, counted
+        not shown
+      </p>
+    ) : null;
   return (
     <div className="card h-full bg-split p-4 sm:p-5">
       <h3 className="text-base tracking-tight text-ink">
@@ -117,7 +122,7 @@ function GapList({
         </p>
       ) : gaps.length === 0 ? (
         <p className="mt-3 text-sm text-ink-3">
-          No taste data for this audience.
+          Every other love Qloo named had no label, so there is nothing to list.
         </p>
       ) : (
         <ul className="mt-2 divide-y divide-outline">
@@ -137,6 +142,7 @@ function GapList({
           ))}
         </ul>
       )}
+      {unlabeled}
       <p className="mt-2 text-sm text-white">Research leads, not pitch copy.</p>
     </div>
   );
