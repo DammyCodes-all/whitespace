@@ -83,15 +83,20 @@
   }
 }
 
-@layer utilities {
+@layer components {
   /* Chunky but flat: the one card and button shape, so nobody improvises
-     it (design-direction.md §5). No glass, no gradients, no glow. */
+     it (design-direction.md §5). No glass, no gradients, no glow. The card
+     lives one layer below utilities so a fill (bg-strong and friends)
+     always wins over the default surface instead of losing to it. */
   .card {
     background: var(--surface);
     border: 2px solid var(--outline);
     border-radius: 16px;
     box-shadow: 4px 4px 0 var(--outline);
   }
+}
+
+@layer utilities {
 
   /* Primary buttons use the card shape. On :active they translate(2px, 2px)
      while the shadow shrinks to 2px 2px 0. Padding and type size stay
