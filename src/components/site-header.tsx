@@ -29,7 +29,7 @@ export function SiteHeader() {
             </Link>
           )}
           <Link
-            href="/run"
+            href="/demo/result"
             className="text-sm text-ink-2 transition-colors hover:text-ink"
           >
             Read a sample result

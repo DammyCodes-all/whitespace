@@ -56,9 +56,9 @@ export {
  * case observed yet — do not tune them until one is.
  * Change them here and nothing else in the codebase moves.
  *
- * Re-calibration protocol: `node scripts/calibrate-margins.ts` with
- * QLOO_API_KEY set runs the Day 8 pack through the real pipeline and
- * prints fresh margin distributions. Note the pack's hardcoded words are
+ * Re-calibration protocol: run the Day 8 pack through the flow
+ * (`runFlowPitch`) with QLOO_API_KEY set and print fresh margin
+ * distributions. Note the pack's hardcoded words are
  * mood-level (margins 0 on every entry as of 2026-10-09); re-calibrate
  * against sharp-worded inputs when the pack is updated, and record the
  * run in docs/qloo-coverage.md (§6.7: margins are findings, not defaults).

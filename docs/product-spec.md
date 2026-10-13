@@ -1,8 +1,8 @@
 # Whitespace: product spec
 
-Status: draft v1, for the Qloo Agentic Hackathon (Devpost, deadline Oct 30, 2026)
-Formerly named Groundtruth.
-Team: three developers, full-time sprint.
+Status: v2, flow-only. Rewritten 2026-10-13 after the v1 pipeline
+(`/run`, `/case`, `/api/propose`, `runPipeline`, pitch form) was
+removed. This document describes the shipped flow and nothing else.
 
 Tagline: Before you ship, find out who it's actually for.
 
@@ -12,9 +12,15 @@ Tagline: Before you ship, find out who it's actually for.
 
 Whitespace is an agent that tells a creator which audience their idea fits, how strongly, and where to find those people.
 
-A creator pastes an idea (a film, album, book, game or similar) and lists what it is similar to and what it is nothing like. Whitespace treats that list as a guess, not a fact. It builds rival audiences from other plausible readings of the pitch, adds unrelated control audiences, and compares all of them using Qloo's taste data. It then returns a verdict on fit, a reach plan (podcasts, people, brands and places the best-fit audience loves), what that audience loves that the pitch does not yet speak to, and a one-page audience case.
-
-Every claim links to the Qloo call it came from. If the data is missing, the app says so instead of guessing.
+A creator pastes an idea (a film, album, book, game or similar). The
+app reads descriptive words and the work type out of the pitch, lets
+the user confirm the words and name similar titles, then scores one
+named audience plus Qloo-discovered rival audiences against ~20
+unrelated control audiences using Qloo's taste data. It returns a
+verdict on fit, a reach plan for winners, what the winner loves that
+the pitch lacks, and a chatbot comparison that shows what Qloo added.
+Every run records its Qloo calls; missing data reads as "no data",
+never as a low score.
 
 ## 2. Problem
 
@@ -24,16 +30,16 @@ This is a scenario, not a finding. Nothing in this section is backed by a statis
 
 ## 3. Users
 
-User and buyer: the creator who chooses their own audience. Examples are an indie filmmaker, a musician, an author, a small game studio, or a restaurant concept owner. The creator uses the product directly and is the person it is built to serve. They can share the audience case with anyone they need to convince, but that person is not a user.
+User and buyer: the creator who chooses their own audience. Examples are an indie filmmaker, a musician, an author, a small game studio, or a restaurant concept owner. The creator uses the product directly and is the person it is built to serve.
 
-Whether creators will pay has not been checked. Authors are known to pay for research tools (Publisher Rocket is one example), and artist-data tools like Chartmetric exist, but nobody on the team has asked creators in the chosen domain. The cheapest check is to show a sample audience case to three or four of them and ask what they would do the next morning.
+Whether creators will pay has not been checked. Authors are known to pay for research tools (Publisher Rocket is one example), and artist-data tools like Chartmetric exist, but nobody on the team has asked creators in the chosen domain. The cheapest check is to show a sample result to three or four of them and ask what they would do the next morning.
 
 ## 4. Goals, non-goals and claims we will not make
 
 Goals
 
 1. Give the user a result they can act on: a named audience, a margin over the alternatives, and a concrete reach plan.
-2. Make every number checkable by linking it to a Qloo call.
+2. Make every run checkable through its recorded Qloo calls.
 3. Say "no data" or "inconclusive" when that is the honest answer.
 4. Show, on screen, what Qloo adds compared with a plain chatbot.
 
@@ -52,148 +58,215 @@ Claims we will not make
 
 ## 5. User journey
 
-1. The user pastes an idea and chooses its type.
-2. The app shows its suggested "similar to" titles, checked against Qloo. The user adds or removes titles. This list becomes the hypothesis audience.
-3. The user lists a few things the idea is nothing like.
-4. The user watches the agent work through its steps.
-5. The user sees the verdict, the ranked audiences with margins, and any "no data" flags.
-6. The user opens the reach plan for the best-fit audience.
-7. Optionally, the user adds a limit (for example a smaller budget) and sees a suggested change with a before-and-after score, or a message saying the change did not clear the bar.
-8. The user exports the one-page audience case and can compare the result with a plain chatbot's answer.
+1. The user pastes an idea on the home page. The pitch goes straight into the flow; the work type is detected, never picked.
+2. The app shows descriptive word chips (matched / not found in Qloo) plus suggested similar titles. The user edits the words and taps titles to name their crowd.
+3. The user watches the run stream through its steps.
+4. The user sees the verdict, the ranked audiences with margins, and any "no data" flags.
+5. The user opens the reach plan for a winning audience.
+6. Optionally, the user adds a limit and sees an accepted change with a before-and-after score, or a withheld change naming the failed condition.
+7. The user compares the result with a plain chatbot's answer, whose titles are marked found / not found in Qloo.
+8. A static sample result is always available from the header with no login.
 
 ## 6. What it does
 
 ### 6.1 Input
 
-The user provides the pitch text, the type of work, up to five "nothing like" titles (optional), and a constraint (optional). Long pitches are trimmed to roughly 300 words, with a notice.
+The user provides the pitch text. The tag call reads 5 to 8
+descriptive words, the work type (film, music, book or game — there
+is no type selector anywhere), and 3 to 5 suggested similar titles.
+Suggestions are unverified strings for tap-to-add; the run resolves
+each one live and reports misses as not found. There is no
+"nothing like" input on the flow path: exclusion is unwired.
 
-### 6.2 Hypothesis audience
+### 6.2 Named audience
 
-The agent picks out the key parts of the pitch (genre, mood, setting, themes, format) and proposes "similar to" titles. Each title is looked up in Qloo. Titles Qloo cannot find are dropped and listed as "not found". The user confirms or edits the list, and the confirmed titles form the hypothesis audience.
+The confirmed similar titles are resolved live in Qloo. Resolved
+titles form the named audience; misses are reported as not found,
+never scored. Similar titles are optional: with none, there is no
+named row and the run is rival-led — the app never invents a
+hypothesis.
 
 ### 6.3 Rival audiences
 
-The AI proposes three alternative readings of the same pitch. Each has a short name, a one-sentence reason, and three to five candidate titles. Every title is checked in Qloo, and the ones that don't resolve are dropped.
-
-A rival must be genuinely different. If more than about a third of its titles overlap with the hypothesis audience or with another rival, the agent replaces it. If fewer than two valid rivals remain after retrying, the run continues with what exists and the result says so. The agent may build up to five rivals if the first three fail this test.
-
-The AI writes the reasons. The titles and any numbers come only from Qloo.
+Rivals are discovered from Qloo data alone, never proposed by a
+model: seeded from the named audience's entities when they exist,
+else from the pitch's matched tags. Each rival is a real Qloo
+entity's fan base, named after that entity, so the name is a fact.
+Discovery fills contenders to four (fewer when Qloo returns fewer).
+Zero contenders — no titles and no discovered rivals — stops the run
+as Inconclusive before any control or taste call is spent.
 
 ### 6.4 Control audiences
 
-The app builds a set of control audiences (about 20) from unrelated material in the same domain. Controls show how well the pitch scores against an audience it has nothing to do with.
+About 20 fixed same-domain audiences (genre-spread seeds for film
+and music; 6 fallbacks each for book and game) are resolved once and
+their tag sets cached for 30 minutes; every pitch is scored fresh
+against the cached sets. Seeds that resolve to nothing are dropped
+and reported, never kept. The verdict ceiling is pitch-aware:
+controls sharing more than a third of titles with the named
+audience are excluded from the ceiling (same overlap rule as
+rivals); when every control is too close, the full set comes back
+so the ceiling never vanishes, and the step says so.
 
 ### 6.5 Pitch tags
 
-The AI suggests descriptive words from the pitch. Each word is checked against Qloo's tags. A word that matches a real tag becomes a pitch tag. A word that does not is marked "no data" and left out of scoring. The result always shows coverage, meaning how many of the suggested words matched.
+Each suggested word is checked against real Qloo tags in the
+detected type's namespaces. Matches become scoring tags; misses come
+back `not_found` chips and never enter scoring. The result always
+shows coverage (matched ÷ suggested). Fewer than 3 matched tags
+stops the run as Inconclusive without spending scoring calls.
 
 ### 6.6 Scoring
 
-Qloo describes each audience as a list of tastes ranked by strength. The app compares the pitch tags with each audience's list and gives every audience a fit score from 0 to 1. A higher score means the audience's strongest tastes include more of what the pitch is about. Strengths are converted to ranks within each audience so that audiences with long and short lists can be compared fairly. The user can pin a few must-have tags, which count double.
+Qloo describes each audience as a taste list ranked by strength. The
+app keeps the order and discards the raw strengths (ranks only,
+never counts): rank r of N scores (N − r + 1) / N. Each audience's
+fit is the weighted mean across one shared tag list, 0 to 1. There
+is no pinning on the flow path: every exact tag weighs 1.
 
-A pitch tag missing from a long list counts as zero, meaning the audience does not over-index on it. A tag missing from a short or failed list is "no data" and is left out for that audience. The result shows how many tags were left out.
+A tag missing from a long enough list (10+ tastes) is a ZERO — the
+audience does not over-index on it. A tag missing from a short or
+failed list is NO DATA and is left out entirely, so thin Qloo
+responses can never fake a low score.
 
-The "nothing like" titles form an exclusion audience. Its tastes are subtracted from each audience before scoring, so the pitch is not credited for matching an audience through things the creator wants to avoid. This design choice needs testing on real pitches. If it behaves badly, the fallback is to show an overlap warning instead.
+AI word-bridges rescue meaning strict matching misses (added
+2026-10-13; why: `docs/qloo-coverage.md`, "AI word-bridge
+scoring"). Leftover words — matched tags scoring zero everywhere —
+get one narrow AI call pointing each at an already-fetched taste id
+plus a bucket: strong 0.75, related 0.5, distant 0 (considered, not
+counted). At most 4 bridges per run; buckets-only output or the run
+continues on exact matches; AI failure falls back silently;
+every bridge renders as `word→Tag (AI: bucket)`. The weights are
+fixed in code: the AI points, our code scores. Same words always
+give same scores.
 
 ### 6.7 Control test and verdict
 
-An audience "clears control" when it beats the best control audience by a clear margin.
+An audience "clears control" when it beats the best eligible,
+judgeable control by the control margin (0.05, Margins v1 2026-10-09;
+observed noise ≤ 0.03, signal ≈ 0.10). Only judgeable controls set
+the ceiling: placeholder zeros never act as a floor.
 
 | Verdict | Meaning |
 |---|---|
 | Strong fit | The top audience clears control and is clearly ahead of the second |
 | Mixed fit | The top two audiences both clear control and are close together |
 | Weak fit | No audience clears control |
-| Inconclusive | Too few of the pitch words matched Qloo tags, or too many audiences had no data |
+| Inconclusive | Coverage or no-data guards fired, or the baseline itself was unmeasured |
 
-If the top audience is not the one the user named and beats it clearly, the headline becomes "Your best fit is not the audience you named."
+Guards, all Inconclusive, never Weak: coverage below 0.34;
+more than half the scores unjudgeable; an unjudgeable top; no
+contenders; too few matched tags; out-of-scope pitch; a judgeable
+ceiling of exactly 0.00 (won against nothing — a real Strong needs
+a real baseline); controls exist but none judgeable.
 
-A low score caused by missing data is shown as "no data". The app says "this audience doesn't care about X" only when Qloo returned enough data to support it.
-
-The exact margins and cutoffs are set in week 1 by testing on real pitches. They are not findings.
+If the top audience is not the named one and beats it by the
+surprise margin (0.10), the headline becomes "Your best fit is not the audience you named."
+Results within 0.06 of the control line read as a close call
+(display only — the verdict never changes there).
 
 ### 6.8 Reach plan
 
-For the best-fit audience (and the runner-up if the verdict is Mixed), the app asks Qloo for related podcasts, people, brands and places, about five of each. Titles the user already listed are removed. Each item shows how strongly the audience loves it and links to its source.
-
-City view (optional): the user picks one city. If Qloo's location data is detailed enough, the app shows where this taste concentrates on a map. If the data is thin, the map is hidden and the app says why. The map shows relative concentration only, never headcounts.
-
-What the audience loves that the pitch lacks: tastes the best-fit audience ranks highly that the pitch does not contain. These are shown as a finding and feed the change check in 6.9. The app does not write pitch copy from them.
+Only when an audience clears control. Interests come from the
+already-fetched taste tags (zero new calls); people, podcasts,
+brands and places come from related fetches, minus titles the run
+already used. Winners render as a 3-step playbook (listen first,
+find them, fit in). Gaps — what the winner loves that the pitch
+lacks — come from taste display names. The city map is cut: the
+map UI stays unwired and location calls fail closed.
 
 ### 6.9 Change and re-check
 
-The user can add a limit, such as a smaller budget or a shorter format. The agent proposes a changed pitch using the gaps found above, and the changed pitch is scored the same way.
+The user can add a limit, such as a smaller budget. The proposal is
+built deterministically from the gap words (no LLM) and rescored
+identically. The bar is recorded before the proposal runs and is at
+least the tie margin: a change is accepted only if the fit rises by
+at least the bar with coverage intact. Otherwise the app withholds
+the change and names the failed condition. A withheld change is a
+normal outcome.
 
-The bar for "better enough" is set and recorded before the proposal is made. A change is accepted only if the fit score rises by at least the bar, coverage does not fall, every new tag matches Qloo, and the audience still clears control.
+### 6.10 Output pages
 
-If any condition fails, the app withholds the change and states which condition failed. It then recommends checking the result with real people before the user spends more. A withheld change is a normal outcome and is shown as one.
-
-### 6.10 Audience case (one page)
-
-A printable page containing: the idea in one line, the verdict and margin, the named audience described by its titles, three to five evidence lines each linked to its Qloo call, the reach plan, what the audience loves that the pitch lacks, and a limits section listing "no data" items. The footer says the page is built from group-level taste data and does not predict outcomes.
+The flow result page carries the verdict band, ranked bars with
+scores, the reach playbook, the gaps-plus-change card, and the
+chatbot comparison, followed by the evidence drawer. The header's
+sample result is a static showcase page rendering the same
+components over fixtures — it makes no Qloo calls. (The old
+printable audience-case page was removed with the v1 pipeline.)
 
 ### 6.11 Chatbot comparison
 
-The same pitch is sent to the same AI with no Qloo tools and a plain request: who is this for and where do I find them. The answer appears beside the Whitespace result. Every title in the chatbot's answer is then looked up in Qloo and marked "found in Qloo" or "not found". This turns the comparison into a measurement, not a claim.
+The same pitch is sent to the same AI with no Qloo tools: who is
+this for and where do I find them. Titles in the answer are checked
+in Qloo and marked found / not found. Either side may fail
+independently and renders its honest empty state. The chatbot card
+is framed as unmeasured: nothing there was checked except the title
+marks.
 
 ### 6.12 Evidence trace
 
-Every claim on screen links to the Qloo call behind it. A call can be opened to see what was asked and what came back. Every run is saved so it can be replayed without calling Qloo again.
+Every run records its Qloo calls — request, response summary,
+status, and whether each came from cache — grouped in the evidence
+drawer with per-step links. Checkability is per-run, not per-claim:
+inline per-claim cites were removed from result rows (Oct 13) in
+favor of the drawer. Saved runs replay from localStorage without
+re-running. Raw Qloo payloads are never committed (private caching
+only); docs record aggregates and conclusions.
 
 ## 7. Who does what
 
 | Component | Responsibility |
 |---|---|
-| Qloo | Looking up titles and tags, audience tastes, related items, location data. The source of every number, tag and title |
-| The AI | Reads the pitch, proposes titles, rival readings and words, runs the steps, writes the sentences |
-| Our code | The overlap rule, subtracting the nothing-like audience, scoring, the control test, the verdict, the change check, and the check that everything came from Qloo |
+| Qloo | Looking up titles and tags, audience tastes, related items. The source of every number, tag and title |
+| The AI | Reads the pitch into words, type and title suggestions; points leftover words at fetched tastes (bridges); writes chatbot prose |
+| Our code | Gates, rival discovery assembly, scoring, the control ceiling, the verdict, the change check, and grounding |
 
-The AI does not invent tags, titles, scores or audiences, and it does not rank anything.
+The AI does not invent tags, titles, scores or audiences, and it does not rank anything. Bridge weights are fixed in code.
 
-## 8. How the agent behaves
+## 8. How the run behaves
 
-One agent runs the work. The order is mostly fixed, but the agent decides:
-
-1. Which candidate titles to retry or replace when Qloo cannot find them.
-2. How many rivals to build (three by default, up to five).
-3. Whether the rivals are different enough or need replacing.
-4. Whether the control test supports going on to the reach plan.
-5. Whether to attempt a change when a constraint is given.
-6. When to stop and report inconclusive.
-
-Grounding check: after the AI writes anything, the app checks that every title and tag in it came from Qloo. Anything that did not is removed or retried, and results are not shown until the check passes. The chatbot comparison is exempt, because its purpose is to show ungrounded output.
-
-The team has not tested Qloo's responses yet. The plan assumes the capabilities listed in Qloo's public documentation (title and tag lookup, audience tastes, related items, location data). Confirm each one in the day-one test.
+One fixed pipeline, same order every run: scope gate → tag gate →
+named audience → rivals → controls → tastes → bridges → scores →
+verdict → reach plan only if control is cleared → optional change
+and comparison on their own routes. It stops early and says the
+cause when: the pitch is out of scope (tool/app, zero Qloo calls),
+too few tags matched, or there is nothing to judge. One miss never
+fails a batch: failures degrade to not-found / failed / no-data
+entries with their traces. The AI's only judgments are the words,
+the bridge pointing, and the chatbot prose — everything else is
+code and deterministic.
 
 ## 9. Demo plan
 
 Length: about 90 seconds.
 
 1. State the problem in two sentences.
-2. Paste a real pitch and confirm the "similar to" list.
+2. Paste a real pitch, keep or fix the word chips, tap a suggested title.
 3. Show the live run, then the verdict. If a real pitch produced a surprise, lead with it. If none did, say so and show how the control test protects against false confidence.
-4. Open the reach plan and click one item through to its Qloo call.
+4. Open the reach playbook.
 5. Show one change that was accepted or withheld.
-6. Show the chatbot comparison with the "not found in Qloo" marks.
-7. End on the audience case page.
+6. Show the chatbot comparison with the found / not-found marks.
+7. End on the static sample for the no-network case.
 
-Prepare three or four real pitches in advance, plus saved runs for each in case the live service is slow. One saved run should be an inconclusive or withheld-change case, shown deliberately as a trust moment.
+Prepare three or four real pitches in advance. One should be an inconclusive or withheld-change case, shown deliberately as a trust moment.
 
-The demo domain is chosen by the day-one coverage test, not by preference. Film and music are the likeliest candidates, but that is a guess.
+The demo domain is film first, music second (day-one coverage test). Book and game are on hold: book entities return no taste tags, game taste vectors are too diffuse to discriminate.
 
 ## 10. Acceptance tests
 
 | # | Test | Pass condition |
 |---|---|---|
-| 1 | Grounding | Across 20 runs, every title and tag in the final output came from that run's Qloo results |
+| 1 | Grounding | Across 20 runs, every title and tag in the final output came from that run's Qloo results; every bridge target was an already-fetched taste id |
 | 2 | Nonsense pitch | Three deliberately meaningless pitches return Weak or Inconclusive |
-| 3 | Circularity gate | On at least four real pitches, record whether the top audience differs from the hypothesis audience. If it never does, stop and review the design before building more |
+| 3 | Circularity gate | On at least four real pitches, record whether the top audience differs from the named audience. If it never does, stop and review the design before building more |
 | 4 | No data | A pitch with unmatched words shows "no data" and never a low score standing in for it |
 | 5 | Change refusal | A change that fails the bar is withheld and the page names the failed condition |
-| 6 | Speed | A full run finishes in about 90 seconds. A saved demo run finishes in about 10 |
-| 7 | Repeatability | Rerunning a saved pitch gives the same verdict |
-| 8 | Trace | Every claim on the result and reach screens opens its Qloo call |
+| 6 | Speed | A full run finishes in about 90 seconds |
+| 7 | Repeatability | Same words re-run give the same verdict |
+| 8 | Trace | Every run's evidence drawer opens its Qloo calls |
 | 9 | Access | The live demo loads with no login and the repository is public |
+| 10 | Bridge discrimination | Bridges widen the right gap (right audience rises, wrong ones stay) and never inflate every audience together |
+| 11 | Pitch-aware ceiling | A control sharing more than a third of titles with the named audience does not set the ceiling |
 
 Test 3 is a decision gate, not a pass or fail on shipping. A tool that always agrees with the user's guess is not worth building.
 
@@ -201,47 +274,31 @@ Test 3 is a decision gate, not a pass or fail on shipping. A tool that always ag
 
 | Risk | Why it matters | Mitigation |
 |---|---|---|
-| Qloo may lack audience-level taste data in the chosen domain | The whole scoring approach depends on it | Day-one test. Choose the domain by the result |
-| Results always match the user's guess | The product adds nothing | Rival readings, controls, test 3 |
-| Result counts may reflect how many results were requested, not true totals | Any count-based claim would be wrong | Use ranks only. Make no claims about counts or audience size |
-| Location data is thin for the chosen city | The city map would mislead | Make it optional and hide it when thin. Demo a city that tests well |
-| Whether creators will pay is unverified | Judges ask who pays | Show the sample case to a few creators in the target group |
-| Scope is too large for three people in about 25 days | An unfinished demo loses to a smaller finished one | Follow the cut line in section 12 |
-| Quota or rate limits | A live demo could fail | Save results and prepare saved runs |
-| AI slowdowns or errors during the demo | Same | Saved runs and a visible fallback |
+| Qloo quota or rate limits | A live demo could fail (429s observed on monthly quota) | Static sample page; cached controls; saved runs |
+| AI slowdowns or errors during the demo | Same | Groq/OpenRouter fallback; bridges fail silent; static sample |
+| Verdicts swing on wording near the margins | Re-runs read inconsistently | The user locks the word set before the run; close-call flag |
+| Book/game taste data is thin | Scores read 0.00 that may be missing data, not dislike | Both on hold; film first, music second |
+| Location data is thin for the chosen city | The city map would mislead | Cut. Fails closed with a reason |
+| Whether creators will pay is unverified | Judges ask who pays | Show the sample result to a few creators in the target group |
 | The name suggests gap finding | Judges may expect a market-gap tool | Explain the name in the pitch and make no unserved-market claims |
-| Close neighbors on the hackathon list | Entries like CultureFit Guard, SponsorScout, CulturePilot and TasteCritic overlap in part | Lead with rival audiences, the control test and the withheld change |
+| Close neighbors on the hackathon list | Entries like CultureFit Guard, SponsorScout, CulturePilot and TasteCritic overlap in part | Lead with rivals, the control test and the withheld change |
 
-## 12. Team, scope and timeline
+## 12. Ship status
 
-Roles
+Shipped (flow path): idea entry with detected type, tag chips with
+live match status and the matched-tag gate, named audience plus
+Qloo-discovered rivals, cached controls with pitch-aware ceiling,
+rank scoring with AI bridges, verdict with guards, reach playbook,
+change re-check, chatbot comparison with Qloo marks, evidence
+drawer, static sample page.
 
-| Person | Owns |
-|---|---|
-| 1 | The Qloo side: lookups, audiences, reach queries, and the day-one coverage test |
-| 2 | Scoring: fit scores, the control test, the verdict, the change check, and the check that everything came from Qloo |
-| 3 | The agent and everything the user sees: the run, the results, the reach plan, the audience case, and the saved runs |
+Cut: city map, printable audience case, second-domain support
+(book/game on hold).
 
-Cut line
-
-| Priority | Items |
-|---|---|
-| Must have | One domain shown in depth, hypothesis plus rivals plus control, scoring and verdict, reach plan (podcasts, people, brands, places), audience case, evidence links, chatbot comparison |
-| Should have | Change and re-check |
-| Could have | City map, a second domain |
-| Cut first | City map, then the second domain, then multi-limit re-scoring |
-
-Timeline (today is Oct 5)
-
-| Dates | Work |
-|---|---|
-| Oct 5 to 7 | Qloo tests, domain choice, project setup |
-| Oct 8 to 14 | The full pipeline working end to end, first version of the screens |
-| Oct 15 to 21 | Reach plan, change check, audience case, chatbot comparison, evidence links |
-| Oct 22 to 26 | Calibrate the margins on real pitches, build saved runs, polish, clean the repository |
-| Oct 27 to 29 | Freeze features, rehearse the demo, submit |
-
-Submit a day early. The deadline's time zone has not been checked.
+Deliberately unwired on the flow path: exclusion ("nothing like"),
+tag-expansion retry, concept audience, pinned must-have words.
+Each is a live option with a known shape (see `docs/qloo-coverage.md`)
+if a future test earns it back.
 
 ## 13. Competition
 
@@ -254,44 +311,46 @@ These descriptions come from the vendors' own materials and have not been indepe
 | Chartmetric, Viberate, Soundcharts | Artist audience data by city | These start from an artist. Whitespace starts from an idea |
 | Publisher Rocket | Amazon keyword and category research for authors | Amazon data only. No cross-domain taste |
 
-What sets Whitespace apart is the rival audiences, the control test, honest "no data" handling, a change it will withhold, and a Qloo link behind every claim.
+What sets Whitespace apart is the rival audiences, the control test, honest "no data" handling, a change it will withhold, and recorded Qloo calls behind every run.
 
 ## 14. Open decisions
 
-1. Demo domain, decided by the day-one test.
-2. Which kind of creator to speak to first in the pitch (filmmakers, musicians, authors or small studios).
-3. Final margins for the verdict in 6.7.
-4. Whether the city map ships.
+1. Re-running the 6-pitch table to confirm bridges discriminate (widens gaps) rather than inflate.
+2. Whether the city map ever ships (currently cut, fails closed).
+3. Whether exclusion, expansion, concept or pinning earn their way back onto the flow path.
+4. Final re-calibration of verdict margins once bridges are in the live mix.
 5. Whether any other sponsor technology or extra judging criteria on the Devpost page carry points. Check the page again before building.
-6. Whether judges can use the demo without an account.
-7. Repository license.
-8. The deadline's time zone.
+6. Repository license.
+7. The deadline's time zone.
+8. Required Devpost fields complete, per the current rules on the page.
 
 ## 15. Submission checklist
 
 1. The live demo loads with no login.
 2. Public repository with a README covering setup, the Qloo calls used and the grounding check.
 3. Description text that matches the brief, with no claims about outcomes or users.
-4. Saved demo runs included.
+4. Static sample result included (`/demo/result`, no Qloo calls).
 5. Required Devpost fields complete, per the current rules on the page.
 
 ## Appendix A. Illustrative example (invented, not Qloo output)
 
 Pitch: a quiet science-fiction film about a lonely worker on a space station.
 
-The user's guess is fans of other slow science-fiction films. Whitespace builds two rival readings: readers of literary fiction about isolation, and listeners of ambient music. It also draws control audiences from unrelated material.
+The user's guess is fans of other slow science-fiction films. Whitespace discovers rival readings from Qloo data: readers of literary fiction about isolation, listeners of ambient music. It also draws control audiences from unrelated material.
 
-If the pitch tags (for example "slow-burn" and "solitude") score highest against the literary-fiction rival and clear the control by a clear margin, the headline says the best fit is not the audience the user named. The reach plan then lists podcasts, people, brands and places that audience loves, and the audience case packages the evidence.
+If the pitch tags (for example "slow-burn" and "solitude") score highest against the literary-fiction rival and clear the control by a clear margin, the headline says the best fit is not the audience the user named. The reach plan then lists podcasts, people, brands and places that audience loves.
 
 If no audience clears control, the verdict is Weak fit and the app recommends checking with real people before the user spends more.
 
 ## Appendix B. Glossary
 
-Hypothesis audience: the audience built from the user's own "similar to" titles.
-Rival audience: an audience built from a different plausible reading of the same pitch.
-Control audience: an audience built from unrelated material, used to see what a meaningless match looks like.
+Named audience: the audience built from the user's own confirmed "similar to" titles. Absent when no titles are given.
+Rival audience: an audience built from Qloo-discovered entities related to the pitch, not from model prose.
+Control audience: an audience built from fixed unrelated seeds, used to see what a meaningless match looks like. The best eligible, judgeable control sets the ceiling.
 Pitch tags: real Qloo tags that match words from the pitch.
 Coverage: the share of suggested words that matched a real Qloo tag.
+Bridge: an AI-pointed link from a leftover pitch word to an already-fetched taste id, with a fixed-weight bucket (strong 0.75, related 0.5, distant 0).
 Margin: the fit-score difference between two audiences.
+Close call: a result within 0.06 of the control line; the verdict stands but the UI says a re-run may read differently.
 No data: Qloo did not return enough to judge. Not the same as "doesn't care".
-Inconclusive: the app cannot say anything reliable and says so.
+Inconclusive: the app cannot say anything reliable and says why (scope, tags, coverage, no-data, empty, no-control, no-signal, top-unjudgeable).

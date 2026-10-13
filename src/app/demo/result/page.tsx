@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ChangeView } from "@/components/change";
-import { CompareView } from "@/components/compare";
+import { FlowCompareView } from "@/components/flow-compare";
 import { FlowResultView } from "@/components/flow-result-view";
 import { ReachPlan } from "@/components/reach";
 import {
@@ -8,9 +8,6 @@ import {
   DEMO_CHATBOT,
   DEMO_FLOW_RESULT,
   DEMO_GAPS,
-  DEMO_MOCK_AUDIENCES,
-  DEMO_MOCK_SCORES,
-  DEMO_MOCK_VERDICT,
   DEMO_PITCH_TEXT,
   DEMO_REACH_AUDIENCE,
   DEMO_RELATED,
@@ -19,7 +16,8 @@ import {
 
 export const metadata: Metadata = {
   title: "End result mock · Whitespace",
-  description: "A static result-page mock for refining the Whitespace experience.",
+  description:
+    "A static result-page mock for refining the Whitespace experience.",
 };
 
 const REACH_GROUPS = [
@@ -61,8 +59,8 @@ export default function DemoResultPage() {
                 Change and re-check
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-ink-2">
-                A constraint can change the pitch, but the new version has
-                to score higher to land.
+                A constraint can change the pitch, but the new version has to
+                score higher to land.
               </p>
               <div className="mt-4">
                 <ChangeView changed={DEMO_CHANGE_ACCEPTED} />
@@ -71,12 +69,11 @@ export default function DemoResultPage() {
           }
         />
 
-        <CompareView
+        <FlowCompareView
+          result={DEMO_FLOW_RESULT}
+          similarTitles={["Moon", "Arrival"]}
           chatbot={DEMO_CHATBOT}
           error={null}
-          audiences={DEMO_MOCK_AUDIENCES}
-          scores={DEMO_MOCK_SCORES}
-          verdict={DEMO_MOCK_VERDICT}
         />
       </div>
     </main>

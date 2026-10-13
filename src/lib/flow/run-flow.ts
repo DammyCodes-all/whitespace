@@ -2,14 +2,14 @@
  * Package B: the shipped flow orchestrator. Owned by S.
  *
  * Implements the brief's flow and nothing else. Deliberately NOT
- * wired: exclusion (`nothingLike`), the expansion retry, the concept
+ * wired here: exclusion (`nothingLike`), the expansion retry, the concept
  * audience, change re-check, chatbot comparison and the city map. They
  * are not described in the new flow, so this path makes no Qloo calls
- * for them — the old `src/lib/pipeline/run.ts` still runs them for the
- * v1 screens and stays untouched.
+ * for them — change re-check and the chatbot comparison live in their
+ * own routes (`/api/flow/change`, `/api/compare`).
  *
- * Scoring uses the existing scorer (`scoreAll`, equal weights, no
- * pinning) — one scorer in the shipped path, per the brief. The brief
+ * Scoring uses the existing scorer (`scoreAllWeighted`, equal weights
+ * when bridgeless, no pinning) — one scorer in the shipped path, per the brief. The brief
  * asks for a plain equal-weight membership fraction; the shipped
  * scorer is rank-based (`rankStrength`, §6.6), which is a spec
  * deviation recorded in `docs/build-tracker.md` rather than a second
@@ -29,6 +29,11 @@
  * (evidence), §7 (our code ranks).
  */
 
+import {
+  availableFromTastes,
+  namesById,
+  proposeBridges,
+} from "../agent/bridge.ts";
 import { CANDIDATES, CONTROL_COUNT, MIN_MATCHED_TAGS } from "../config.ts";
 import { selectReachTargets } from "../demo/reach-targets.ts";
 import { checkScope } from "../policy/scope.ts";
@@ -42,8 +47,16 @@ import {
   resolveTitles,
 } from "../qloo/index.ts";
 import type { RelatedResult } from "../qloo/related.ts";
-import { type AudienceTastes, scoreAll } from "../scoring/fit.ts";
+import {
+  type AudienceTastes,
+  scoreAllWeighted,
+  type WeightedTag,
+} from "../scoring/fit.ts";
 import { eligibleControls } from "../scoring/overlap.ts";
+import {
+  bridgesToWeightedTags,
+  selectLeftoverWords,
+} from "../scoring/semantic.ts";
 import type {
   Audience,
   PipelineResult,
@@ -284,8 +297,8 @@ export async function runFlowPitch(
     options.controlCount ?? CONTROL_COUNT,
   );
   calls.push(...controlCached.calls);
-  // Pitch-aware ceiling, same rule as the v1 pipeline: controls too
-  // close to the named audience do not set the verdict ceiling. No
+  // Pitch-aware ceiling: controls too close to the named audience
+  // (same overlap rule as rivals) do not set the verdict ceiling. No
   // named audience means nothing to compare against, so all controls
   // stay eligible.
   const controlEligibility =
@@ -331,33 +344,66 @@ export async function runFlowPitch(
     ),
   );
 
-  const contenderScores = scoreAll(
-    contenders.map(
-      (a) =>
-        tasteById.get(a.id) ?? {
-          audienceId: a.id,
-          tagIds: [],
-          failed: true,
-        },
-    ),
-    matchedTags,
+  const scoredContenders: AudienceTastes[] = contenders.map(
+    (a) =>
+      tasteById.get(a.id) ?? {
+        audienceId: a.id,
+        tagIds: [],
+        failed: true,
+      },
   );
-  const controlScores = scoreAll(
-    controlCached.controls.map(
-      (c) =>
-        tasteById.get(c.id) ?? {
-          audienceId: c.id,
-          tagIds: [],
-          failed: true,
-        },
-    ),
-    matchedTags,
+  const scoredControls: AudienceTastes[] = controlCached.controls.map(
+    (c) =>
+      tasteById.get(c.id) ?? {
+        audienceId: c.id,
+        tagIds: [],
+        failed: true,
+      },
   );
+  // AI word-bridge (bonus, never a dependency): leftover matched words
+  // scoring zero everywhere get one
+  // narrow LLM call pointing each at an already-fetched taste id +
+  // bucket (max 4, pinned never bridged; flow tags are unpinned). Any
+  // failure falls back to the exact-match run; verdict and controls
+  // logic are untouched.
+  const bridgeWtags: WeightedTag[] = [];
+  let bridgeNote = "";
+  let bridgeCallId: string | undefined;
+  const heldIds = new Set(
+    [...scoredContenders, ...scoredControls].flatMap((t) => t.tagIds),
+  );
+  const leftoverWords = selectLeftoverWords(matchedTags, heldIds);
+  if (leftoverWords.length > 0) {
+    try {
+      const available = availableFromTastes([
+        ...scoredContenders,
+        ...scoredControls,
+      ]);
+      const bridges = await proposeBridges({
+        words: leftoverWords,
+        available,
+      });
+      bridgeWtags.push(...bridgesToWeightedTags(bridges, namesById(available)));
+      if (bridgeWtags.length > 0) {
+        bridgeNote = `, +${bridgeWtags.length} AI bridge${bridgeWtags.length === 1 ? "" : "s"} (${bridgeWtags.map((w) => w.label).join("; ")})`;
+        bridgeCallId = tasteCalls[0]?.id ?? controlCached.calls[0]?.id;
+      }
+    } catch {
+      // Silent bonus: the exact matches below are the result.
+    }
+  }
+  const flowWeightedTags: WeightedTag[] = [
+    ...matchedTags.map((tag) => ({ tag, weight: 1 })),
+    ...bridgeWtags,
+  ];
+  const contenderScores = scoreAllWeighted(scoredContenders, flowWeightedTags);
+  const controlScores = scoreAllWeighted(scoredControls, flowWeightedTags);
   steps.push(
     doneStep(
       "score",
       "Fit scores",
-      `0 to 1 across ${matchedTags.length} matched tags`,
+      `0 to 1 across ${matchedTags.length} matched tags${bridgeNote}`,
+      bridgeCallId,
     ),
   );
 

@@ -11,26 +11,16 @@
  */
 
 import type { ReactNode } from "react";
-import { CasePrintButton } from "@/components/case-print-button";
 import { ChangeView } from "@/components/change";
 import { changeReason } from "@/components/change-copy";
 import { ChatbotPreview } from "@/components/chatbot-preview";
-import { CompareView } from "@/components/compare";
-import { ConfirmedAudience } from "@/components/confirmed-audience";
-import {
-  NothingLikeDemo,
-  PitchInputDemo,
-  SimilarToDemo,
-  TagChipsDemo,
-  WordsDemo,
-} from "@/components/demo/demo-interactive";
+import { TagChipsDemo } from "@/components/demo/demo-interactive";
 import { EvidenceCalls } from "@/components/evidence";
 import { FlowClient } from "@/components/flow-client";
+import { FlowCompareView } from "@/components/flow-compare";
 import { FlowEntry } from "@/components/flow-entry";
 import { FlowResultView } from "@/components/flow-result-view";
-import { PitchFlow } from "@/components/pitch-flow";
 import { ReachPlan } from "@/components/reach";
-import { RivalPreview } from "@/components/rival-preview";
 import { RunSteps } from "@/components/run-steps";
 import { RunStream } from "@/components/run-stream";
 import { SavedRunPanel } from "@/components/saved-run-panel";
@@ -39,7 +29,6 @@ import LoadingState from "@/components/ui/loading-state";
 import { VerdictHeadline } from "@/components/verdict";
 import {
   ABSENCE_SWATCHES,
-  DEMO_AUDIENCE,
   DEMO_CALLS,
   DEMO_CHANGE_ACCEPTED,
   DEMO_CHANGE_WITHHELD,
@@ -48,17 +37,13 @@ import {
   DEMO_FLOW_RESULT,
   DEMO_GAPS,
   DEMO_MOCK_AUDIENCES,
-  DEMO_MOCK_SCORES,
-  DEMO_MOCK_VERDICT,
   DEMO_PITCH_TEXT,
   DEMO_REACH_AUDIENCE,
   DEMO_RELATED,
-  DEMO_RIVALS,
   DEMO_STEPS_ACTIVE,
   DEMO_STEPS_PENDING,
   DEMO_UNLABELED_COUNT,
   DEMO_VERDICTS,
-  DEMO_WORDS,
   NEUTRAL_SWATCHES,
   TEXT_SAFE_SWATCHES,
   TYPE_SPECIMENS,
@@ -316,7 +301,6 @@ export function ButtonsSection() {
         >
           remove
         </button>
-        <CasePrintButton />
       </div>
       <Notes>
         Below 640px the primary and secondary actions become full-width rows,
@@ -365,32 +349,11 @@ export function InputsSection() {
     <Section
       id="inputs"
       title="Inputs"
-      lede="Pitch text, tag chips with live match status, the similar-to list and the pinned-word list. Every one is editable here; the run stays honest when you take words away."
+      lede="Tag chips with live match status. Every chip is editable here; the run stays honest when you take words away."
     >
       <div className="space-y-12">
-        <Specimen label="PitchInput" hint="/components/pitch-input.tsx">
-          <PitchInputDemo />
-        </Specimen>
         <Specimen label="TagChips" hint="/components/tag-chips.tsx">
           <TagChipsDemo />
-        </Specimen>
-        <Specimen
-          label="SimilarToConfirm"
-          hint="/components/similar-to-confirm.tsx"
-        >
-          <SimilarToDemo />
-        </Specimen>
-        <Specimen
-          label="CandidateWordsConfirm"
-          hint="/components/candidate-words-confirm.tsx"
-        >
-          <WordsDemo />
-        </Specimen>
-        <Specimen
-          label="NothingLikeInput"
-          hint="/components/nothing-like-input.tsx"
-        >
-          <NothingLikeDemo />
         </Specimen>
       </div>
     </Section>
@@ -434,14 +397,6 @@ export function StatesSection() {
         </Specimen>
         <Specimen label="ScopeNotice" hint="/components/scope-notice.tsx">
           <ScopeNotice pitchText={DEMO_PITCH_TEXT} />
-        </Specimen>
-        <Specimen
-          label="empty confirm list"
-          hint="/components/similar-to-confirm.tsx"
-        >
-          <p className="border-b border-rule py-2 font-mono text-xs text-ink-3">
-            List is empty — add titles below or confirm with none.
-          </p>
         </Specimen>
       </div>
     </Section>
@@ -642,30 +597,26 @@ export function CompareSection() {
       lede="Same pitch, two methods. Ours carries Qloo evidence; the chatbot gets no taste tools and its titles get checked in Qloo instead of trusted."
     >
       <div className="space-y-12">
-        <Specimen label="CompareView · measured" hint="/components/compare.tsx">
-          <CompareView
+        <Specimen
+          label="FlowCompareView · measured"
+          hint="/components/flow-compare.tsx"
+        >
+          <FlowCompareView
+            result={DEMO_FLOW_RESULT}
+            similarTitles={["Moon", "Arrival"]}
             chatbot={DEMO_CHATBOT}
             error={null}
-            audiences={DEMO_MOCK_AUDIENCES}
-            scores={DEMO_MOCK_SCORES}
-            verdict={DEMO_MOCK_VERDICT}
           />
         </Specimen>
         <Specimen
-          label="CompareView · unavailable"
+          label="FlowCompareView · unavailable"
           hint="both sides withheld, neither invents a number"
         >
-          <CompareView
+          <FlowCompareView
+            result={DEMO_FLOW_RESULT}
+            similarTitles={["Moon", "Arrival"]}
             chatbot={null}
             error="Chatbot comparison unavailable."
-            audiences={DEMO_MOCK_AUDIENCES}
-            scores={DEMO_MOCK_SCORES}
-            verdict={{
-              ...DEMO_MOCK_VERDICT,
-              verdict: "Inconclusive",
-              topAudienceId: null,
-              clearsControl: false,
-            }}
           />
         </Specimen>
         <Specimen label="ChatbotPreview" hint="/components/chatbot-preview.tsx">
@@ -677,43 +628,7 @@ export function CompareSection() {
 }
 
 /* ─────────────────────────────────────────────────────────
- * 14. Confirm step
- * ───────────────────────────────────────────────────────── */
-
-export function ConfirmSection() {
-  return (
-    <Section
-      id="confirm"
-      title="The confirm step"
-      lede="Guess out loud before a run is spent: the titles about to be checked, the rival readings, and the words. Silent mismatch becomes an informed choice."
-    >
-      <div className="space-y-10">
-        <Specimen
-          label="ConfirmedAudience"
-          hint="/components/confirmed-audience.tsx"
-        >
-          <ConfirmedAudience
-            audience={DEMO_AUDIENCE}
-            pendingTitles={["Moon", "Arrival", "Dune"]}
-            nothingLike={["Fast franchise action"]}
-            runHref="/run"
-            rivals={DEMO_RIVALS.map((r) => ({
-              name: r.name,
-              titles: r.titles,
-            }))}
-            words={DEMO_WORDS}
-          />
-        </Specimen>
-        <Specimen label="RivalPreview" hint="/components/rival-preview.tsx">
-          <RivalPreview rivals={DEMO_RIVALS} />
-        </Specimen>
-      </div>
-    </Section>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
- * 15. Whole screens
+ * 14. Whole screens
  * ───────────────────────────────────────────────────────── */
 
 export function ScreensSection() {
@@ -727,12 +642,6 @@ export function ScreensSection() {
         <Specimen label="FlowEntry" hint="/components/flow-entry.tsx">
           <FlowEntry />
         </Specimen>
-        <Specimen
-          label="PitchFlow · idea step"
-          hint="/components/pitch-flow.tsx"
-        >
-          <PitchFlow />
-        </Specimen>
         <Specimen label="SavedRunPanel" hint="/components/saved-run-panel.tsx">
           <SavedRunPanel />
         </Specimen>
@@ -741,10 +650,10 @@ export function ScreensSection() {
         </Specimen>
       </div>
       <Notes>
-        RunSaver, SiteHeader and SiteFooter are the last three: RunSaver is a
-        client-only island that writes to localStorage and renders only a mono
-        note, and the header and footer already wrap every page from the root
-        layout — none of them has anything extra to show here.
+        SavedRunPanel is a client-only island that reads localStorage and
+        renders nothing until a run is saved, and the header and footer already
+        wrap every page from the root layout — none of them has anything extra
+        to show here.
       </Notes>
     </Section>
   );
