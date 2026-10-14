@@ -74,6 +74,24 @@ export interface DiscoverRivalsResult {
   domains: string[];
   /** Calls made, one per domain actually queried. */
   calls: QlooCall[];
+  /**
+   * Far-baseline candidate from the same live ranking: the last
+   * bottom entity no built rival uses (own domain first, then cross
+   * domains in query order), plus a second unused bottom entity for
+   * signal when one exists. Null when every entity is used or no
+   * domain returned any. Rivals keep building from the top exactly as
+   * before — this only reads the leftovers, zero new calls.
+   */
+  farCandidate: FarCandidate | null;
+}
+
+/** One bottom entity (+ optional second) backing the far baseline. */
+export interface FarCandidate {
+  id: string;
+  name: string;
+  type: string;
+  /** Second unused bottom entity for signal; null when none exists. */
+  member: { id: string; name: string; type: string } | null;
 }
 
 interface EntityEntry {
@@ -126,6 +144,7 @@ export async function discoverRivals(
     call: null,
     domains: [],
     calls: [],
+    farCandidate: null,
   };
   if (count <= 0) return empty;
   if (tagIds.length === 0 && entityIds.length === 0) return empty;
@@ -202,5 +221,31 @@ export async function discoverRivals(
     if (!progressed) break;
   }
 
-  return { rivals, call: firstCall, domains, calls };
+  // Far baseline from the leftovers: bottom-up unused entities, own
+  // domain first (perDomain already inserts the own type first), then
+  // cross domains in query order. Deterministic, zero new calls.
+  const usedIds = new Set<string>();
+  for (const rival of rivals) {
+    for (const title of rival.titles) usedIds.add(title.qlooId);
+  }
+  const unusedBottom: { id: string; name: string; type: string }[] = [];
+  for (const [entityType, { entities }] of perDomain) {
+    for (let index = entities.length - 1; index >= 0; index -= 1) {
+      const entity = entities[index];
+      if (entity !== undefined && !usedIds.has(entity.id)) {
+        unusedBottom.push({
+          id: entity.id,
+          name: entity.name,
+          type: entityType,
+        });
+      }
+    }
+  }
+  const [lead, member] = [unusedBottom[0], unusedBottom[1] ?? null];
+  const farCandidate: FarCandidate | null =
+    lead === undefined
+      ? null
+      : { id: lead.id, name: lead.name, type: lead.type, member };
+
+  return { rivals, call: firstCall, domains, calls, farCandidate };
 }

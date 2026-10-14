@@ -162,4 +162,104 @@ describe("discoverRivals", () => {
       ),
     );
   });
+
+  it("far candidate is the last unused own-domain entity", async () => {
+    process.env.QLOO_API_KEY = "test-key";
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const type = new URL(String(input)).searchParams.get("filter.type") ?? "";
+      const n = type === "urn:entity:movie" ? 4 : 2;
+      const entities = Array.from({ length: n }, (_, i) => ({
+        entity_id: `${type}-e${i + 1}`,
+        name: `Entity ${i + 1} ${type}`,
+      }));
+      return new Response(
+        JSON.stringify({ success: true, results: { entities } }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const out = await discoverRivals({
+      tagIds: ["urn:tag:a"],
+      entityIds: [],
+      workType: "film",
+      count: 3,
+    });
+    assert.equal(out.rivals.length, 3);
+    // Rivals still build from the top exactly as before.
+    assert.equal(out.rivals[0]?.titles[0]?.qlooId, "urn:entity:movie-e1");
+    assert.deepEqual(out.farCandidate, {
+      id: "urn:entity:movie-e4",
+      name: "Entity 4 urn:entity:movie",
+      type: "urn:entity:movie",
+      member: {
+        id: "urn:entity:movie-e3",
+        name: "Entity 3 urn:entity:movie",
+        type: "urn:entity:movie",
+      },
+    });
+  });
+
+  it("far candidate falls across domains when the own list is used up", async () => {
+    process.env.QLOO_API_KEY = "test-key";
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const type = new URL(String(input)).searchParams.get("filter.type") ?? "";
+      const n = type === "urn:entity:book" ? 3 : 2;
+      const entities = Array.from({ length: n }, (_, i) => ({
+        entity_id: `${type}-e${i + 1}`,
+        name: `Entity ${i + 1} ${type}`,
+      }));
+      return new Response(
+        JSON.stringify({ success: true, results: { entities } }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const out = await discoverRivals({
+      tagIds: ["urn:tag:a"],
+      entityIds: [],
+      workType: "film",
+      count: 3,
+    });
+    // Own-domain pair fully used by the first rival; book has one left.
+    assert.deepEqual(out.farCandidate, {
+      id: "urn:entity:book-e3",
+      name: "Entity 3 urn:entity:book",
+      type: "urn:entity:book",
+      member: null,
+    });
+  });
+
+  it("far candidate is null when every entity is used or none came back", async () => {
+    process.env.QLOO_API_KEY = "test-key";
+    globalThis.fetch = (async () => {
+      const entities = [1, 2].map((i) => ({
+        entity_id: `e${i}`,
+        name: `Entity ${i}`,
+      }));
+      return new Response(
+        JSON.stringify({ success: true, results: { entities } }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const used = await discoverRivals({
+      tagIds: ["urn:tag:a"],
+      entityIds: [],
+      workType: "film",
+      count: 3,
+    });
+    assert.equal(used.rivals.length, 3);
+    assert.equal(used.farCandidate, null);
+
+    resetQuota();
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ success: true, results: [] }), {
+        status: 200,
+      })) as typeof fetch;
+    const empty = await discoverRivals({
+      tagIds: ["urn:tag:a"],
+      entityIds: [],
+      workType: "film",
+      count: 3,
+    });
+    assert.deepEqual(empty.rivals, []);
+    assert.equal(empty.farCandidate, null);
+  });
 });
