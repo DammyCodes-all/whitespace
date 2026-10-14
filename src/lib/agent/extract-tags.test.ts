@@ -68,46 +68,20 @@ describe("toTagProposal", () => {
     assert.equal(out.words.length, TAG_WORDS.max);
   });
 
-  it("keeps honest title suggestions, trimmed and capped", () => {
+  it("ignores any extra fields the model adds", () => {
     const out = toTagProposal({
       tags: FIVE,
       workType: "film",
-      similarTitles: [
-        " Blade Runner 2049 ",
-        "The Matrix",
-        "blade runner 2049",
-        "Ghost in the Shell",
-        "Arrival",
-        "Dune",
-        "Interstellar",
-      ],
+      similarTitles: ["Dune", "Arrival"],
     });
-    assert.deepEqual(out.similarTitles, [
-      "Blade Runner 2049",
-      "The Matrix",
-      "Ghost in the Shell",
-      "Arrival",
-      "Dune",
+    assert.deepEqual(out.words, [
+      "science-fiction",
+      "grief",
+      "coastal town",
+      "slow-burn",
+      "solitude",
     ]);
-  });
-
-  it("treats missing or malformed suggestions as no suggestions, never a failure", () => {
-    assert.deepEqual(
-      toTagProposal({ tags: FIVE, workType: "film" }).similarTitles,
-      [],
-    );
-    assert.deepEqual(
-      toTagProposal({ tags: FIVE, workType: "film", similarTitles: "Dune" })
-        .similarTitles,
-      [],
-    );
-    assert.deepEqual(
-      toTagProposal({
-        tags: FIVE,
-        workType: "film",
-        similarTitles: ["", 42, "x".repeat(81), "Dune", null],
-      }).similarTitles,
-      ["Dune"],
-    );
+    assert.equal(out.workType, "film");
+    assert.ok(!("similarTitles" in out));
   });
 });

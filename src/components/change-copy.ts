@@ -13,7 +13,7 @@ const REASONS: Record<FailedCondition, string> = {
   rise: "The rewrite didn't clear the improvement bar.",
   coverage: "The rewrite speaks to fewer of your words.",
   grounding: "New words weren't found in Qloo.",
-  control: "The rewrite lost its lead over unrelated audiences.",
+  control: "The rewrite lost its lead over other-genre groups.",
 };
 
 export function changeReason(failed: FailedCondition): string {

@@ -187,6 +187,15 @@ export interface PipelineResult {
    * noted in docs/build-tracker.md (Package A).
    */
   notFoundWords?: string[];
+  /**
+   * Controls that set the displayed ceiling (the strangers-baseline id
+   * when strangers are measured, else the title-eligible control ids).
+   * The verdict uses the same set, so the ink line can never disagree
+   * with the baseline the verdict beat. Additive optional field —
+   * absent on older saved runs, which the adapter reads as "all
+   * controls".
+   */
+  ceilingControlIds?: string[];
 }
 
 export type RunPipeline = (input: PitchInput) => Promise<PipelineResult>;

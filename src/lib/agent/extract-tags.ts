@@ -2,8 +2,8 @@
  * Package B: LLM tag extraction, one of the two things the LLM may do
  * (the other is wording the verdict). Owned by U.
  *
- * The model reads a pitch and proposes 5 to 8 descriptive words, each
- * copied from the pitch. It supplies no facts about any audience: no
+ * The model reads a pitch and proposes 5 to 8 descriptive words
+ * about it. It supplies no facts about any audience: no
  * names, no numbers, no comparisons. Every word is matched against a
  * real Qloo tag downstream by `resolvePitchTags`, so a word Qloo does
  * not hold is "not found in Qloo" and never enters scoring (§6.5).
@@ -92,9 +92,9 @@ function systemPrompt(): string {
     "Reply with JSON ONLY, no markdown, no prose, matching this shape exactly:",
     '{"tags":["word1","word2","more words"],"workType":"film"}',
     `Rules: tags between ${TAG_WORDS.min} and ${TAG_WORDS.max} words, lowercase, single concepts.`,
-    "Each word must appear in the pitch. Prefer concrete, distinctive words taste data uses (technologies, creatures, occupations, settings: android, hacker, coastal town) over generic genre labels (thriller, drama); use mood adjectives sparingly, at most one.",
+    "Words describe what the pitch is about — they do NOT need to appear verbatim: 'heist' is a fine word for a casino-robbery pitch that never says heist. Taste data speaks in plain lowercase concepts — single nouns and short phrases like: criminal, betrayal, detective, amnesia, conspiracy, small town, based on true story, anti hero. Favor words shaped like these (concrete things, occupations, settings, situations) over generic genre labels (thriller, drama); use mood adjectives sparingly, at most one.",
     'workType is exactly one of "film", "music", "book", "game" — whichever the pitch itself describes.',
-    "Never invent a word that is not in the pitch. No titles, no ids, no numbers. No claims about audiences.",
+    "Never invent a word the pitch is not about. No titles, no ids, no numbers. No claims about audiences.",
   ].join("\n");
 }
 

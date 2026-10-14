@@ -60,9 +60,7 @@ function VerdictHeadline({
     <div
       className={`card px-6 py-5 ${VERDICT_FILLS[result.verdict]}`}
       style={
-        orange
-          ? { backgroundColor: "#f76743", color: "#17151F" }
-          : undefined
+        orange ? { backgroundColor: "#f76743", color: "#17151F" } : undefined
       }
     >
       <p
@@ -82,14 +80,14 @@ function VerdictHeadline({
       )}
       {isCloseCall(result) && (
         <p className="mt-2 max-w-prose text-body text-ink">
-          Close call — this one sits only just above an unrelated group. A
+          Close call — this one sits only just above strangers to this idea. A
           re-run may read differently. Adjust the words and run again.
         </p>
       )}
       <p className="mt-2 max-w-prose text-body text-ink">
         {result.ceiling === null
-          ? "No unrelated group was measured, so there is nothing to compare this against."
-          : `An unrelated group matches it ${Math.round(result.ceiling * 100)}%.`}
+          ? "Strangers to this idea were not measured, so there is nothing to compare this against."
+          : `Strangers to this idea match it ${Math.round(result.ceiling * 100)}%.`}
       </p>
     </div>
   );
@@ -117,8 +115,8 @@ function Bars({ result }: { result: FlowResult }) {
       <p className="mt-1 max-w-prose text-sm text-ink-2">
         One bar per audience, best first.{" "}
         {ceiling === null
-          ? "No unrelated group was measured, so there is no line to compare against."
-          : `The ink line marks an unrelated group: ${Math.round(ceiling * 100)}%.`}
+          ? "Strangers to this idea were not measured, so there is no line to compare against."
+          : `The ink line marks strangers to this idea: ${Math.round(ceiling * 100)}%.`}
       </p>
       <div className="mt-4">
         {rows.length === 0 ? (
@@ -165,7 +163,7 @@ function Bars({ result }: { result: FlowResult }) {
               style={{ left: `${ceiling * 100}%` }}
             >
               <span className="control-pill">
-                unrelated {Math.round((ceiling ?? 0) * 100)}%
+                strangers {Math.round((ceiling ?? 0) * 100)}%
               </span>
             </div>
           </div>
@@ -180,10 +178,12 @@ function ReachBlock({ result }: { result: FlowResult }) {
   if (reach === null) {
     return (
       <section aria-label="Where to find them" className="mt-8">
-        <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
+        <h3 className="text-base tracking-tight text-ink">
+          Where to find them
+        </h3>
         <p className="mt-2 text-body text-ink-2">
-          No audience scored above an unrelated group, so there is no list of
-          where to find them. The app says so instead of inventing one.
+          No audience scored above strangers to this idea, so there is no list
+          of where to find them. The app says so instead of inventing one.
         </p>
       </section>
     );
@@ -191,10 +191,12 @@ function ReachBlock({ result }: { result: FlowResult }) {
   if (reach.length === 0) {
     return (
       <section aria-label="Where to find them" className="mt-8">
-        <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
+        <h3 className="text-base tracking-tight text-ink">
+          Where to find them
+        </h3>
         <p className="mt-2 text-body text-ink-2">
-          This audience scored above an unrelated group, but nothing they love
-          was measured.
+          This audience scored above strangers to this idea, but nothing they
+          love was measured.
         </p>
       </section>
     );
