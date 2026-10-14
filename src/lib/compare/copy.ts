@@ -26,6 +26,8 @@ export function cap(label: string): string {
 export interface CopyAudience {
   label: string;
   score: number;
+  /** Winner/runner-up role, when the caller knows it (flow bar rows do). */
+  role?: "named" | "rival" | "control";
 }
 
 export interface CopyInput {
@@ -94,7 +96,21 @@ export function buildCopy(input: CopyInput): ResultCopy {
   }
   const runnerUp = input.runnerUp;
   if (runnerUp !== null) {
-    body.push(`${cap(runnerUp.label)} matches it at ${pct(runnerUp.score)}%.`);
+    // Rivals-first: a rival runner-up is named as a rival matching too;
+    // the named titles are the benchmark the winner is read against.
+    if (runnerUp.role === "rival") {
+      body.push(
+        `A rival matches them too: ${cap(runnerUp.label)} at ${pct(runnerUp.score)}%.`,
+      );
+    } else if (runnerUp.role === "named") {
+      body.push(
+        `Your comparables agree: ${cap(runnerUp.label)} matches it at ${pct(runnerUp.score)}%.`,
+      );
+    } else {
+      body.push(
+        `${cap(runnerUp.label)} matches it at ${pct(runnerUp.score)}%.`,
+      );
+    }
   }
   return { badge, body, source };
 }
