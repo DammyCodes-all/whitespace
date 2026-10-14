@@ -34,7 +34,13 @@ import {
   namesById,
   proposeBridges,
 } from "../agent/bridge.ts";
-import { CANDIDATES, CONTROL_COUNT, MIN_MATCHED_TAGS } from "../config.ts";
+import {
+  BRIDGES_ENABLED,
+  CANDIDATES,
+  CONTROL_COUNT,
+  MAX_TITLES_PER_AUDIENCE,
+  MIN_MATCHED_TAGS,
+} from "../config.ts";
 import { selectReachTargets } from "../demo/reach-targets.ts";
 import { checkScope } from "../policy/scope.ts";
 import { decideVerdict } from "../policy/verdict.ts";
@@ -47,6 +53,7 @@ import {
   resolveTitles,
 } from "../qloo/index.ts";
 import type { RelatedResult } from "../qloo/related.ts";
+import { buildTitleTagPool, namedTasteAudiences } from "../qloo/title-tags.ts";
 import {
   type AudienceTastes,
   isUnjudgeable,
@@ -67,7 +74,7 @@ import type {
   QlooCall,
   RunStep,
 } from "../types.ts";
-import type { FlowReachInput } from "./contract.ts";
+import type { FlowReachInput, FlowTagSource } from "./contract.ts";
 import { toFlowResult } from "./contract.ts";
 
 export interface FlowInput extends PitchInput {
@@ -78,6 +85,30 @@ export interface FlowInput extends PitchInput {
    * Only `matched` tags reach scoring; `not_found` are reported.
    */
   tags: FlowTagInput[];
+  /**
+   * Title-tag ids the user confirmed in the tags phase. Empty (or
+   * absent) keeps the whole title-grounded pool; a non-empty list
+   * narrows it to exactly these ids.
+   */
+  pickedTagIds?: string[];
+}
+
+/**
+ * Flow-local pooled tag. `PitchTag` is frozen, so provenance rides
+ * beside it here and reaches the UI as `FlowTag.source` — never by
+ * extending the frozen type.
+ */
+export interface FlowPoolTag {
+  tag: PitchTag;
+  source: FlowTagSource;
+}
+
+function tagSourcesOf(
+  pool: readonly FlowPoolTag[],
+): Record<string, FlowTagSource> {
+  const out: Record<string, FlowTagSource> = {};
+  for (const entry of pool) out[entry.tag.qlooTagId] = entry.source;
+  return out;
 }
 
 export interface FlowTagInput {
@@ -110,13 +141,14 @@ function emptyPipeline(
   calls: QlooCall[],
   steps: RunStep[],
   hypothesis: Audience,
+  tags: PitchTag[] = [],
 ): PipelineResult {
   return {
     input,
     hypothesis,
     rivals: [],
     controls: [],
-    tags: [],
+    tags,
     coverage: 0,
     scores: [],
     verdict: {
@@ -141,7 +173,7 @@ function emptyPipeline(
  */
 export async function runFlowPitch(
   input: FlowInput,
-  options: { controlCount?: number } = {},
+  options: { controlCount?: number; bridgesEnabled?: boolean } = {},
 ): Promise<FlowRunResult> {
   if (typeof window !== "undefined") {
     throw new Error("runFlowPitch is server-only.");
@@ -199,14 +231,16 @@ export async function runFlowPitch(
     };
   }
 
-  // Step 2 gate: fewer than MIN_MATCHED_TAGS matched tags => stop as
-  // Inconclusive, do not score. No Qloo calls are spent on scoring.
-  if (matchedTags.length < MIN_MATCHED_TAGS) {
+  // Cheap empty-check (zero Qloo calls): no titles to ground tags
+  // in and too few pitch tags to score on their own. Anything else
+  // proceeds — title gifts may still fill the pool, and the real gate
+  // on the pooled set runs after tastes load below.
+  if (similarTitles.length === 0 && matchedTags.length < MIN_MATCHED_TAGS) {
     steps.push(
       doneStep(
         "tags",
         "Pitch tags",
-        `${matchedTags.length} matched, ${notFoundWords.length} not found — below the ${MIN_MATCHED_TAGS}-tag gate`,
+        `${matchedTags.length} matched, ${notFoundWords.length} not found — no titles and below the ${MIN_MATCHED_TAGS}-tag gate`,
       ),
     );
     steps.push(
@@ -378,42 +412,134 @@ export async function runFlowPitch(
         failed: true,
       },
   );
-  // AI word-bridge (bonus, never a dependency): leftover matched words
-  // scoring zero everywhere get one
-  // narrow LLM call pointing each at an already-fetched taste id +
-  // bucket (max 4, pinned never bridged; flow tags are unpinned). Any
-  // failure falls back to the exact-match run; verdict and controls
-  // logic are untouched.
+  // Title-grounded pool (step 5): one taste list per resolved title
+  // (same joined-signal titles, first MAX_TITLES_PER_AUDIENCE — the
+  // taste fetch itself caps entities per audience there too), merged
+  // with the pitch's matched tags and cut against controls. The real
+  // gate runs on the pooled size: title gifts may rescue a thin pitch,
+  // and a thin pool stops here as Inconclusive.
+  const poolTitles = (hypothesis?.titles ?? []).slice(
+    0,
+    MAX_TITLES_PER_AUDIENCE,
+  );
+  const namedTargets = namedTasteAudiences(poolTitles);
+  const { all: namedTastes, calls: namedTasteCalls } =
+    await fetchAllAudienceTastes(namedTargets, input.workType);
+  calls.push(...namedTasteCalls);
+  const pool = buildTitleTagPool({
+    namedTastes: poolTitles.map((title, index) => ({
+      tastes: namedTastes[index] ?? {
+        audienceId: `title:${title.qlooId}`,
+        tagIds: [],
+        failed: true,
+      },
+      titleId: title.qlooId,
+      titleName: title.name,
+    })),
+    pitchMatchedTags: matchedTags.map((tag) => ({
+      qlooTagId: tag.qlooTagId,
+      label: tag.tag,
+    })),
+    controlTastes: controlCached.tastes,
+    pickedIds: input.pickedTagIds ?? [],
+  });
+  const poolTags: FlowPoolTag[] = pool.map((candidate) => ({
+    tag: {
+      tag: candidate.label,
+      qlooTagId: candidate.qlooTagId,
+      pinned: false,
+    },
+    source:
+      candidate.source === "pitch"
+        ? "pitch"
+        : {
+            titleId: candidate.source.titleId,
+            titleName: candidate.sourceTitleName ?? candidate.source.titleId,
+          },
+  }));
+  const poolFromTitles = poolTags.filter((p) => p.source !== "pitch").length;
+  const poolGiftTitles = new Set(
+    poolTags.flatMap((p) => (p.source === "pitch" ? [] : [p.source.titleId])),
+  ).size;
+  if (poolTags.length < MIN_MATCHED_TAGS) {
+    steps.push(
+      doneStep(
+        "tags",
+        "Title-grounded tags",
+        `${poolTags.length} pooled (${poolFromTitles} from titles, ${poolTags.length - poolFromTitles} from pitch) — below the ${MIN_MATCHED_TAGS}-tag gate`,
+      ),
+    );
+    steps.push(
+      doneStep(
+        "verdict",
+        "Control test and verdict",
+        "Inconclusive, too few pooled tags",
+      ),
+    );
+    const result = emptyPipeline(
+      baseInput,
+      calls,
+      steps,
+      idleHypothesis,
+      poolTags.map((p) => p.tag),
+    );
+    return {
+      result: toFlowResult(result, {}, tagSourcesOf(poolTags)),
+      steps,
+      stopped: true,
+    };
+  }
+  steps.push(
+    doneStep(
+      "tags",
+      "Title-grounded tags",
+      `${poolTags.length} pooled (${poolFromTitles} from ${poolGiftTitles} title(s), ${poolTags.length - poolFromTitles} from pitch)`,
+      namedTasteCalls[0]?.id,
+    ),
+  );
+  // AI word-bridge (bonus, never a dependency, behind
+  // BRIDGES_ENABLED — off by default): leftover matched words scoring
+  // zero everywhere get one narrow LLM call pointing each at an
+  // already-fetched taste id + bucket (max 4, pinned never bridged;
+  // pool tags are unpinned). Any failure falls back to the exact-match
+  // run; verdict and controls logic are untouched.
   const bridgeWtags: WeightedTag[] = [];
   let bridgeNote = "";
   let bridgeCallId: string | undefined;
-  const heldIds = new Set(
-    [...scoredContenders, ...scoredControls].flatMap((t) => t.tagIds),
-  );
-  const leftoverWords = selectLeftoverWords(matchedTags, heldIds);
-  if (leftoverWords.length > 0) {
-    try {
-      const available = availableFromTastes([
-        ...scoredContenders,
-        ...scoredControls,
-      ]);
-      const bridges = await proposeBridges({
-        words: leftoverWords,
-        available,
-      });
-      bridgeWtags.push(...bridgesToWeightedTags(bridges, namesById(available)));
-      if (bridgeWtags.length > 0) {
-        bridgeNote = `, +${bridgeWtags.length} AI bridge${bridgeWtags.length === 1 ? "" : "s"} (${bridgeWtags.map((w) => w.label).join("; ")})`;
-        bridgeCallId = tasteCalls[0]?.id ?? controlCached.calls[0]?.id;
-      } else {
+  const bridgesOn = options.bridgesEnabled ?? BRIDGES_ENABLED;
+  if (!bridgesOn) {
+    bridgeNote = ", bridges off, exact matches scored";
+  } else {
+    const heldIds = new Set(
+      [...scoredContenders, ...scoredControls].flatMap((t) => t.tagIds),
+    );
+    const leftoverWords = selectLeftoverWords(matchedTags, heldIds);
+    if (leftoverWords.length > 0) {
+      try {
+        const available = availableFromTastes([
+          ...scoredContenders,
+          ...scoredControls,
+        ]);
+        const bridges = await proposeBridges({
+          words: leftoverWords,
+          available,
+        });
+        bridgeWtags.push(
+          ...bridgesToWeightedTags(bridges, namesById(available)),
+        );
+        if (bridgeWtags.length > 0) {
+          bridgeNote = `, +${bridgeWtags.length} AI bridge${bridgeWtags.length === 1 ? "" : "s"} (${bridgeWtags.map((w) => w.label).join("; ")})`;
+          bridgeCallId = tasteCalls[0]?.id ?? controlCached.calls[0]?.id;
+        } else {
+          bridgeNote = ", bridges unavailable, exact matches scored";
+        }
+      } catch {
         bridgeNote = ", bridges unavailable, exact matches scored";
       }
-    } catch {
-      bridgeNote = ", bridges unavailable, exact matches scored";
     }
   }
   const flowWeightedTags: WeightedTag[] = [
-    ...matchedTags.map((tag) => ({ tag, weight: 1 })),
+    ...poolTags.map((entry) => ({ tag: entry.tag, weight: 1 })),
     ...bridgeWtags,
   ];
   const contenderScores = scoreAllWeighted(scoredContenders, flowWeightedTags);
@@ -422,10 +548,85 @@ export async function runFlowPitch(
     doneStep(
       "score",
       "Fit scores",
-      `0 to 1 across ${matchedTags.length} matched tags${bridgeNote}`,
+      `0 to 1 across ${poolTags.length} pooled tags${bridgeNote}`,
       bridgeCallId,
     ),
   );
+
+  // Hold-out rounds: the full set scored above, plus one round per
+  // source title dropping its gifts. Every audience (contenders,
+  // controls, far) is rescored on the SAME reduced set per round
+  // (shared-set — never giver-only), so a round measures the pool's
+  // dependence on that title, not the title's own fit. Zero Qloo
+  // calls: pure rescoring. The verdict below uses the full-set
+  // scores; each round lands as a step carrying the named delta.
+  const giftTitleIds: string[] = [];
+  for (const entry of poolTags) {
+    if (entry.source === "pitch") continue;
+    if (!giftTitleIds.includes(entry.source.titleId)) {
+      giftTitleIds.push(entry.source.titleId);
+    }
+  }
+  const titleNameOf = (titleId: string): string => {
+    const giver = poolTags.find(
+      (entry) => entry.source !== "pitch" && entry.source.titleId === titleId,
+    );
+    return giver !== undefined && giver.source !== "pitch"
+      ? giver.source.titleName
+      : titleId;
+  };
+  const fmtFit = (fit: FitScore | null): string =>
+    fit === null
+      ? "n/a"
+      : isUnjudgeable(fit)
+        ? "not measured"
+        : fit.score.toFixed(2);
+  const hypFull = contenderScores.find((s) => s.audienceId === "hyp") ?? null;
+  const topFull =
+    [...contenderScores].sort((a, b) => b.score - a.score)[0] ?? null;
+  giftTitleIds.forEach((titleId, index) => {
+    const titleName = titleNameOf(titleId);
+    const dropped = poolTags.filter(
+      (entry) => entry.source !== "pitch" && entry.source.titleId === titleId,
+    ).length;
+    const reducedWeighted: WeightedTag[] = [
+      ...poolTags
+        .filter(
+          (entry) =>
+            entry.source === "pitch" || entry.source.titleId !== titleId,
+        )
+        .map((entry) => ({ tag: entry.tag, weight: 1 })),
+      ...bridgeWtags,
+    ];
+    // Shared-set: every audience rescores on the same reduced list.
+    // Only the named and top deltas display, but the reduced set is
+    // the same one for contenders, controls and far alike.
+    const redContenders = scoreAllWeighted(scoredContenders, reducedWeighted);
+    scoreAllWeighted(scoredControls, reducedWeighted);
+    if (farTastes.length > 0) scoreAllWeighted(farTastes, reducedWeighted);
+    const hypRed = redContenders.find((s) => s.audienceId === "hyp") ?? null;
+    const topRed =
+      [...redContenders].sort((a, b) => b.score - a.score)[0] ?? null;
+    const deltaOf = (full: FitScore | null, red: FitScore | null): string => {
+      if (
+        full === null ||
+        red === null ||
+        isUnjudgeable(full) ||
+        isUnjudgeable(red)
+      ) {
+        return "";
+      }
+      const delta = red.score - full.score;
+      return ` (Δ ${(delta >= 0 ? "+" : "") + delta.toFixed(2)})`;
+    };
+    steps.push(
+      doneStep(
+        `holdout-${index + 1}`,
+        `Hold-out: ${titleName}`,
+        `without ${titleName}'s ${dropped} tag(s): named ${fmtFit(hypFull)} → ${fmtFit(hypRed)}${deltaOf(hypFull, hypRed)}, top ${fmtFit(topFull)} → ${fmtFit(topRed)}${deltaOf(topFull, topRed)}`,
+      ),
+    );
+  });
 
   // Pitch-aware line, decided once scores exist. The title filter
   // (same overlap rule as rivals) still applies to the hardcoded
@@ -496,7 +697,7 @@ export async function runFlowPitch(
     hypothesis: hypothesis ?? idleHypothesis,
     rivals: discovered,
     controls: controlCached.controls,
-    tags: matchedTags,
+    tags: poolTags.map((entry) => entry.tag),
     notFoundWords,
     coverage,
     scores: [
@@ -563,7 +764,7 @@ export async function runFlowPitch(
   }
 
   return {
-    result: toFlowResult(result, reachInput),
+    result: toFlowResult(result, reachInput, tagSourcesOf(poolTags)),
     steps,
     stopped: false,
   };
