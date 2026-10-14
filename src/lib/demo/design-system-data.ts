@@ -73,7 +73,7 @@ const mockSteps: RunStep[] = [
     id: "controls",
     label: "Control audiences",
     status: "done",
-    detail: "20 unrelated",
+    detail: "20 other-genre groups",
     callId: "call-insights-1",
   },
   {

@@ -49,6 +49,7 @@ import {
 import type { RelatedResult } from "../qloo/related.ts";
 import {
   type AudienceTastes,
+  isUnjudgeable,
   scoreAllWeighted,
   type WeightedTag,
 } from "../scoring/fit.ts";
@@ -59,6 +60,7 @@ import {
 } from "../scoring/semantic.ts";
 import type {
   Audience,
+  FitScore,
   PipelineResult,
   PitchInput,
   PitchTag,
@@ -255,7 +257,11 @@ export async function runFlowPitch(
     0,
     CANDIDATES.min + 1 - (hypothesis === null ? 0 : 1),
   );
-  const { rivals: discovered, calls: rivalCalls } = await discoverRivals({
+  const {
+    rivals: discovered,
+    calls: rivalCalls,
+    farCandidate,
+  } = await discoverRivals({
     tagIds: matchedTags.map((t) => t.qlooTagId),
     entityIds: hypothesis?.titles.map((t) => t.qlooId) ?? [],
     workType: input.workType,
@@ -291,47 +297,59 @@ export async function runFlowPitch(
   }
 
   // Controls (step 4): cached tag sets keyed by pitch type, scored
-  // fresh per pitch.
+  // fresh per pitch. The line they set is decided after scoring (the
+  // strangers baseline needs its score first), so the controls step
+  // is pushed after the score step below.
   const controlCached = await loadControlTastes(
     input.workType,
     options.controlCount ?? CONTROL_COUNT,
   );
   calls.push(...controlCached.calls);
-  // Pitch-aware ceiling: controls too close to the named audience
-  // (same overlap rule as rivals) do not set the verdict ceiling. No
-  // named audience means nothing to compare against, so all controls
-  // stay eligible.
-  const controlEligibility =
-    hypothesis === null
-      ? {
-          eligible: controlCached.controls,
-          excluded: [],
-          filtered: false,
-          fellBack: false,
-        }
-      : eligibleControls(hypothesis, controlCached.controls);
-  const flowControlsBase = controlCached.fromCache
-    ? `${controlCached.controls.length} from cache, 0 Qloo calls`
-    : `${controlCached.controls.length} built, ${controlCached.droppedControls.length} dropped`;
-  const flowControlsDetail = controlEligibility.filtered
-    ? `${flowControlsBase}, ${controlEligibility.excluded.length} excluded as too close to hypothesis`
-    : controlEligibility.fellBack
-      ? `${flowControlsBase}, overlap filter fell back (all too close to hypothesis)`
-      : flowControlsBase;
-  steps.push(
-    doneStep(
-      "controls",
-      "Control audiences",
-      flowControlsDetail,
-      controlCached.calls[0]?.id,
-    ),
-  );
+
+  // Strangers baseline: a far audience from the discovery ranking's
+  // leftovers — the last bottom entities no rival uses. Same domain,
+  // far territory: the line the verdict beats when measured.
+  const farAudience: Audience | null =
+    farCandidate === null
+      ? null
+      : {
+          id: "far",
+          kind: "control",
+          name: "Strangers to this idea",
+          titles: [
+            {
+              query: farCandidate.name,
+              qlooId: farCandidate.id,
+              name: farCandidate.name,
+              type: farCandidate.type,
+            },
+            ...(farCandidate.member === null
+              ? []
+              : [
+                  {
+                    query: farCandidate.member.name,
+                    qlooId: farCandidate.member.id,
+                    name: farCandidate.member.name,
+                    type: farCandidate.member.type,
+                  },
+                ]),
+          ],
+          notFoundTitles: [],
+        };
 
   const { all: freshTastes, calls: tasteCalls } = await fetchAllAudienceTastes(
     contenders,
     input.workType,
   );
   calls.push(...tasteCalls);
+  // Strangers tastes: one extra call on the same path (same take and
+  // scope) when the ranking left a far candidate.
+  let farTastes: AudienceTastes[] = [];
+  if (farAudience !== null) {
+    const farRes = await fetchAllAudienceTastes([farAudience], input.workType);
+    farTastes = farRes.all;
+    calls.push(...farRes.calls);
+  }
   const tasteById = new Map<string, AudienceTastes>(
     [...freshTastes, ...controlCached.tastes].map((t) => [t.audienceId, t]),
   );
@@ -339,7 +357,7 @@ export async function runFlowPitch(
     doneStep(
       "tastes",
       "Audience tastes",
-      `${freshTastes.length} fetched, ${controlCached.tastes.length} from cache`,
+      `${freshTastes.length + farTastes.length} fetched, ${controlCached.tastes.length} from cache`,
       tasteCalls[0]?.id,
     ),
   );
@@ -409,12 +427,56 @@ export async function runFlowPitch(
     ),
   );
 
+  // Pitch-aware line, decided once scores exist. The title filter
+  // (same overlap rule as rivals) still applies to the hardcoded
+  // controls; no named audience means nothing to compare against, so
+  // all stay eligible. The strangers baseline sets the ceiling when
+  // measured, else the title-eligible controls do. Never lets the
+  // ceiling vanish: when every control is too close, the full set
+  // comes back.
+  const controlEligibility =
+    hypothesis === null
+      ? {
+          eligible: controlCached.controls,
+          excluded: [],
+          filtered: false,
+          fellBack: false,
+        }
+      : eligibleControls(hypothesis, controlCached.controls);
+  const farScore: FitScore | null =
+    farTastes.length === 0
+      ? null
+      : scoreAllWeighted(farTastes, flowWeightedTags)[0];
+  const farMeasured = farScore !== null && !isUnjudgeable(farScore);
+  const lineSource = farMeasured
+    ? "line from strangers baseline"
+    : "strangers unmeasured, other-genre ceiling";
+  const flowControlsBase = controlCached.fromCache
+    ? `${controlCached.controls.length} from cache, 0 Qloo calls`
+    : `${controlCached.controls.length} built, ${controlCached.droppedControls.length} dropped`;
+  const flowControlsDetail = controlEligibility.filtered
+    ? `${flowControlsBase}, ${controlEligibility.excluded.length} excluded as too close (shared titles), ${lineSource}`
+    : controlEligibility.fellBack
+      ? `${flowControlsBase}, overlap filter fell back (all too close to hypothesis), ${lineSource}`
+      : `${flowControlsBase}, ${lineSource}`;
+  steps.push(
+    doneStep(
+      "controls",
+      "Control audiences",
+      flowControlsDetail,
+      controlCached.calls[0]?.id,
+    ),
+  );
+
   const eligibleControlIds = new Set(
     controlEligibility.eligible.map((c) => c.id),
   );
-  const verdictControlScores = controlEligibility.filtered
-    ? controlScores.filter((s) => eligibleControlIds.has(s.audienceId))
-    : controlScores;
+  const verdictControlScores =
+    farMeasured && farScore !== null
+      ? [farScore]
+      : controlEligibility.filtered
+        ? controlScores.filter((s) => eligibleControlIds.has(s.audienceId))
+        : controlScores;
   const verdict = decideVerdict({
     hypothesisId: "hyp",
     scores: contenderScores,
@@ -425,7 +487,7 @@ export async function runFlowPitch(
     doneStep(
       "verdict",
       "Control test and verdict",
-      `${verdict.verdict}, top ${verdict.topAudienceId ?? "none"}`,
+      `${verdict.verdict}, top ${verdict.topAudienceId ?? "none"} (${lineSource})`,
     ),
   );
 
@@ -437,11 +499,22 @@ export async function runFlowPitch(
     tags: matchedTags,
     notFoundWords,
     coverage,
-    scores: [...contenderScores, ...controlScores],
+    scores: [
+      ...contenderScores,
+      ...controlScores,
+      ...(farScore === null ? [] : [farScore]),
+    ],
     verdict,
     grounding: { ok: true, ungroundedTitles: [], ungroundedTags: [] },
     calls,
     steps,
+    // The displayed ceiling follows the same set as the verdict: the
+    // strangers baseline when measured, else the title-eligible
+    // controls — never an excluded control.
+    ceilingControlIds:
+      farMeasured && farScore !== null
+        ? [farScore.audienceId]
+        : controlEligibility.eligible.map((c) => c.id),
   };
 
   // Reach (step 7): only when something beats the ceiling. Interests

@@ -33,11 +33,7 @@ import type { RelatedResult } from "../qloo/related.ts";
 import type { AudienceTastes } from "../scoring/fit.ts";
 import { isUnjudgeable } from "../scoring/fit.ts";
 import type { GapItem } from "../scoring/gaps.ts";
-import {
-  countUnlabeled,
-  findGaps,
-  labelsForTastes,
-} from "../scoring/gaps.ts";
+import { countUnlabeled, findGaps, labelsForTastes } from "../scoring/gaps.ts";
 import type {
   Audience,
   FitScore,
@@ -290,10 +286,26 @@ export function toFlowResult(
   ];
 
   let ceiling: number | null = null;
-  for (const control of pipeline.controls) {
-    const fit = scoresById.get(control.id);
-    if (fit && !isUnjudgeable(fit)) {
-      ceiling = ceiling === null ? fit.score : Math.max(ceiling, fit.score);
+  // The line the verdict beat: the strangers baseline when measured,
+  // else the title-eligible controls. Absent on older saved runs, which
+  // read as all controls (the legacy behavior).
+  const ceilingIds =
+    pipeline.ceilingControlIds === undefined
+      ? null
+      : new Set(pipeline.ceilingControlIds);
+  if (ceilingIds !== null) {
+    for (const id of ceilingIds) {
+      const fit = scoresById.get(id);
+      if (fit && !isUnjudgeable(fit)) {
+        ceiling = ceiling === null ? fit.score : Math.max(ceiling, fit.score);
+      }
+    }
+  } else {
+    for (const control of pipeline.controls) {
+      const fit = scoresById.get(control.id);
+      if (fit && !isUnjudgeable(fit)) {
+        ceiling = ceiling === null ? fit.score : Math.max(ceiling, fit.score);
+      }
     }
   }
 
