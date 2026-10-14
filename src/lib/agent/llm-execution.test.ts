@@ -176,6 +176,33 @@ describe("callChatCompletions execution", () => {
     await assert.rejects(withinTurn(pending), /timed out/i);
   });
 
+  it("honors a custom timeoutMs instead of the 20s default", async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    t.mock.method(globalThis, "fetch", () => new Promise<Response>(() => {}));
+    const raw = callChatCompletions(
+      GROQ_URL,
+      "synthetic-key",
+      "synthetic-model",
+      messages,
+      "groq",
+      { timeoutMs: 45000 },
+    );
+    let settled = false;
+    void raw.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    t.mock.timers.tick(20000);
+    await setImmediate();
+    assert.equal(settled, false);
+    t.mock.timers.tick(25000);
+    await assert.rejects(withinTurn(raw), /timed out/i);
+  });
+
   it("keeps v1-style options and headers unchanged", async (t) => {
     t.mock.method(
       globalThis,
