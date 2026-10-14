@@ -215,5 +215,7 @@ Format:
 | 2026-10-15 | Home placeholder speaks to the user (tell-us-about-your-story + six prompts + mini-example); Try-an-example keeps the runnable Frankie pitch | §6.1 | tsc clean; biome clean |
 | 2026-10-15 | Humanize both input placeholders (conversational questions, no label-colon lists, no em dashes) | §6.1 | tsc clean; biome clean |
 | 2026-10-15 | Trim home placeholder to two sentences (one invitation, one mini-example) | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Home entry gains a detail hint under the box (yields to the empty-nudge) | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Detail hint folded into the home placeholder; separate hint line removed | §6.1 | tsc clean; biome clean |
 | 2026-10-13 | Merge bridge + semantic impl/test pairs into single self-tested files (tests behind a main-entry guard, explicit tsx paths) | n/a | tsc clean; biome clean; tsx 211/211 (29 self-tests); next build pass; prod-import probe keeps env key, runs 0 tests |
 | 2026-10-13 | Revert file merge: bridge + semantic back to separate impl and .test.ts files per owner request | n/a | biome clean on 4 files; tsc clean; tsx 211/211; next build pass |
