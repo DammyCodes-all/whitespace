@@ -221,5 +221,11 @@ Format:
 | 2026-10-15 | Remove client 30s abort on chip-step fetches (Check, preview, pick, suggestions run to data or real error) | §6.1 | tsc clean; biome clean |
 | 2026-10-15 | Fit-pick prompt pins the bar with worked keep/cut examples (keep mood near-miss, cut fiction-vs-doc and contradiction); test locks them in | §6.5 | node24 targeted 9/9; tsc clean; biome clean; zero live calls (mocks only) |
 | 2026-10-15 | Drop what-it-is-not from both placeholders and spec (premise, mood, themes, setting only) | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Bridges on globally (BRIDGES_ENABLED=true, spec updated); exact-off test now explicit opt-out | §6.6, §7 | node24 targeted 40/40; tsc clean; biome clean; zero live calls (mocks only) |
+| 2026-10-15 | Fit-pick pinned to temperature 0 (PICK_TEMPERATURE, both legs; transport test locks it) | §7, §10 #7 | node24 targeted 10/10; tsc clean; biome clean; zero live calls (mocks only) |
+| 2026-10-15 | Compare left card reads conversational with numbers embedded (measured lead, rival/named runner-up, measured-against source); tests repinned | §6.11, §6.7 | node24 copy 14/14; tsc clean; biome clean |
+| 2026-10-15 | Humanize compare card per humanize-writing (short varied sentences, no em dashes, overlap tags line, checked-against source); deterministic templates, no LLM | §6.11 | node24 copy 16/16; tsc clean; biome clean |
+| 2026-10-15 | Compare left card gains measured substance (point-gap verdict line, where-to-find-them reach, lean-into gaps) from result data; still zero new calls | §6.8, §6.11 | node24 copy 16/16; tsc clean; biome clean |
+| 2026-10-15 | Remove completed-run steps ledger from results UI (running-phase stream stays per §5.3; steps still in API data + evidence) | §5 | tsc clean; biome clean |
 | 2026-10-13 | Merge bridge + semantic impl/test pairs into single self-tested files (tests behind a main-entry guard, explicit tsx paths) | n/a | tsc clean; biome clean; tsx 211/211 (29 self-tests); next build pass; prod-import probe keeps env key, runs 0 tests |
 | 2026-10-13 | Revert file merge: bridge + semantic back to separate impl and .test.ts files per owner request | n/a | biome clean on 4 files; tsc clean; tsx 211/211; next build pass |

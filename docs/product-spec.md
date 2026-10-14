@@ -163,9 +163,9 @@ responses can never fake a low score.
 
 AI word-bridges rescue meaning strict matching misses (added
 2026-10-13; why: `docs/qloo-coverage.md`, "AI word-bridge
-scoring"; default OFF since the title-grounded rebuild —
-`BRIDGES_ENABLED=false` — until an off-vs-on probe shows they
-help). Leftover words — pooled tags scoring zero everywhere —
+scoring"; default ON since 2026-10-15 per user call —
+`BRIDGES_ENABLED=true` — exact matches plus leftover-word bridges).
+Leftover words — pooled tags scoring zero everywhere —
 get one narrow AI call pointing each at an already-fetched taste id
 plus a bucket: strong 0.75, related 0.5, distant 0 (considered, not
 counted). At most 4 bridges per run; buckets-only output or the run

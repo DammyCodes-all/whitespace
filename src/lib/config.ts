@@ -68,12 +68,13 @@ export const REACH_TRIM = 5;
 export const MAX_TITLES_PER_AUDIENCE = 5;
 
 /**
- * AI word-bridges: off by default. The title-grounded pool scores
- * exact matches only; when true, leftover pitch words get one narrow
+ * AI word-bridges: on. The title-grounded pool scores
+ * exact matches plus leftover-word bridges; when false, exact
+ * matches only. Leftover pitch words get one narrow
  * LLM pass pointing each at an already-fetched taste id, appended to
  * the same shared list (existing behavior, unchanged).
  */
-export const BRIDGES_ENABLED = false;
+export const BRIDGES_ENABLED = true;
 
 /** §6.5: words checked against Qloo tags per run. */
 export const MAX_TAG_WORDS = 20;

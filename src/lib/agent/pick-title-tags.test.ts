@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { LlmError, systemPrompt, toPickResult } from "./pick-title-tags.ts";
+import {
+  LlmError,
+  PICK_TEMPERATURE,
+  pickTitleTags,
+  systemPrompt,
+  toPickResult,
+} from "./pick-title-tags.ts";
 
 const IDS = ["id1", "id2", "id3"];
 
@@ -52,5 +58,37 @@ describe("systemPrompt", () => {
       prompt.includes("Cut `dark comedy`"),
       "contradiction cut went missing",
     );
+  });
+});
+
+describe("pickTitleTags transport", () => {
+  it("sends temperature 0 for a deterministic filter", async (t) => {
+    // Synthetic key + stubbed transport: no live LLM call, no real
+    // credential. Pins the 0-temp contract for the filter pass.
+    const savedGroq = process.env.GROQ_API_KEY;
+    process.env.GROQ_API_KEY = "synthetic-test-key";
+    let seenBody: Record<string, unknown> = {};
+    t.mock.method(
+      globalThis,
+      "fetch",
+      async (_url: unknown, init: RequestInit) => {
+        seenBody = JSON.parse(String(init.body)) as Record<string, unknown>;
+        return Response.json({
+          choices: [{ message: { content: '{"kept":["id1"]}' } }],
+        });
+      },
+    );
+    try {
+      const out = await pickTitleTags({
+        pitchText: "a quiet pitch",
+        candidates: [{ qlooId: "id1", label: "Alpha", sourceTitleName: null }],
+      });
+      assert.deepEqual(out, ["id1"]);
+      assert.equal(seenBody.temperature, 0);
+      assert.equal(seenBody.temperature, PICK_TEMPERATURE);
+    } finally {
+      if (savedGroq === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = savedGroq;
+    }
   });
 });
