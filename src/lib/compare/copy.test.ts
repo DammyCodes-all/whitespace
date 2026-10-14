@@ -10,24 +10,28 @@ import { buildCopy, cap, pct } from "./copy.ts";
 const BEST = { label: "Literary fiction about isolation", score: 0.72 };
 const RUNNER_UP = { label: "Slow science-fiction", score: 0.61 };
 const TITLES = ["Never Let Me Go"];
+const TAGS = ["isolation", "grief", "slow burn"];
 
 describe("buildCopy", () => {
-  it("Strong states every score outright, with only on the control", () => {
+  it("Strong states every score outright in plain sentences, with only on the control", () => {
     const copy = buildCopy({
       verdict: "Strong",
       best: BEST,
       controlScore: 0.44,
       runnerUp: RUNNER_UP,
       titles: TITLES,
+      matchedTags: TAGS,
     });
     assert.equal(copy.badge, "Strong fit");
     assert.deepEqual(copy.body, [
-      "Literary fiction about isolation fits your idea best.",
-      "Their taste matches your idea at 72%.",
-      "Strangers to this idea match it at only 44%.",
-      "Slow science-fiction matches it at 61%.",
+      "Literary fiction about isolation fits this idea best. Qloo tastes put them at 72%. Strangers land at only 44%.",
+      "Slow science-fiction sits at 61% too.",
+      "What landed: isolation, grief, slow burn.",
     ]);
-    assert.equal(copy.source, "Based on the title you named: Never Let Me Go");
+    assert.equal(
+      copy.source,
+      "Checked against the title you named: Never Let Me Go.",
+    );
   });
 
   it("Mixed hedges the win and never says only", () => {
@@ -41,7 +45,7 @@ describe("buildCopy", () => {
     assert.equal(copy.badge, "Mixed fit");
     assert.equal(
       copy.body[0],
-      "Literary fiction about isolation fits your idea best, but not by much.",
+      "Literary fiction about isolation leads at 72%, but not by much. Strangers sit at 44%.",
     );
     assert.ok(!copy.body.join(" ").includes("only"));
   });
@@ -56,14 +60,13 @@ describe("buildCopy", () => {
     });
     assert.equal(copy.badge, "Weak fit");
     assert.deepEqual(copy.body, [
-      "No audience stands out for your idea.",
-      "The closest is Literary fiction about isolation at 72%.",
-      "Strangers to this idea match it at 44%.",
+      "No audience stands out here. Closest is Literary fiction about isolation at 72%.",
+      "Strangers match it at 44%. Flat room.",
     ]);
     assert.ok(!copy.body.join(" ").includes("only"));
   });
 
-  it("names a rival runner-up as matching too", () => {
+  it("names a rival runner-up as a second checked crowd", () => {
     const copy = buildCopy({
       verdict: "Strong",
       best: BEST,
@@ -72,12 +75,12 @@ describe("buildCopy", () => {
       titles: TITLES,
     });
     assert.equal(
-      copy.body[3],
-      "A rival matches them too: Slow science-fiction at 61%.",
+      copy.body[1],
+      "And a rival reads it too: Slow science-fiction at 61%. Two crowds, both checked.",
     );
   });
 
-  it("reads a named runner-up as the agreeing benchmark", () => {
+  it("reads a named runner-up as the backing benchmark", () => {
     const copy = buildCopy({
       verdict: "Mixed",
       best: { ...BEST, role: "rival" },
@@ -86,8 +89,8 @@ describe("buildCopy", () => {
       titles: TITLES,
     });
     assert.equal(
-      copy.body[3],
-      "Your comparables agree: Slow science-fiction matches it at 61%.",
+      copy.body[1],
+      "Your comparables back it up: Slow science-fiction at 61% on the same tastes.",
     );
   });
 
@@ -99,7 +102,7 @@ describe("buildCopy", () => {
       runnerUp: RUNNER_UP,
       titles: TITLES,
     });
-    assert.equal(copy.body[3], "Slow science-fiction matches it at 61%.");
+    assert.equal(copy.body[1], "Slow science-fiction sits at 61% too.");
   });
 
   it("drops the runner-up sentence when there is none", () => {
@@ -110,8 +113,35 @@ describe("buildCopy", () => {
       runnerUp: null,
       titles: TITLES,
     });
-    assert.equal(copy.body.length, 3);
+    assert.equal(copy.body.length, 1);
     assert.ok(!copy.body.join(" ").includes("Slow science-fiction"));
+  });
+
+  it("names the overlap tags when the top audience has hits", () => {
+    const copy = buildCopy({
+      verdict: "Strong",
+      best: BEST,
+      controlScore: 0.44,
+      runnerUp: null,
+      titles: TITLES,
+      matchedTags: ["isolation", "grief"],
+    });
+    assert.equal(
+      copy.body[copy.body.length - 1],
+      "What landed: isolation, grief.",
+    );
+  });
+
+  it("skips the overlap line when nothing matched", () => {
+    const copy = buildCopy({
+      verdict: "Strong",
+      best: BEST,
+      controlScore: 0.44,
+      runnerUp: null,
+      titles: TITLES,
+      matchedTags: [],
+    });
+    assert.ok(!copy.body.join(" ").includes("What landed"));
   });
 
   it("omits the source line when no titles were named", () => {
@@ -133,7 +163,10 @@ describe("buildCopy", () => {
       runnerUp: null,
       titles: ["Never Let Me Go"],
     });
-    assert.equal(copy.source, "Based on the title you named: Never Let Me Go");
+    assert.equal(
+      copy.source,
+      "Checked against the title you named: Never Let Me Go.",
+    );
   });
 
   it("joins three titles with commas, no dangling punctuation", () => {
@@ -146,7 +179,7 @@ describe("buildCopy", () => {
     });
     assert.equal(
       copy.source,
-      "Based on the titles you named: Never Let Me Go, Arrival, Moon",
+      "Checked against the titles you named: Never Let Me Go, Arrival, Moon.",
     );
     assert.ok(!copy.source.endsWith(","));
   });
@@ -160,7 +193,7 @@ describe("buildCopy", () => {
       titles: [],
     });
     assert.ok(copy.body[0]?.startsWith("Slow science-fiction fits"));
-    assert.ok(copy.body[3]?.startsWith("Ambient music listeners matches"));
+    assert.ok(copy.body[1]?.startsWith("Ambient music listeners sits"));
   });
 
   it("rounds 0.716 to 72% in the single rounding helper", () => {
@@ -172,8 +205,8 @@ describe("buildCopy", () => {
       runnerUp: null,
       titles: [],
     });
-    assert.ok(copy.body[1]?.includes("at 72%"));
-    assert.ok(copy.body[2]?.includes("at only 44%"));
+    assert.ok(copy.body[0]?.includes("at 72%"));
+    assert.ok(copy.body[0]?.includes("only 44%"));
   });
 
   it("withholds numbers for Inconclusive but keeps the source", () => {
@@ -186,7 +219,10 @@ describe("buildCopy", () => {
     });
     assert.equal(copy.badge, "Inconclusive");
     assert.ok(!copy.body.join(" ").match(/\d/));
-    assert.equal(copy.source, "Based on the title you named: Never Let Me Go");
+    assert.equal(
+      copy.source,
+      "Checked against the title you named: Never Let Me Go.",
+    );
   });
 
   it("cap leaves empty labels alone", () => {

@@ -143,7 +143,7 @@ describe("runFlowPitch", () => {
     assert.match(out.steps[1]?.detail ?? "", /nothing to judge/);
   });
 
-  it("scores exact matches with bridges off by default, no LLM call", async (t) => {
+  it("scores exact matches when bridges explicitly off, no LLM call", async (t) => {
     // Synthetic keys only; the stubbed transport throws so any LLM
     // attempt would fail the run. Bridges stay off, so no request
     // ever leaves the process.
@@ -155,10 +155,13 @@ describe("runFlowPitch", () => {
       t.mock.method(globalThis, "fetch", async () => {
         throw new Error("Synthetic LLM failure.");
       });
-      const out = await runFlowPitch({
-        ...base,
-        tags: tags(MIN_MATCHED_TAGS),
-      });
+      const out = await runFlowPitch(
+        {
+          ...base,
+          tags: tags(MIN_MATCHED_TAGS),
+        },
+        { bridgesEnabled: false },
+      );
       assert.equal(out.stopped, false);
       const score = out.steps.find((s) => s.id === "score");
       assert.match(score?.detail ?? "", /bridges off, exact matches scored/);

@@ -31,6 +31,9 @@ import {
 
 export { LlmError };
 
+/** Deterministic filter: same pitch + candidates give the same keep/cut. */
+export const PICK_TEMPERATURE = 0;
+
 export interface TitleTagCandidate {
   qlooId: string;
   label: string;
@@ -151,7 +154,10 @@ export async function pickTitleTags(
         attempt.model,
         messages,
         attempt.provider,
-        "options" in attempt ? attempt.options : {},
+        {
+          temperature: PICK_TEMPERATURE,
+          ...("options" in attempt ? attempt.options : {}),
+        },
       );
       return toPickResult(JSON.parse(extractJson(content)), candidateIds);
     } catch (err) {
