@@ -51,12 +51,15 @@ export function FlowCompareView({
   const band = verdictBand(verdict);
   const copy = buildCopy({
     verdict,
-    best: top !== undefined ? { label: top.name, score: top.score } : null,
+    best:
+      top !== undefined
+        ? { label: top.name, score: top.score, role: top.role }
+        : null,
     controlScore: result.ceiling,
     runnerUp:
       runnerUp === undefined
         ? null
-        : { label: runnerUp.name, score: runnerUp.score },
+        : { label: runnerUp.name, score: runnerUp.score, role: runnerUp.role },
     titles: similarTitles,
   });
   const takeaway =

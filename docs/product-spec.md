@@ -71,17 +71,12 @@ Claims we will not make
 
 ### 6.1 Input
 
-The user describes the work in a short structured form: premise in
-a sentence or two plus tone and mood (both required — they unlock
-the tags), then themes, setting and era, genre blend, and what it
-is not (all optional — they sharpen the tags). The six answers are
-joined into one pitch text for the tag call, which reads 5 to 8
-descriptive words and the work type
+The user provides a detailed explanation of the work — the input
+placeholder prompts for premise (a sentence or two), tone and
+mood, themes, setting and era, genre blend, and what it is not
+(more detail means better tags) — and at least 1 similar title.
+The tag call reads 5 to 8 descriptive words and the work type
 (film, music, book or game — there is no type selector anywhere).
-Titles named in "what it is not" are the natural future source for
-the "nothing like" exclusion; the exclusion itself stays unwired
-(see below), so today the field only sharpens the prompts.
-The user also provides at least 1 similar title.
 The AI suggests no titles: the tap-to-add suggestions are seeded
 from your own typed titles (their Qloo entities, same type, one
 call chained to your explicit Check — they never run off pitch
