@@ -895,16 +895,6 @@ export function FlowClient({
             </p>
           </section>
 
-          <div className="mb-6 mt-8">
-            <p className="font-mono text-xs text-ink-3">Run steps</p>
-            <ul className="mt-2 space-y-1">
-              {steps.map((step) => (
-                <li key={step.id} className="font-mono text-xs text-ink-2">
-                  {step.label} — {step.detail ?? "done"}
-                </li>
-              ))}
-            </ul>
-          </div>
           <FlowResultView result={result} orangeVerdict={result.surprise} />
 
           {result.gaps.length > 0 && (

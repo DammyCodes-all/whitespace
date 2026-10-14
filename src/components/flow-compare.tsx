@@ -1,6 +1,6 @@
 import type { ChatbotView } from "@/components/chatbot-preview";
 import { ChatbotTitles, verdictBand } from "@/components/compare-shared";
-import { buildCopy } from "@/lib/compare/copy";
+import { buildCopy, pct } from "@/lib/compare/copy";
 import type { FlowResult } from "@/lib/flow/contract";
 import { barRows } from "@/lib/flow/contract";
 import type { Verdict } from "@/lib/types";
@@ -61,7 +61,33 @@ export function FlowCompareView({
         ? null
         : { label: runnerUp.name, score: runnerUp.score, role: runnerUp.role },
     titles: similarTitles,
+    matchedTags: top?.tagHits ?? [],
   });
+  // Measured extras the result already carries: the point gap over the
+  // line, where to find the winner, and what would win them over. All
+  // Qloo-measured, none invented — this is what fills the card's space
+  // with substance instead of padding.
+  const gapPoints =
+    top !== undefined &&
+    result.ceiling !== null &&
+    (verdict === "Strong" || verdict === "Mixed")
+      ? pct(top.score - result.ceiling)
+      : null;
+  const reach = result.reach?.[0] ?? null;
+  const reachInterests = (reach?.interests ?? []).slice(0, 3);
+  const reachSlot =
+    reach === null
+      ? null
+      : ((
+          [
+            ["People", reach.people],
+            ["Podcasts", reach.podcasts],
+            ["Places", reach.places],
+            ["Brands", reach.brands],
+          ] as const
+        ).find(([, items]) => items.length > 0) ?? null);
+  const gaps = result.gaps[0];
+  const leanInto = gaps?.hasTastes === true ? gaps.gaps.slice(0, 3) : [];
   const takeaway =
     verdict === "Inconclusive"
       ? "Not enough Qloo data to judge. Both sides are withheld."
@@ -98,6 +124,28 @@ export function FlowCompareView({
               {line}
             </p>
           ))}
+          {gapPoints !== null && (
+            <p className="mt-2 text-sm font-medium leading-relaxed text-ink">
+              Clears strangers by {gapPoints} points. That gap is the verdict.
+            </p>
+          )}
+          {reachInterests.length > 0 && reach !== null && (
+            <p className="mt-2 text-sm leading-relaxed text-ink-2">
+              Find {reach.audienceName} around{" "}
+              {reachInterests.map((item) => item.name).join(", ")}.
+              {reachSlot !== null &&
+                ` ${reachSlot[0]}: ${reachSlot[1]
+                  .slice(0, 2)
+                  .map((item) => item.name)
+                  .join(", ")}.`}
+            </p>
+          )}
+          {leanInto.length > 0 && (
+            <p className="mt-2 text-sm leading-relaxed text-ink-2">
+              To win them over, lean into:{" "}
+              {leanInto.map((gap) => gap.label).join(", ")}.
+            </p>
+          )}
           {copy.source !== null && (
             <p className="mt-2 text-sm leading-relaxed text-ink-2">
               {copy.source}
