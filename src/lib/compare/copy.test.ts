@@ -24,7 +24,7 @@ describe("buildCopy", () => {
     assert.deepEqual(copy.body, [
       "Literary fiction about isolation fits your idea best.",
       "Their taste matches your idea at 72%.",
-      "An unrelated group matches it at only 44%.",
+      "Strangers to this idea match it at only 44%.",
       "Slow science-fiction matches it at 61%.",
     ]);
     assert.equal(copy.source, "Based on the title you named: Never Let Me Go");
@@ -58,7 +58,7 @@ describe("buildCopy", () => {
     assert.deepEqual(copy.body, [
       "No audience stands out for your idea.",
       "The closest is Literary fiction about isolation at 72%.",
-      "An unrelated group matches it at 44%.",
+      "Strangers to this idea match it at 44%.",
     ]);
     assert.ok(!copy.body.join(" ").includes("only"));
   });
@@ -121,9 +121,7 @@ describe("buildCopy", () => {
       titles: [],
     });
     assert.ok(copy.body[0]?.startsWith("Slow science-fiction fits"));
-    assert.ok(
-      copy.body[3]?.startsWith("Ambient music listeners matches"),
-    );
+    assert.ok(copy.body[3]?.startsWith("Ambient music listeners matches"));
   });
 
   it("rounds 0.716 to 72% in the single rounding helper", () => {
