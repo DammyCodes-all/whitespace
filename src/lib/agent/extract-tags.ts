@@ -29,6 +29,8 @@ import {
   extractJson,
   GROQ_URL,
   LlmError,
+  OPENROUTER_DEFAULT_MODEL,
+  OPENROUTER_TIMEOUT_MS,
   OPENROUTER_URL,
   readEnv,
 } from "./llm-client.ts";
@@ -176,8 +178,8 @@ export async function extractPitchTags(
       provider: "openrouter" as const,
       key: openRouterKey,
       url: OPENROUTER_URL,
-      model:
-        readEnv("OPENROUTER_MODEL") ?? "nvidia/nemotron-3-ultra-550b-a55b:free",
+      model: readEnv("OPENROUTER_MODEL") ?? OPENROUTER_DEFAULT_MODEL,
+      options: { timeoutMs: OPENROUTER_TIMEOUT_MS } as const,
     },
   ];
 
@@ -191,6 +193,7 @@ export async function extractPitchTags(
         attempt.model,
         messages,
         attempt.provider,
+        "options" in attempt ? attempt.options : {},
       );
       return toTagProposal(JSON.parse(extractJson(content)));
     } catch (err) {

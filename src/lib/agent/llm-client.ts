@@ -10,6 +10,18 @@
 export const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
+/**
+ * OpenRouter fallback default: a small instruction-tuned model, not a
+ * reasoning giant. The previous default (a 550B reasoning model) rambled
+ * chain-of-thought instead of JSON and timed out the 20s budget live
+ * (2026-10-13 probes: 0/4 usable). Override per deploy with
+ * `OPENROUTER_MODEL`.
+ */
+export const OPENROUTER_DEFAULT_MODEL = "google/gemma-4-26b-a4b-it:free";
+
+/** OpenRouter legs get a longer local deadline (slow free-tier models). */
+export const OPENROUTER_TIMEOUT_MS = 45000;
+
 export class LlmError extends Error {
   readonly provider: string;
   readonly configured: boolean;
@@ -53,6 +65,8 @@ export interface ChatCompletionOptions extends LlmExecutionContext {
   temperature?: number;
   maxTokens?: number;
   extraHeaders?: Record<string, string>;
+  /** Local deadline ms. Default 20000; OpenRouter legs pass higher. */
+  timeoutMs?: number;
 }
 
 /** True for the 400 class where the provider rejected `response_format: json_object`. */
@@ -95,7 +109,10 @@ export async function callChatCompletions(
       ),
     );
   controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
-  const timer = setTimeout(() => controller.abort(), 20000);
+  const timer = setTimeout(
+    () => controller.abort(),
+    options.timeoutMs ?? 20000,
+  );
   let res: Response | undefined;
   const postOnce = async (withJsonFormat: boolean): Promise<Response> => {
     controller.signal.throwIfAborted();

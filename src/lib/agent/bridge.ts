@@ -23,6 +23,8 @@ import {
   extractJson,
   GROQ_URL,
   LlmError,
+  OPENROUTER_DEFAULT_MODEL,
+  OPENROUTER_TIMEOUT_MS,
   OPENROUTER_URL,
   readEnv,
 } from "./llm-client.ts";
@@ -226,8 +228,7 @@ export async function proposeBridges(
   }
   if (openRouterKey !== null) {
     try {
-      const model =
-        readEnv("OPENROUTER_MODEL") ?? "nvidia/nemotron-3-ultra-550b-a55b:free";
+      const model = readEnv("OPENROUTER_MODEL") ?? OPENROUTER_DEFAULT_MODEL;
       const appUrl = readEnv("NEXT_PUBLIC_APP_URL") ?? "http://localhost:3000";
       const content = await callChatCompletions(
         OPENROUTER_URL,
@@ -238,6 +239,7 @@ export async function proposeBridges(
         {
           temperature: BRIDGE_TEMPERATURE,
           maxTokens: BRIDGE_MAX_TOKENS,
+          timeoutMs: OPENROUTER_TIMEOUT_MS,
           extraHeaders: { "HTTP-Referer": appUrl, "X-Title": "Whitespace" },
         },
       );
