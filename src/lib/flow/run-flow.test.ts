@@ -25,7 +25,28 @@ describe("runFlowPitch", () => {
     similarTitles: ["Moon", "Arrival", "Dune"],
   };
 
-  it("stops as Inconclusive below the matched-tag gate, with no scoring steps", async () => {
+  it("stops as Inconclusive on the cheap check with no titles and thin tags", async () => {
+    const out = await runFlowPitch({
+      ...base,
+      similarTitles: [],
+      tags: [
+        ...tags(MIN_MATCHED_TAGS - 1),
+        { label: "cozy", status: "not_found" },
+      ],
+    });
+    assert.equal(out.stopped, true);
+    assert.equal(out.result.verdict, "inconclusive");
+    assert.deepEqual(
+      out.steps.map((s) => s.id),
+      ["tags", "verdict"],
+    );
+    assert.equal(out.result.qlooCalls.total, 0);
+  });
+
+  it("passes the cheap check with titles, then stops at the pool gate", async () => {
+    // Titles exist so the run proceeds; the mock path resolves nothing
+    // and fetches no tastes, so the pool is just the MIN-1 pitch tags
+    // and the real gate stops it after the fetches, naming the pool.
     const out = await runFlowPitch({
       ...base,
       tags: [
@@ -37,7 +58,21 @@ describe("runFlowPitch", () => {
     assert.equal(out.result.verdict, "inconclusive");
     assert.deepEqual(
       out.steps.map((s) => s.id),
-      ["tags", "verdict"],
+      ["hypothesis", "rivals", "tastes", "tags", "verdict"],
+    );
+    assert.match(
+      out.steps.find((s) => s.id === "tags")?.detail ?? "",
+      /below the \d+-tag gate/,
+    );
+    // The thin pool is still reported, with pitch provenance.
+    assert.equal(
+      out.result.tags.filter((t) => t.status === "matched").length,
+      MIN_MATCHED_TAGS - 1,
+    );
+    assert.ok(
+      out.result.tags.every(
+        (t) => t.source === undefined || t.source === "pitch",
+      ),
     );
   });
 
@@ -58,6 +93,12 @@ describe("runFlowPitch", () => {
     assert.ok(out.result.audiences.every((a) => a.score === null));
     assert.equal(out.result.ceiling, null);
     assert.equal(out.result.reach, null);
+    // Title-grounded pool: the mock resolves nothing, so the pool is
+    // the pitch tags only — all pitch-sourced, no hold-out rounds.
+    const tagsStep = out.steps.find((s) => s.id === "tags");
+    assert.match(tagsStep?.detail ?? "", /pooled/);
+    assert.ok(!out.steps.some((s) => s.id.startsWith("holdout-")));
+    assert.ok(out.result.tags.every((t) => t.source === "pitch"));
   });
 
   it("reports Qloo call usage from the run", async () => {
@@ -102,9 +143,10 @@ describe("runFlowPitch", () => {
     assert.match(out.steps[1]?.detail ?? "", /nothing to judge/);
   });
 
-  it("names a failed bridge attempt and scores exact matches only", async (t) => {
-    // Synthetic keys only; the stubbed transport throws so no request
-    // ever leaves the process and the bridge path yields nothing.
+  it("scores exact matches with bridges off by default, no LLM call", async (t) => {
+    // Synthetic keys only; the stubbed transport throws so any LLM
+    // attempt would fail the run. Bridges stay off, so no request
+    // ever leaves the process.
     const savedGroq = process.env.GROQ_API_KEY;
     const savedRouter = process.env.OPENROUTER_API_KEY;
     process.env.GROQ_API_KEY = "synthetic-test-key";
@@ -119,6 +161,39 @@ describe("runFlowPitch", () => {
       });
       assert.equal(out.stopped, false);
       const score = out.steps.find((s) => s.id === "score");
+      assert.match(score?.detail ?? "", /bridges off, exact matches scored/);
+      assert.ok(!(score?.detail ?? "").includes("+"));
+      // Exact-only: the mock path leaves every audience unjudgeable.
+      assert.ok(out.result.audiences.every((a) => a.score === null));
+    } finally {
+      if (savedGroq === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = savedGroq;
+      if (savedRouter === undefined) delete process.env.OPENROUTER_API_KEY;
+      else process.env.OPENROUTER_API_KEY = savedRouter;
+    }
+  });
+
+  it("names a failed bridge attempt when bridges are enabled", async (t) => {
+    // Same hermetic setup, bridges explicitly on: the stubbed
+    // transport throws, so the bridge path yields nothing and the run
+    // continues on exact matches.
+    const savedGroq = process.env.GROQ_API_KEY;
+    const savedRouter = process.env.OPENROUTER_API_KEY;
+    process.env.GROQ_API_KEY = "synthetic-test-key";
+    delete process.env.OPENROUTER_API_KEY;
+    try {
+      t.mock.method(globalThis, "fetch", async () => {
+        throw new Error("Synthetic LLM failure.");
+      });
+      const out = await runFlowPitch(
+        {
+          ...base,
+          tags: tags(MIN_MATCHED_TAGS),
+        },
+        { bridgesEnabled: true },
+      );
+      assert.equal(out.stopped, false);
+      const score = out.steps.find((s) => s.id === "score");
       assert.match(
         score?.detail ?? "",
         /bridges unavailable, exact matches scored/,
@@ -128,7 +203,6 @@ describe("runFlowPitch", () => {
         /groq|openrouter|\b4\d\d\b|\b5\d\d\b/i,
       );
       assert.ok(!(score?.detail ?? "").includes("+"));
-      // Exact-only: the mock path leaves every audience unjudgeable.
       assert.ok(out.result.audiences.every((a) => a.score === null));
     } finally {
       if (savedGroq === undefined) delete process.env.GROQ_API_KEY;
@@ -141,9 +215,12 @@ describe("runFlowPitch", () => {
   it("strangers set the line even when a control scores higher", async (t) => {
     // Synthetic keys only; the stubbed transport answers every Qloo
     // call in-process, and LLM keys are cleared so no model call can
-    // fire. Far tastes score 0.40 while one control scores ~0.59: the
-    // verdict must follow the strangers line (Mixed on the close
-    // second), never the higher control (which would read Weak).
+    // fire. The pool is the top 12 of Moon's tastes (alpha, beta,
+    // gamma, f1..f9 — each held by at most 1 of 20 controls, so the
+    // generic cut keeps all 12). Scores on the 12-pool: hyp 0.89, a
+    // close rival second at 0.89 (Mixed), far strangers at 0.1 (the
+    // line), one control at ~0.21 (measured honestly, never the
+    // line).
     const savedKey = process.env.QLOO_API_KEY;
     const savedGroq = process.env.GROQ_API_KEY;
     const savedRouter = process.env.OPENROUTER_API_KEY;
@@ -154,40 +231,40 @@ describe("runFlowPitch", () => {
     try {
       const ids = (names: string[]) =>
         names.map((id) => ({ tag_id: id, name: id }));
-      // alpha@1 + beta@11 + gamma absent = (1 + 0.8 + 0) / 3 = 0.6.
+      // Moon's tastes: pool base is the top 12.
       const hypTags = [
         "urn:tag:alpha",
-        ...Array.from({ length: 9 }, (_, i) => `urn:tag:h${i}`),
         "urn:tag:beta",
-        ...Array.from({ length: 39 }, (_, i) => `urn:tag:hx${i}`),
+        "urn:tag:gamma",
+        ...Array.from({ length: 9 }, (_, i) => `urn:tag:f${i + 1}`),
+        ...Array.from({ length: 38 }, (_, i) => `urn:tag:g${i}`),
       ];
-      // alpha@1 + beta@41 + gamma absent = (1 + 0.2 + 0) / 3 = 0.4.
+      // alpha@1 + beta@41 = (1 + 0.2) / 12 = 0.1.
       const farTags = [
         "urn:tag:alpha",
-        ...Array.from({ length: 39 }, (_, i) => `urn:tag:f${i}`),
+        ...Array.from({ length: 39 }, (_, i) => `urn:tag:ff${i}`),
         "urn:tag:beta",
         ...Array.from({ length: 9 }, (_, i) => `urn:tag:fx${i}`),
       ];
-      // alpha@1 + beta@14 + gamma absent = (1 + 0.74 + 0) / 3 = 0.58.
+      // alpha@1 + beta@2 + f1..f9@3-11 + gamma@12 ties hyp at 0.89.
       const secondTags = [
         "urn:tag:alpha",
-        ...Array.from({ length: 12 }, (_, i) => `urn:tag:s${i}`),
         "urn:tag:beta",
-        ...Array.from({ length: 36 }, (_, i) => `urn:tag:sx${i}`),
+        ...Array.from({ length: 9 }, (_, i) => `urn:tag:f${i + 1}`),
+        "urn:tag:gamma",
+        ...Array.from({ length: 38 }, (_, i) => `urn:tag:sx${i}`),
       ];
-      // alpha@1 + beta@13 + gamma absent = (1 + 0.76 + 0) / 3 = 0.5867.
+      // alpha@1 + beta@13 + gamma@14 = (1 + 0.76 + 0.74) / 12.
       const highTags = [
         "urn:tag:alpha",
         ...Array.from({ length: 11 }, (_, i) => `urn:tag:c${i}`),
         "urn:tag:beta",
-        ...Array.from({ length: 37 }, (_, i) => `urn:tag:cx${i}`),
-      ];
-      // gamma@25 only = 0.52 / 3.
-      const lowTags = [
-        ...Array.from({ length: 24 }, (_, i) => `urn:tag:low${i}`),
         "urn:tag:gamma",
-        ...Array.from({ length: 25 }, (_, i) => `urn:tag:lowx${i}`),
+        ...Array.from({ length: 36 }, (_, i) => `urn:tag:cx${i}`),
       ];
+      // No pool tags: honest zeros, never the no-signal trip (the high
+      // control above keeps the ceiling informative).
+      const lowTags = Array.from({ length: 50 }, (_, i) => `urn:tag:low${i}`);
       const nearId = `id:${CONTROL_SEEDS.film[0]?.titles[0] ?? ""}`;
       const farIds = new Set<string>();
       t.mock.method(globalThis, "fetch", (async (input: unknown) => {
@@ -267,15 +344,15 @@ describe("runFlowPitch", () => {
         ],
       });
       assert.equal(out.stopped, false);
-      // Top 0.6 clears strangers 0.4; the 0.58 second also clears and
-      // sits close, so the existing split branch reads Mixed. A
-      // control-set line at 0.5867 would have read Weak.
+      // Top 0.89 clears strangers 0.1; the 0.89 second also clears and
+      // sits on top, so the existing split branch reads Mixed. A
+      // control-set line at ~0.21 would have read Weak.
       assert.equal(out.result.verdict, "mixed");
       const controlsStep = out.steps.find((s) => s.id === "controls");
       assert.match(controlsStep?.detail ?? "", /line from strangers baseline/);
       assert.ok(
         out.result.ceiling !== null &&
-          Math.abs(out.result.ceiling - 0.4) < 1e-9,
+          Math.abs(out.result.ceiling - 0.1) < 1e-9,
       );
       // The higher control is still measured honestly — just not the line.
       const high = out.result.audiences.find(
@@ -285,6 +362,15 @@ describe("runFlowPitch", () => {
         high !== undefined &&
           high.score !== null &&
           high.score > (out.result.ceiling ?? 0),
+      );
+      // Hold-out: the whole pool came from Moon, so one round drops
+      // all 12 gifts and the named fit falls to zero — recorded as a
+      // step, while the verdict above still uses the full set.
+      const holdout = out.steps.find((s) => s.id === "holdout-1");
+      assert.equal(holdout?.label, "Hold-out: Moon");
+      assert.match(
+        holdout?.detail ?? "",
+        /without Moon's 12 tag\(s\): named 0\.89 → 0\.00 \(Δ -0\.89\)/,
       );
     } finally {
       if (savedKey === undefined) delete process.env.QLOO_API_KEY;
@@ -300,8 +386,12 @@ describe("runFlowPitch", () => {
   it("unmeasured strangers fall back to the other-genre ceiling", async (t) => {
     // Same hermetic setup, but the strangers' tastes come back empty
     // (unjudgeable) and the first control resolves onto the named
-    // title (excluded by the untouched title rule). The line must be
-    // the best title-eligible control, named as the fallback.
+    // title (excluded by the untouched title rule). The pool is the
+    // top 12 of Moon's tastes; the 19 eligible controls each hold a
+    // rotating pool tag at rank 25 (every pool tag stays under half
+    // the lists, so the generic cut keeps all 12) and score a small
+    // nonzero 0.52/12 — the line must be that eligible best, named as
+    // the fallback, and never the excluded 0.89.
     const savedKey = process.env.QLOO_API_KEY;
     const savedGroq = process.env.GROQ_API_KEY;
     const savedRouter = process.env.OPENROUTER_API_KEY;
@@ -316,13 +406,27 @@ describe("runFlowPitch", () => {
         "urn:tag:alpha",
         "urn:tag:beta",
         "urn:tag:gamma",
-        ...Array.from({ length: 47 }, (_, i) => `urn:tag:h${i}`),
+        ...Array.from({ length: 9 }, (_, i) => `urn:tag:f${i + 1}`),
+        ...Array.from({ length: 38 }, (_, i) => `urn:tag:g${i}`),
       ];
-      const lowTags = [
-        ...Array.from({ length: 24 }, (_, i) => `urn:tag:low${i}`),
+      // Rivals hold no pool tags: honest zeros.
+      const zeroTags = Array.from({ length: 50 }, (_, i) => `urn:tag:zz${i}`);
+      const pool12 = [
+        "urn:tag:alpha",
+        "urn:tag:beta",
         "urn:tag:gamma",
-        ...Array.from({ length: 25 }, (_, i) => `urn:tag:lowx${i}`),
+        ...Array.from({ length: 9 }, (_, i) => `urn:tag:f${i + 1}`),
       ];
+      let controlVariants = 0;
+      const rotatingTags = (): string[] => {
+        const held = pool12[controlVariants % pool12.length] as string;
+        const v = controlVariants++;
+        return [
+          ...Array.from({ length: 24 }, (_, i) => `urn:tag:r${v}a${i}`),
+          held,
+          ...Array.from({ length: 25 }, (_, i) => `urn:tag:r${v}b${i}`),
+        ];
+      };
       // Own-domain tail (see the first test): e6 lead, e5 member.
       const strangerIds = new Set(["id:mov-e6", "id:mov-e5"]);
       t.mock.method(globalThis, "fetch", (async (input: unknown) => {
@@ -348,11 +452,21 @@ describe("runFlowPitch", () => {
           const entities = (
             url.searchParams.get("signal.interests.entities") ?? ""
           ).split(",");
-          let tags = lowTags;
+          let tags: string[];
           if (entities.includes("id:Moon")) tags = hypTags;
           else if (entities.some((e) => strangerIds.has(e))) {
             // Strangers return nothing: unjudgeable, never the line.
             tags = [];
+          } else if (
+            entities.some(
+              (e) => e.startsWith("id:mov-") || e.includes("urn:entity"),
+            )
+          ) {
+            // Rivals hold no pool tags.
+            tags = zeroTags;
+          } else {
+            // Eligible controls: one rotating pool tag each.
+            tags = rotatingTags();
           }
           return new Response(
             JSON.stringify({ success: true, results: { tags: ids(tags) } }),
@@ -393,8 +507,8 @@ describe("runFlowPitch", () => {
         ],
       });
       assert.equal(out.stopped, false);
-      // Hypothesis 0.98 clears the eligible controls (0.1733); the
-      // title-excluded control at 0.98 must not set the line.
+      // Hypothesis 0.89 clears the eligible controls (0.52/12 each);
+      // the title-excluded control at 0.89 must not set the line.
       assert.equal(out.result.verdict, "strong");
       const controlsStep = out.steps.find((s) => s.id === "controls");
       assert.match(
@@ -403,7 +517,14 @@ describe("runFlowPitch", () => {
       );
       assert.ok(
         out.result.ceiling !== null &&
-          Math.abs(out.result.ceiling - 0.52 / 3) < 1e-9,
+          Math.abs(out.result.ceiling - 0.52 / 12) < 1e-9,
+      );
+      // Hold-out: one round for Moon's 12 gifts, verdict untouched.
+      const holdout = out.steps.find((s) => s.id === "holdout-1");
+      assert.equal(holdout?.label, "Hold-out: Moon");
+      assert.match(
+        holdout?.detail ?? "",
+        /without Moon's 12 tag\(s\): named 0\.89 → 0\.00/,
       );
     } finally {
       if (savedKey === undefined) delete process.env.QLOO_API_KEY;

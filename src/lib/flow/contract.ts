@@ -46,7 +46,20 @@ export interface FlowTag {
   label: string;
   qlooId?: string;
   status: "matched" | "not_found";
+  /**
+   * Where the tag came from: pitch words or one named title's tastes.
+   * Absent on older runs, which were pitch-only and read as pitch.
+   */
+  source?: FlowTagSource;
 }
+
+/**
+ * Pool provenance for one tag. Pitch tags carry the word the user
+ * confirmed; title tags carry the Qloo entity behind the tastes they
+ * came from, so chips badge `[pitch]` vs `[Title name]` and hold-out
+ * rounds can drop one title's gifts.
+ */
+export type FlowTagSource = "pitch" | { titleId: string; titleName: string };
 
 export type FlowRole = "named" | "rival" | "control";
 
@@ -250,6 +263,7 @@ export function isCloseCall(result: FlowResult): boolean {
 export function toFlowResult(
   pipeline: PipelineResult,
   reachInput: FlowReachInput = {},
+  tagSources: Record<string, FlowTagSource> = {},
 ): FlowResult {
   const stepCallId = (id: string): string | null =>
     pipeline.steps.find((s) => s.id === id)?.callId ?? null;
@@ -314,10 +328,12 @@ export function toFlowResult(
       label: t.tag,
       qlooId: t.qlooTagId,
       status: "matched" as const,
+      source: tagSources[t.qlooTagId] ?? ("pitch" as FlowTagSource),
     })),
     ...(pipeline.notFoundWords ?? []).map((word) => ({
       label: word,
       status: "not_found" as const,
+      source: "pitch" as FlowTagSource,
     })),
   ];
 
