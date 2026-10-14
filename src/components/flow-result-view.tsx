@@ -28,15 +28,21 @@ const SLOT_FILLS: Record<string, string> = {
 };
 
 /**
- * §6.6 in one sentence. The score is how strongly this audience's tastes
- * match the pitch, so the line says exactly that — and never a difference
- * the reader has to work out. Show the numbers, never the gap.
+ * §6.6 in one sentence, rivals-first: the winning audience leads, and
+ * the named titles sit behind it as the benchmark — a rival winner
+ * "matches them too", a named winner means "your comparables agree".
+ * The surprise headline logic above is untouched. Show the numbers,
+ * never the gap.
  */
 function scoreLine(result: FlowResult, top: FlowBarRow): string {
   const percent = Math.round(top.score * 100);
-  if (result.surprise) return `${top.name} matches your idea ${percent}%.`;
+  if (result.surprise)
+    return `A rival matches them too: ${top.name} matches your idea ${percent}%.`;
   if (result.verdict === "weak") {
     return `The closest, ${top.name}, matches your idea ${percent}%.`;
+  }
+  if (top.role === "named") {
+    return `Your comparables agree: their taste matches your idea ${percent}%.`;
   }
   return `Their taste matches your idea ${percent}%.`;
 }
