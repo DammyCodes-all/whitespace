@@ -210,5 +210,10 @@ Format:
 | 2026-10-15 | Titles floor lowered to ≥1 (run gate, copy, spec); pool gate stays the real guard | §6.1, §6.2, §8 | tsc clean; biome clean |
 | 2026-10-15 | Empty gift preview names its reason (no-tastes / all-generic / preview-failed / unresolved) instead of one vague line | §6.5 | node24 266/266; tsc clean; biome clean; zero live calls (mocks only) |
 | 2026-10-15 | Input asks for a detailed explanation (world/characters/plot/themes, bigger box, worked placeholder); pitch cap 2000→4000 for tag + pick prompts | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Input placeholder guides the six prompts (premise, tone/mood, themes, setting/era, genre blend, what-it-is-not) in one box | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Home entry example is a relatable two-sentence pitch (premise + tone/themes/blend/not) shared by placeholder and Try-an-example | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Home placeholder speaks to the user (tell-us-about-your-story + six prompts + mini-example); Try-an-example keeps the runnable Frankie pitch | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Humanize both input placeholders (conversational questions, no label-colon lists, no em dashes) | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Trim home placeholder to two sentences (one invitation, one mini-example) | §6.1 | tsc clean; biome clean |
 | 2026-10-13 | Merge bridge + semantic impl/test pairs into single self-tested files (tests behind a main-entry guard, explicit tsx paths) | n/a | tsc clean; biome clean; tsx 211/211 (29 self-tests); next build pass; prod-import probe keeps env key, runs 0 tests |
 | 2026-10-13 | Revert file merge: bridge + semantic back to separate impl and .test.ts files per owner request | n/a | biome clean on 4 files; tsc clean; tsx 211/211; next build pass |
