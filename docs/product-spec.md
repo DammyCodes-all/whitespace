@@ -71,27 +71,39 @@ Claims we will not make
 
 ### 6.1 Input
 
-The user provides the pitch text. The tag call reads 5 to 8
-descriptive words and the work type (film, music, book or game —
-there is no type selector anywhere). The AI suggests no titles: the
-tap-to-add suggestions come from Qloo itself (titles overlapping
-the matched tags, same type, one shot at the chip step), the user
-types the final list freely, and an explicit Check button verifies
-each title against Qloo before the run (one call per finished
-title, never as-you-type — typing is free, checking is on demand).
-The run re-resolves every title live and reports misses as not
-found, so the pre-check is informational and the run stays the
-source of truth. There is no "nothing like" input on the flow path:
-exclusion is unwired.
+The user describes the work in a short structured form: premise in
+a sentence or two plus tone and mood (both required — they unlock
+the tags), then themes, setting and era, genre blend, and what it
+is not (all optional — they sharpen the tags). The six answers are
+joined into one pitch text for the tag call, which reads 5 to 8
+descriptive words and the work type
+(film, music, book or game — there is no type selector anywhere).
+Titles named in "what it is not" are the natural future source for
+the "nothing like" exclusion; the exclusion itself stays unwired
+(see below), so today the field only sharpens the prompts.
+The user also provides at least 1 similar title.
+The AI suggests no titles: the tap-to-add suggestions are seeded
+from your own typed titles (their Qloo entities, same type, one
+call chained to your explicit Check — they never run off pitch
+tags and never as-you-type), the user types the final list freely (× removes any
+title), and an explicit Check button verifies each title against
+Qloo before the run (one call per finished title — typing is free,
+checking is on demand). The run re-resolves every title live and
+reports misses as not found, so the pre-check is informational
+and the run stays the source of truth. With no title the run
+stays disabled: title-grounded tags need a title to ground in.
+There is no "nothing like" input on the flow path: exclusion is
+unwired.
 
 ### 6.2 Named audience
 
-The user-confirmed similar titles are resolved live in Qloo
-(pre-checked on demand before the run, re-resolved at run time).
-Resolved titles form the named audience; misses are reported as
-not found, never scored. Similar titles are optional: with none,
-there is no named row and the run is rival-led — the app never
-invents a hypothesis.
+The user-confirmed similar titles (at least 1) are resolved
+live in Qloo (pre-checked on demand before the run, re-resolved
+at run time). Resolved titles form the named audience; misses are
+reported as not found, never scored. Each resolved title (up to 5)
+gets its own taste fetch: those taste labels are the tag pool's
+base, and each title gets a hold-out round (§6.6). Titles past 5
+still join the hypothesis signal but get no hold-out round.
 
 ### 6.3 Rival audiences
 
@@ -120,13 +132,22 @@ than a third of titles with the named audience are excluded; when
 every control is too close, the full set comes back so the ceiling
 never vanishes), and the step says which source set the line.
 
-### 6.5 Pitch tags
+### 6.5 Tag pool (title-grounded)
 
-Each suggested word is checked against real Qloo tags in the
-detected type's namespaces. Matches become scoring tags; misses come
-back `not_found` chips and never enter scoring. The result always
-shows coverage (matched ÷ suggested). Fewer than 3 matched tags
-stops the run as Inconclusive without spending scoring calls.
+Scoring tags come from the similars, never from the model. Base:
+top taste labels off the similars' already-fetched tastes (Qloo
+facts, zero new calls). Supplement: pitch words matched to real
+Qloo tags in the detected type's namespaces (misses come back
+`not_found` chips and never enter scoring). Minus generic: any
+tag held by at least half the control taste lists. Tie rule: each
+kept tag must tie to a pitch phrase or a named title (AI picks,
+you confirm on one chip row with [pitch]/[title] source badges) —
+untied tags drop. An empty title-gift preview names its reason
+(no tastes for these titles, all gifts generic, or the read
+failed) instead of one vague line. The result always shows coverage. A cheap
+empty-check stops title-less, word-less runs for ~0 calls; the
+real gate runs once on the combined pool — fewer than 3 pooled
+tags stops the run as Inconclusive before scoring.
 
 ### 6.6 Scoring
 
@@ -134,7 +155,12 @@ Qloo describes each audience as a taste list ranked by strength. The
 app keeps the order and discards the raw strengths (ranks only,
 never counts): rank r of N scores (N − r + 1) / N. Each audience's
 fit is the weighted mean across one shared tag list, 0 to 1. There
-is no pinning on the flow path: every exact tag weighs 1.
+is no pinning on the flow path: every exact tag weighs 1. The
+circular fix is hold-out rounds: a full-set round plus one round
+per gifting title, each round rescoring every audience — named,
+rivals, controls, strangers — on the same reduced set. The verdict
+uses full-set scores; hold-out deltas render beside the named row
+(self-fit exposes itself as near-zero, real fit survives).
 
 A tag missing from a long enough list (10+ tastes) is a ZERO — the
 audience does not over-index on it. A tag missing from a short or
@@ -143,7 +169,9 @@ responses can never fake a low score.
 
 AI word-bridges rescue meaning strict matching misses (added
 2026-10-13; why: `docs/qloo-coverage.md`, "AI word-bridge
-scoring"). Leftover words — matched tags scoring zero everywhere —
+scoring"; default OFF since the title-grounded rebuild —
+`BRIDGES_ENABLED=false` — until an off-vs-on probe shows they
+help). Leftover words — pooled tags scoring zero everywhere —
 get one narrow AI call pointing each at an already-fetched taste id
 plus a bucket: strong 0.75, related 0.5, distant 0 (considered, not
 counted). At most 4 bridges per run; buckets-only output or the run
@@ -169,10 +197,13 @@ placeholder zeros never act as a floor.
 
 Guards, all Inconclusive, never Weak: coverage below 0.34;
 more than half the scores unjudgeable; an unjudgeable top; no
-contenders; too few matched tags; out-of-scope pitch; a judgeable
-ceiling of exactly 0.00 (won against nothing — a real Strong needs
-a real baseline); controls exist but none judgeable.
+contenders; too few pooled tags; no titles; out-of-scope pitch;
+a judgeable ceiling of exactly 0.00 (won against nothing — a real
+Strong needs a real baseline); controls exist but none judgeable.
 
+The story leads with rivals and reads the named audience as the
+benchmark: "your comparables agree" when the named row holds,
+"a rival matches them too" when a rival matches the comparables.
 If the top audience is not the named one and beats it by the
 surprise margin (0.10), the headline becomes "Your best fit is not the audience you named."
 Results within 0.06 of the control line read as a close call
@@ -230,23 +261,25 @@ only); docs record aggregates and conclusions.
 
 | Component | Responsibility |
 |---|---|
-| Qloo | Looking up titles and tags, audience tastes, related items, title suggestions. The source of every number, tag and title |
-| The AI | Reads the pitch into words and type; points leftover words at fetched tastes (bridges); writes chatbot prose |
+| Qloo | Looking up titles and tags, audience tastes, related items, entity-seeded title suggestions, title tag labels. The source of every number, tag and title |
+| The AI | Reads the pitch into words and type; picks which similar-labels fit the pitch (filters, never invents scoring tags); points leftover words at fetched tastes when bridges are on; writes chatbot prose |
 | Our code | Gates, rival discovery assembly, scoring, the control ceiling, the verdict, the change check, and grounding |
 
-The AI does not invent tags, titles, scores or audiences, and it does not rank anything. Bridge weights are fixed in code. Title suggestions come from Qloo overlap, never from the model.
+The AI does not invent tags, titles, scores or audiences, and it does not rank anything. Bridge weights are fixed in code. Title suggestions come from Qloo entities you named, never from the model.
 
 ## 8. How the run behaves
 
-One fixed pipeline, same order every run: scope gate → tag gate →
-named audience → rivals → controls → tastes → bridges → scores →
+One fixed pipeline, same order every run: scope gate → cheap
+empty-check → titles resolve (≥1) → named tastes + rivals →
+controls → tag pool + pool gate → hold-out rounds → scores →
 verdict → reach plan only if control is cleared → optional change
 and comparison on their own routes. It stops early and says the
 cause when: the pitch is out of scope (tool/app, zero Qloo calls),
-too few tags matched, or there is nothing to judge. One miss never
+nothing to judge, or the pooled tags run too thin. One miss never
 fails a batch: failures degrade to not-found / failed / no-data
 entries with their traces. The AI's only judgments are the words,
-the bridge pointing, and the chatbot prose — everything else is
+the similar-label picking, and the chatbot prose (plus bridge
+pointing when bridges are on) — everything else is
 code and deterministic.
 
 ## 9. Demo plan
@@ -271,7 +304,7 @@ The demo domain is film first, music second (day-one coverage test). Book and ga
 |---|---|---|
 | 1 | Grounding | Across 20 runs, every title and tag in the final output came from that run's Qloo results; every bridge target was an already-fetched taste id |
 | 2 | Nonsense pitch | Three deliberately meaningless pitches return Weak or Inconclusive |
-| 3 | Circularity gate | On at least four real pitches, record whether the top audience differs from the named audience. If it never does, stop and review the design before building more |
+| 3 | Circularity gate | Hold-out rounds rescore everyone on the same reduced set; the named row's self-fit delta renders beside it. If the named audience wins only on its own gifts (full-set win, hold-out collapse), stop and review before building more |
 | 4 | No data | A pitch with unmatched words shows "no data" and never a low score standing in for it |
 | 5 | Change refusal | A change that fails the bar is withheld and the page names the failed condition |
 | 6 | Speed | A full run finishes in about 90 seconds |
