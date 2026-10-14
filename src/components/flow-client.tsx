@@ -73,6 +73,30 @@ export function FlowClient({
   const [suggestBusy, setSuggestBusy] = useState(false);
   /** True after the single-shot suggestions fetch settles (success or not). */
   const [suggestDone, setSuggestDone] = useState(false);
+  /** Title-gift preview: confirmed Qloo tastes off the checked titles. */
+  const [titleTags, setTitleTags] = useState<
+    {
+      qlooId: string;
+      label: string;
+      sourceTitleId: string | null;
+      sourceTitleName: string | null;
+    }[]
+  >([]);
+  const [titleTagsBusy, setTitleTagsBusy] = useState(false);
+  /** True after the preview fetch settles (success or not). */
+  const [titleTagsDone, setTitleTagsDone] = useState(false);
+  /** Gifts the fit-pick cut as unfitting the pitch (restorable). */
+  const [cutGifts, setCutGifts] = useState<
+    {
+      qlooId: string;
+      label: string;
+      sourceTitleId: string | null;
+      sourceTitleName: string | null;
+    }[]
+  >([]);
+  const [showCutGifts, setShowCutGifts] = useState(false);
+  /** Why the title-gift preview came back empty (null = not empty). */
+  const [previewNote, setPreviewNote] = useState<string | null>(null);
   const [tags, setTags] = useState<FlowResult["tags"]>([]);
   const [steps, setSteps] = useState<FlowStepRow[]>([]);
   const [result, setResult] = useState<FlowResult | null>(null);
@@ -99,6 +123,22 @@ export function FlowClient({
   const parsedSimilar = parseSimilarTitles(similarTitles);
   const autoStarted = useRef(false);
 
+  /** Chip-step fetches with a hard ceiling: Qloo slowness must fail
+   *  honest (empty/error note), never spin forever. */
+  async function fetchWithTimeout(
+    url: string,
+    init: RequestInit,
+    ms = 30000,
+  ): Promise<Response> {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    try {
+      return await fetch(url, { ...init, signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   /** Tap-to-add for a suggested title; dedupes case-insensitively. */
   function addSuggested(title: string) {
     const clean = title.trim();
@@ -109,9 +149,119 @@ export function FlowClient({
     if (have.has(clean.toLowerCase())) return;
     // The list changed, so any earlier check is stale.
     setCheckResult(null);
+    setTitleTags([]);
+    setCutGifts([]);
+    setShowCutGifts(false);
+    setPreviewNote(null);
+    setTitleTagsDone(false);
     setSimilarTitles((prev) =>
       prev.trim() === "" ? clean : `${prev.replace(/\s*,\s*$/, "")}, ${clean}`,
     );
+  }
+
+  /** Remove one title from the similar-to list; check output goes stale. */
+  function removeSimilar(title: string) {
+    const keep = parseSimilarTitles(similarTitles).filter(
+      (s) => s.toLowerCase() !== title.trim().toLowerCase(),
+    );
+    setCheckResult(null);
+    setTitleTags([]);
+    setCutGifts([]);
+    setShowCutGifts(false);
+    setPreviewNote(null);
+    setTitleTagsDone(false);
+    setSimilarTitles(keep.join(", "));
+  }
+
+  /** Unpick one title gift; it leaves the run's picked ids. */
+  function removeTitleTag(qlooId: string) {
+    setTitleTags((prev) => prev.filter((t) => t.qlooId !== qlooId));
+  }
+
+  /** Title-gift preview: top Qloo tastes off the checked titles, one
+   *  shot after an explicit check, never per keystroke. Silent on
+   *  failure — gifts are optional, pitch words still score. */
+  async function fetchTitleTags(names: string[], wt: WorkType) {
+    if (names.length === 0) return;
+    setTitleTagsBusy(true);
+    try {
+      const res = await fetchWithTimeout("/api/titles/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titles: names, workType: wt }),
+      });
+      const data = (await res.json()) as {
+        tags?: {
+          qlooId: string;
+          label: string;
+          sourceTitleId: string | null;
+          sourceTitleName: string | null;
+        }[];
+        note?: unknown;
+      };
+      setPreviewNote(
+        res.ok && typeof data.note === "string" ? data.note : null,
+      );
+      setTitleTags(
+        res.ok && Array.isArray(data.tags)
+          ? data.tags.filter(
+              (t) =>
+                typeof t.qlooId === "string" &&
+                t.qlooId.trim() !== "" &&
+                typeof t.label === "string" &&
+                t.label.trim() !== "",
+            )
+          : [],
+      );
+      // Fit-pick: the model drops gifts the pitch does not earn (one
+      // LLM call, zero Qloo). Fail-open — failures keep every gift
+      // and the user still confirms each chip.
+      if (res.ok && Array.isArray(data.tags) && data.tags.length > 0) {
+        try {
+          const pickRes = await fetchWithTimeout("/api/titles/pick", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pitchText,
+              candidates: data.tags.map((t) => ({
+                qlooId: t.qlooId,
+                label: t.label,
+                sourceTitleName: t.sourceTitleName,
+              })),
+            }),
+          });
+          const pick = (await pickRes.json()) as { keptIds?: unknown };
+          if (
+            pickRes.ok &&
+            Array.isArray(pick.keptIds) &&
+            pick.keptIds.length < data.tags.length
+          ) {
+            const keep = new Set(
+              pick.keptIds.filter(
+                (id): id is string =>
+                  typeof id === "string" && id.trim() !== "",
+              ),
+            );
+            setCutGifts(data.tags.filter((t) => !keep.has(t.qlooId)));
+            setShowCutGifts(false);
+            setTitleTags((prev) => prev.filter((t) => keep.has(t.qlooId)));
+          } else {
+            setCutGifts([]);
+          }
+        } catch {
+          setCutGifts([]);
+        }
+      } else {
+        setCutGifts([]);
+      }
+    } catch {
+      setTitleTags([]);
+      setCutGifts([]);
+      setPreviewNote("preview-failed");
+    } finally {
+      setTitleTagsBusy(false);
+      setTitleTagsDone(true);
+    }
   }
 
   /** Explicit-click title check against Qloo; never runs on keystroke. */
@@ -121,7 +271,7 @@ export function FlowClient({
     setCheckBusy(true);
     setCheckError(null);
     try {
-      const res = await fetch("/api/titles/check", {
+      const res = await fetchWithTimeout("/api/titles/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ titles: list, workType }),
@@ -140,6 +290,42 @@ export function FlowClient({
         resolved: Array.isArray(data.resolved) ? data.resolved : [],
         notFound: Array.isArray(data.notFound) ? data.notFound : [],
       });
+      // Preview the titles' gifts for the single chip row; the run
+      // rebuilds the same pool and applies the confirmed picks.
+      const resolvedNames = Array.isArray(data.resolved)
+        ? data.resolved
+            .map((r) => r.name)
+            .filter(
+              (n): n is string => typeof n === "string" && n.trim() !== "",
+            )
+        : [];
+      setTitleTags([]);
+      setCutGifts([]);
+      setShowCutGifts(false);
+      setPreviewNote(null);
+      setTitleTagsDone(false);
+      setQlooSuggestions([]);
+      setSuggestDone(false);
+      if (resolvedNames.length > 0) {
+        void fetchTitleTags(resolvedNames, workType);
+        // Suggestions seed from the just-checked titles' ids, so they
+        // only run once the user has typed (and verified) a title.
+        void fetchTitleSuggestions(
+          Array.isArray(data.resolved)
+            ? data.resolved
+                .map((r) => r.qlooId)
+                .filter(
+                  (id): id is string =>
+                    typeof id === "string" && id.trim() !== "",
+                )
+            : [],
+          parseSimilarTitles(similarTitles),
+          workType,
+        );
+      } else {
+        setTitleTagsDone(true);
+        setSuggestDone(true);
+      }
     } catch {
       setCheckError("Could not reach the title check.");
       setCheckResult(null);
@@ -148,16 +334,26 @@ export function FlowClient({
     }
   }
 
-  /** Qloo similar-title suggestions: single shot after tags load,
-   *  never per keystroke. Silent on failure — suggestions are optional. */
-  async function fetchTitleSuggestions(tagIds: string[], wt: WorkType) {
-    if (tagIds.length === 0) return;
+  /** Entity-seeded suggestions: only off the user's own checked
+   *  titles (their Qloo ids), never off pitch tags, never per
+   *  keystroke — the caller fires this after an explicit Check.
+   *  Silent on failure — suggestions are optional. */
+  async function fetchTitleSuggestions(
+    entityIds: string[],
+    excludeNames: string[],
+    wt: WorkType,
+  ) {
+    if (entityIds.length === 0) {
+      setQlooSuggestions([]);
+      setSuggestDone(true);
+      return;
+    }
     setSuggestBusy(true);
     try {
-      const res = await fetch("/api/titles/suggest", {
+      const res = await fetchWithTimeout("/api/titles/related", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tagIds, workType: wt }),
+        body: JSON.stringify({ entityIds, excludeNames, workType: wt }),
       });
       const data = (await res.json()) as { suggestions?: unknown };
       setQlooSuggestions(
@@ -195,8 +391,7 @@ export function FlowClient({
       }
       const nextTags = data.tags ?? [];
       setTags(nextTags);
-      setQlooSuggestions([]);
-      setSuggestDone(false);
+      setPhase("tags");
       const nextType =
         data.workType === "film" ||
         data.workType === "music" ||
@@ -206,13 +401,6 @@ export function FlowClient({
           : workType;
       setWorkType(nextType);
       setPhase("tags");
-      // Single shot: matched tags' Qloo ids feed one suggestions call.
-      void fetchTitleSuggestions(
-        nextTags
-          .filter((t) => t.status === "matched" && t.qlooId !== undefined)
-          .map((t) => t.qlooId as string),
-        nextType,
-      );
     } catch {
       setError("Could not reach the tag matcher.");
     } finally {
@@ -310,6 +498,7 @@ export function FlowClient({
           workType,
           tags,
           similarTitles: parseSimilarTitles(similarTitles),
+          pickedTagIds: titleTags.map((t) => t.qlooId),
         }),
       });
       const data = (await res.json()) as RunResponseBody & { error?: string };
@@ -333,7 +522,7 @@ export function FlowClient({
     } finally {
       setBusy(false);
     }
-  }, [pitchText, workType, tags, similarTitles]);
+  }, [pitchText, workType, tags, similarTitles, titleTags]);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-12 sm:px-8">
@@ -343,14 +532,16 @@ export function FlowClient({
             What are you making?
           </h1>
           <p className="mt-2 max-w-prose text-body text-ink-2">
-            Paste the idea. We read its tags, check them against real Qloo data,
-            and show which audience it fits.
+            Explain it in detail — the world, the characters, what happens, what
+            it is about underneath. More detail means better tags and a fairer
+            verdict. We read its tags, check them against real Qloo data, and
+            show which audience it fits.
           </p>
           <textarea
             value={pitchText}
             onChange={(e) => setPitchText(e.target.value)}
-            rows={6}
-            placeholder="A tender sci-fi drama for people who like slow-burn stories, with a lonely and hopeful feel."
+            rows={10}
+            placeholder="Frankie drove getaway cars for twenty years and never lost a crew. Now her old crew is back with one last job. Gritty but tender, slow-burn. About loyalty and aging out of a life, set in a present-day port town that lives off smuggling crews. A heist movie with family drama at its core, not a glossy action romp or a comedy."
             className="mt-4 min-h-32 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-4 py-3 text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3"
           />
           <div className="mt-4">
@@ -359,8 +550,8 @@ export function FlowClient({
                 htmlFor="similar"
                 className="block font-mono text-xs text-ink-3"
               >
-                Similar to (optional, comma separated — suggestions appear after
-                reading the tags)
+                Similar to (optional here — required before the run, comma
+                separated — suggestions appear after you check them)
               </label>
               <input
                 id="similar"
@@ -396,15 +587,90 @@ export function FlowClient({
       {phase === "tags" && (
         <section aria-label="Confirm tags">
           <p className="font-mono text-xs text-ink-3">Read as {workType}</p>
-          <TagChips tags={tags} onChange={setTags} loading={busy} />
+          <TagChips
+            tags={tags}
+            onChange={setTags}
+            loading={busy}
+            extraMatched={titleTags.length}
+            extraChips={titleTags.map((t) => ({
+              key: t.qlooId,
+              label: t.label,
+              badge: t.sourceTitleName ?? "title",
+              onRemove: () => removeTitleTag(t.qlooId),
+            }))}
+          />
+          {titleTagsBusy && (
+            <output aria-live="polite" className="mt-4 block">
+              <LoadingState label="Reading the titles' tags" variant="Dots" />
+            </output>
+          )}
+          {!titleTagsBusy &&
+            titleTagsDone &&
+            checkResult !== null &&
+            checkResult.resolved.length > 0 &&
+            titleTags.length === 0 &&
+            cutGifts.length === 0 && (
+              <p className="mt-4 max-w-prose text-body text-ink-2">
+                {previewNote === "no-tastes" &&
+                  "Qloo holds no taste data for these titles — only pitch words will score."}
+                {previewNote === "all-generic" &&
+                  "These titles' top tastes were all generic (half the controls hold them) — only your sharper pitch words will score."}
+                {previewNote === "preview-failed" &&
+                  "Couldn't read the titles' tastes — only pitch words will score. Check again to retry."}
+                {(previewNote === null ||
+                  previewNote === "ok" ||
+                  previewNote === "unresolved") &&
+                  "The checked titles added no tags — only pitch words will score. The run still needs at least 1 similar title."}
+              </p>
+            )}
+          {!titleTagsBusy && titleTagsDone && cutGifts.length > 0 && (
+            <div className="mt-4">
+              <p className="max-w-prose text-body text-ink-2">
+                {cutGifts.length} gift{cutGifts.length === 1 ? "" : "s"} cut as
+                unfitting your pitch — restore any that should score.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowCutGifts((v) => !v)}
+                className="btn-secondary mt-2 px-4 py-2 text-sm"
+              >
+                {showCutGifts ? "Hide cut gifts" : "Show cut gifts"}
+              </button>
+              {showCutGifts && (
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {cutGifts.map((gift) => (
+                    <li key={gift.qlooId}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTitleTags((prev) =>
+                            prev.some((t) => t.qlooId === gift.qlooId)
+                              ? prev
+                              : [...prev, gift],
+                          );
+                          setCutGifts((prev) =>
+                            prev.filter((t) => t.qlooId !== gift.qlooId),
+                          );
+                        }}
+                        disabled={busy}
+                        className="btn-secondary px-4 py-2 text-sm"
+                      >
+                        + {gift.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           <section aria-label="Similar-to titles" className="mt-6">
             <h2 className="text-lg tracking-tight text-ink">
               Similar-to titles
             </h2>
             <p className="mt-1 max-w-prose text-body text-ink-2">
-              What the run will resolve against Qloo. Check now for an early
-              look — the run re-checks everything, so this never decides
-              anything.
+              What the run will resolve against Qloo. Name at least 1 — its
+              tastes ground the tags. Check now for an early look — the run
+              re-checks everything, so this never decides anything.
             </p>
             <label
               htmlFor="similar-tags"
@@ -419,6 +685,11 @@ export function FlowClient({
                 onChange={(e) => {
                   setSimilarTitles(e.target.value);
                   setCheckResult(null);
+                  setTitleTags([]);
+                  setCutGifts([]);
+                  setShowCutGifts(false);
+                  setPreviewNote(null);
+                  setTitleTagsDone(false);
                 }}
                 placeholder="Moon, Arrival"
                 className="min-w-0 flex-1 border-2 border-outline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-3"
@@ -429,9 +700,19 @@ export function FlowClient({
                 disabled={parsedSimilar.length === 0 || checkBusy}
                 className="btn-secondary shrink-0 px-5 py-2 text-sm"
               >
-                {checkBusy ? "Checking…" : "Check in Qloo"}
+                {checkBusy
+                  ? "Checking & refreshing…"
+                  : "Check titles & refresh tags"}
               </button>
             </div>
+            {checkResult === null &&
+              !checkBusy &&
+              parsedSimilar.length > 0 &&
+              (titleTagsDone || suggestDone) && (
+                <p className="mt-3 max-w-prose text-body text-ink-2">
+                  Titles changed — check again to refresh tags and suggestions.
+                </p>
+              )}
             {parsedSimilar.length > 0 && (
               <ul
                 aria-label="Titles to check"
@@ -440,9 +721,18 @@ export function FlowClient({
                 {[...new Set(parsedSimilar)].map((title) => (
                   <li
                     key={title}
-                    className="border-2 border-outline bg-paper px-3 py-1 font-mono text-xs text-ink-2"
+                    className="flex items-center gap-2 border-2 border-outline bg-paper px-3 py-1 font-mono text-xs text-ink-2"
                   >
-                    {title}
+                    <span>{title}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeSimilar(title)}
+                      disabled={busy}
+                      aria-label={`Remove ${title}`}
+                      className="text-ink-3 hover:text-ink"
+                    >
+                      ✕
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -489,18 +779,15 @@ export function FlowClient({
           </section>
           {suggestBusy ? (
             <output aria-live="polite" className="mt-6 block">
-              <LoadingState
-                label="Finding titles sharing your tags"
-                variant="Dots"
-              />
+              <LoadingState label="Finding titles like yours" variant="Dots" />
             </output>
           ) : qlooSuggestions.length > 0 ? (
-            <section aria-label="Titles sharing your tags" className="mt-6">
+            <section aria-label="Similar to your idea" className="mt-6">
               <h2 className="text-lg tracking-tight text-ink">
-                Titles sharing your tags?
+                Similar to your idea?
               </h2>
               <p className="mt-1 max-w-prose text-body text-ink-2">
-                From the taste database — titles overlapping your matched words.
+                From the taste database — titles related to the ones you typed.
                 Tap to add; each is verified at the run.
               </p>
               <ul className="mt-3 flex flex-wrap gap-2">
@@ -528,8 +815,8 @@ export function FlowClient({
           ) : (
             suggestDone && (
               <p className="mt-6 max-w-prose text-body text-ink-2">
-                No suggestions this time — the database had nothing overlapping
-                your words. Type your own above; Check verifies each.
+                No suggestions this time — the database had nothing related to
+                your titles. Type your own above; Check verifies each.
               </p>
             )
           )}
@@ -542,7 +829,10 @@ export function FlowClient({
               <button
                 type="button"
                 onClick={run}
-                disabled={matched < MIN_MATCHED_TAGS}
+                disabled={
+                  matched + titleTags.length < MIN_MATCHED_TAGS ||
+                  parsedSimilar.length < 1
+                }
                 className="btn-primary px-6 py-3 text-sm"
               >
                 Run the analysis
@@ -556,6 +846,12 @@ export function FlowClient({
               Edit the pitch
             </button>
           </div>
+          {parsedSimilar.length < 1 && (
+            <output className="mt-3 block font-mono text-xs text-clay">
+              Add at least 1 similar title — the run grounds its tags in it, and
+              the pool gate still applies.
+            </output>
+          )}
           {error && (
             <p role="alert" className="mt-3 text-sm text-ink-2">
               {error}

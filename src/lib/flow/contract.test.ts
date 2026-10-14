@@ -96,13 +96,35 @@ describe("toFlowResult", () => {
       ["named", "rival", "control", "control"],
     );
     assert.deepEqual(out.tags, [
-      { label: "t1", qlooId: "urn:t1", status: "matched" },
-      { label: "nope", status: "not_found" },
+      { label: "t1", qlooId: "urn:t1", status: "matched", source: "pitch" },
+      { label: "nope", status: "not_found", source: "pitch" },
     ]);
     assert.equal(out.tags[1]?.qlooId, undefined);
     assert.equal(out.ceiling, 0.6);
     assert.deepEqual(out.qlooCalls, { network: 1, cached: 1, total: 2 });
     assert.equal(out.evidence.c1?.response, "{}");
+  });
+
+  it("carries title provenance onto matched tags, pitch by default", () => {
+    const pipeline = {
+      ...base(),
+      tags: [
+        { tag: "t1", qlooTagId: "urn:t1", pinned: false },
+        { tag: "Slow Burn", qlooTagId: "urn:moon1", pinned: false },
+      ],
+    };
+    const out = toFlowResult(
+      pipeline,
+      {},
+      {
+        "urn:moon1": { titleId: "moon-id", titleName: "Moon" },
+      },
+    );
+    assert.deepEqual(out.tags[0]?.source, "pitch");
+    assert.deepEqual(out.tags[1]?.source, {
+      titleId: "moon-id",
+      titleName: "Moon",
+    });
   });
 
   it("never lets a placeholder 0 reach a bar: unjudgeable scores become null", () => {
