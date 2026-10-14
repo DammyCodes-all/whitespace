@@ -7,7 +7,7 @@
  * names, no numbers, no comparisons. Every word is matched against a
  * real Qloo tag downstream by `resolvePitchTags`, so a word Qloo does
  * not hold is "not found in Qloo" and never enters scoring (§6.5).
- * Similar-title suggestions come from Qloo (`suggestTitles`), never
+ * Similar-title suggestions come from Qloo (`suggestFromEntities`), never
  * from the model (§7).
  *
  * JSON only, validated and capped. Server-only: keys stay server-side.
@@ -108,7 +108,7 @@ export async function extractPitchTags(
   if (typeof window !== "undefined") {
     throw new Error("extractPitchTags is server-only.");
   }
-  const pitchText = input.pitchText.trim().slice(0, 2000);
+  const pitchText = input.pitchText.trim().slice(0, 4000);
   if (pitchText === "") {
     throw new LlmError("Pitch text is empty.", "input", true);
   }
