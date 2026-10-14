@@ -73,7 +73,7 @@ export function buildCopy(input: CopyInput): ResultCopy {
     ];
     if (input.controlScore !== null) {
       body.push(
-        `An unrelated group matches it at ${pct(input.controlScore)}%.`,
+        `Strangers to this idea match it at ${pct(input.controlScore)}%.`,
       );
     }
     return { badge, body, source };
@@ -88,8 +88,8 @@ export function buildCopy(input: CopyInput): ResultCopy {
   if (input.controlScore !== null) {
     body.push(
       input.verdict === "Strong"
-        ? `An unrelated group matches it at only ${pct(input.controlScore)}%.`
-        : `An unrelated group matches it at ${pct(input.controlScore)}%.`,
+        ? `Strangers to this idea match it at only ${pct(input.controlScore)}%.`
+        : `Strangers to this idea match it at ${pct(input.controlScore)}%.`,
     );
   }
   const runnerUp = input.runnerUp;
