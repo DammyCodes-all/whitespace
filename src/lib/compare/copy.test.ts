@@ -63,6 +63,45 @@ describe("buildCopy", () => {
     assert.ok(!copy.body.join(" ").includes("only"));
   });
 
+  it("names a rival runner-up as matching too", () => {
+    const copy = buildCopy({
+      verdict: "Strong",
+      best: BEST,
+      controlScore: 0.44,
+      runnerUp: { ...RUNNER_UP, role: "rival" },
+      titles: TITLES,
+    });
+    assert.equal(
+      copy.body[3],
+      "A rival matches them too: Slow science-fiction at 61%.",
+    );
+  });
+
+  it("reads a named runner-up as the agreeing benchmark", () => {
+    const copy = buildCopy({
+      verdict: "Mixed",
+      best: { ...BEST, role: "rival" },
+      controlScore: 0.44,
+      runnerUp: { ...RUNNER_UP, role: "named" },
+      titles: TITLES,
+    });
+    assert.equal(
+      copy.body[3],
+      "Your comparables agree: Slow science-fiction matches it at 61%.",
+    );
+  });
+
+  it("keeps the plain runner-up line when roles are unknown", () => {
+    const copy = buildCopy({
+      verdict: "Strong",
+      best: BEST,
+      controlScore: 0.44,
+      runnerUp: RUNNER_UP,
+      titles: TITLES,
+    });
+    assert.equal(copy.body[3], "Slow science-fiction matches it at 61%.");
+  });
+
   it("drops the runner-up sentence when there is none", () => {
     const copy = buildCopy({
       verdict: "Strong",
