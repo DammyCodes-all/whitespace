@@ -11,13 +11,18 @@ export const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 /**
- * OpenRouter fallback default: a small instruction-tuned model, not a
- * reasoning giant. The previous default (a 550B reasoning model) rambled
- * chain-of-thought instead of JSON and timed out the 20s budget live
- * (2026-10-13 probes: 0/4 usable). Override per deploy with
- * `OPENROUTER_MODEL`.
+ * OpenRouter fallback default: the free-models router, which picks among
+ * healthy free models and filters for structured-output support. A pinned
+ * reasoning giant was the previous default and rambled chain-of-thought
+ * instead of JSON (2026-10-13 probes: 0/4 usable); a pinned small model
+ * throttled upstream the next day. The router dodges both failure modes
+ * (verified live 2026-10-14: clean 4-bridge JSON first try). Tradeoff, by
+ * design: the serving model varies per request, so fallback pointing
+ * varies more than primary pointing — the strict validation gate
+ * (fetched-ids-only, buckets-only) holds either way. Override per
+ * deploy with `OPENROUTER_MODEL`.
  */
-export const OPENROUTER_DEFAULT_MODEL = "google/gemma-4-26b-a4b-it:free";
+export const OPENROUTER_DEFAULT_MODEL = "openrouter/free";
 
 /** OpenRouter legs get a longer local deadline (slow free-tier models). */
 export const OPENROUTER_TIMEOUT_MS = 45000;
