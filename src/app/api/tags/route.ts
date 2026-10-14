@@ -13,8 +13,8 @@ import { resetQuota, resolvePitchTags } from "@/lib/qloo";
  * UI. Each word is matched against a real Qloo tag in the detected
  * type's namespaces. Unmatched words come back `not_found` and never
  * enter scoring; the user edits the list before running. Similar-title
- * suggestions come from Qloo (`/api/titles/suggest`), never from the
- * model (§7).
+ * suggestions come from Qloo (`/api/titles/related`, seeded from the
+ * user's own checked titles), never from the model (§7).
  *
  * Server-only: the key and the LLM keys never reach the browser.
  */
