@@ -66,6 +66,7 @@ export async function POST(request: Request) {
     nothingLike: [],
     similarTitles: toStrings(root.similarTitles),
     tags: toTags(root.tags),
+    pickedTagIds: toStrings(root.pickedTagIds),
   });
   return NextResponse.json({
     result: out.result,

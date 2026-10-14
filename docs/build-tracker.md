@@ -212,4 +212,3 @@ Format:
 | 2026-10-15 | Input asks for a detailed explanation (world/characters/plot/themes, bigger box, worked placeholder); pitch cap 2000→4000 for tag + pick prompts | §6.1 | tsc clean; biome clean |
 | 2026-10-13 | Merge bridge + semantic impl/test pairs into single self-tested files (tests behind a main-entry guard, explicit tsx paths) | n/a | tsc clean; biome clean; tsx 211/211 (29 self-tests); next build pass; prod-import probe keeps env key, runs 0 tests |
 | 2026-10-13 | Revert file merge: bridge + semantic back to separate impl and .test.ts files per owner request | n/a | biome clean on 4 files; tsc clean; tsx 211/211; next build pass |
-| 2026-10-15 | Structured pitch form (premise + tone required, themes/setting/blend/not-like optional, hint placeholders) composed to one pitch text; ?pitch= lands in premise | §6.1 | compose-pitch 3/3; tsc clean; biome clean; zero live calls |
