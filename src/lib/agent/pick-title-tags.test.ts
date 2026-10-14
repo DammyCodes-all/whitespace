@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { LlmError, toPickResult } from "./pick-title-tags.ts";
+import { LlmError, systemPrompt, toPickResult } from "./pick-title-tags.ts";
 
 const IDS = ["id1", "id2", "id3"];
 
@@ -34,5 +34,23 @@ describe("toPickResult", () => {
 
   it("throws LlmError (fail-open signal for the route)", () => {
     assert.throws(() => toPickResult({}, IDS), LlmError);
+  });
+});
+
+describe("systemPrompt", () => {
+  it("pins the bar with a worked keep and two worked cuts", () => {
+    const prompt = systemPrompt();
+    assert.ok(
+      prompt.includes("Keep `psychological drama`"),
+      "keep example went missing",
+    );
+    assert.ok(
+      prompt.includes("Cut `crime documentary`"),
+      "fiction-vs-documentary cut went missing",
+    );
+    assert.ok(
+      prompt.includes("Cut `dark comedy`"),
+      "contradiction cut went missing",
+    );
   });
 });

@@ -123,20 +123,10 @@ export function FlowClient({
   const parsedSimilar = parseSimilarTitles(similarTitles);
   const autoStarted = useRef(false);
 
-  /** Chip-step fetches with a hard ceiling: Qloo slowness must fail
-   *  honest (empty/error note), never spin forever. */
-  async function fetchWithTimeout(
-    url: string,
-    init: RequestInit,
-    ms = 30000,
-  ): Promise<Response> {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), ms);
-    try {
-      return await fetch(url, { ...init, signal: ctrl.signal });
-    } finally {
-      clearTimeout(timer);
-    }
+  /** Chip-step fetches: plain fetch, no client timeout — Qloo
+   *  slowness resolves as data or a real error, never a client abort. */
+  async function chipFetch(url: string, init: RequestInit): Promise<Response> {
+    return fetch(url, init);
   }
 
   /** Tap-to-add for a suggested title; dedupes case-insensitively. */
@@ -185,7 +175,7 @@ export function FlowClient({
     if (names.length === 0) return;
     setTitleTagsBusy(true);
     try {
-      const res = await fetchWithTimeout("/api/titles/tags", {
+      const res = await chipFetch("/api/titles/tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ titles: names, workType: wt }),
@@ -218,7 +208,7 @@ export function FlowClient({
       // and the user still confirms each chip.
       if (res.ok && Array.isArray(data.tags) && data.tags.length > 0) {
         try {
-          const pickRes = await fetchWithTimeout("/api/titles/pick", {
+          const pickRes = await chipFetch("/api/titles/pick", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -271,7 +261,7 @@ export function FlowClient({
     setCheckBusy(true);
     setCheckError(null);
     try {
-      const res = await fetchWithTimeout("/api/titles/check", {
+      const res = await chipFetch("/api/titles/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ titles: list, workType }),
@@ -350,7 +340,7 @@ export function FlowClient({
     }
     setSuggestBusy(true);
     try {
-      const res = await fetchWithTimeout("/api/titles/related", {
+      const res = await chipFetch("/api/titles/related", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ entityIds, excludeNames, workType: wt }),
@@ -541,8 +531,8 @@ export function FlowClient({
             value={pitchText}
             onChange={(e) => setPitchText(e.target.value)}
             rows={10}
-            placeholder="Frankie drove getaway cars for twenty years and never lost a crew. Now her old crew is back with one last job. Gritty but tender, slow-burn. About loyalty and aging out of a life, set in a present-day port town that lives off smuggling crews. A heist movie with family drama at its core, not a glossy action romp or a comedy."
-            className="mt-4 min-h-32 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-4 py-3 text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3"
+            placeholder="Frankie drove getaway cars for twenty years and never lost a crew. Now her old crew is back with one last job. Gritty but tender, slow-burn. About loyalty and aging out of a life, set in a present-day port town that lives off smuggling crews. A heist movie with family drama at its core."
+            className="mt-4 min-h-40 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-5 py-4 text-left text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3 transition-colors focus:outline-none focus:ring-2 focus:ring-measured/30"
           />
           <div className="mt-4">
             <div>

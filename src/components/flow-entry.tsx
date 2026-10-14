@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 const PLACEHOLDER =
-  "Tell us about your story: premise, mood, themes, setting, and what it is definitely not. More detail means better tags. Something like: a gritty but tender heist movie about loyalty, not a glossy action romp.";
+  "Tell us about your story: premise, mood, themes, and setting. More detail means better tags. Something like: a gritty but tender heist movie about loyalty and aging out.";
 
 const EXAMPLE_PITCH =
   "Frankie drove getaway cars for twenty years and never lost a crew — now her old crew is back with one last casino job, and her teenage nephew begs to ride along. Gritty but tender, about loyalty and aging out; a heist movie with family drama at its core, not a glossy action romp.";

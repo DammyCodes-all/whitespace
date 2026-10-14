@@ -217,5 +217,9 @@ Format:
 | 2026-10-15 | Trim home placeholder to two sentences (one invitation, one mini-example) | §6.1 | tsc clean; biome clean |
 | 2026-10-15 | Home entry gains a detail hint under the box (yields to the empty-nudge) | §6.1 | tsc clean; biome clean |
 | 2026-10-15 | Detail hint folded into the home placeholder; separate hint line removed | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Flow input box matches landing styling (padding, height floor, focus ring) | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Remove client 30s abort on chip-step fetches (Check, preview, pick, suggestions run to data or real error) | §6.1 | tsc clean; biome clean |
+| 2026-10-15 | Fit-pick prompt pins the bar with worked keep/cut examples (keep mood near-miss, cut fiction-vs-doc and contradiction); test locks them in | §6.5 | node24 targeted 9/9; tsc clean; biome clean; zero live calls (mocks only) |
+| 2026-10-15 | Drop what-it-is-not from both placeholders and spec (premise, mood, themes, setting only) | §6.1 | tsc clean; biome clean |
 | 2026-10-13 | Merge bridge + semantic impl/test pairs into single self-tested files (tests behind a main-entry guard, explicit tsx paths) | n/a | tsc clean; biome clean; tsx 211/211 (29 self-tests); next build pass; prod-import probe keeps env key, runs 0 tests |
 | 2026-10-13 | Revert file merge: bridge + semantic back to separate impl and .test.ts files per owner request | n/a | biome clean on 4 files; tsc clean; tsx 211/211; next build pass |
