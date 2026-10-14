@@ -42,12 +42,13 @@ export interface PickTitleTagsInput {
   candidates: TitleTagCandidate[];
 }
 
-function systemPrompt(): string {
+export function systemPrompt(): string {
   return [
     "You filter taste tags against a creator's pitch. You invent nothing: you only choose among the given tag ids.",
     "Reply with JSON ONLY, no markdown, no prose, matching this shape exactly:",
     '{"kept":["id1","id2"]}',
     "Rules: judge by feel and meaning, never by word overlap with the pitch. Keep a tag id if it names something the pitch is about OR something close in theme, setting, situation or mood: 'transformation' fits a dragonfly-DNA-injection pitch even though the pitch never says the word. Prefer keeping a near-miss over cutting it — the human confirms every chip after you. Drop only tags the pitch neither earns nor resembles, and anything the pitch contradicts. When in doubt, keep. Copy ids exactly as given; list no id that was not given.",
+    "Examples for a pitch like: a retired coastguard in a grey Scottish town forges ferry tickets, quiet and windswept, about duty and guilt. Keep `psychological drama` — guilt and a slow burn share its mood even though the pitch never says drama. Cut `crime documentary` — the title's fans may watch them, but the pitch is fiction, not documentary. Cut `dark comedy` — the pitch contradicts it.",
   ].join("\n");
 }
 

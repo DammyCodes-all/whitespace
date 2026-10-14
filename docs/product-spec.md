@@ -72,8 +72,7 @@ Claims we will not make
 ### 6.1 Input
 
 The user provides a detailed explanation of the work — the input
-placeholder prompts for premise (a sentence or two), tone and
-mood, themes, setting and era, genre blend, and what it is not
+placeholder prompts for premise, mood, themes and setting
 (more detail means better tags) — and at least 1 similar title.
 The tag call reads 5 to 8 descriptive words and the work type
 (film, music, book or game — there is no type selector anywhere).
