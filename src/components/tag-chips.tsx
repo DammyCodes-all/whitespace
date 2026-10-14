@@ -20,11 +20,34 @@ export interface TagChipsProps {
   tags: FlowTag[];
   onChange: (tags: FlowTag[]) => void;
   loading?: boolean;
+  /**
+   * Title-gift chips sharing the same row: confirmed Qloo tastes from
+   * the named titles, each badged with its title. Removal unpicks the
+   * gift (it leaves `pickedTagIds` on the run).
+   */
+  extraChips?: ExtraChip[];
+  /** Confirmed title gifts, counted beside pitch matches for the gate. */
+  extraMatched?: number;
 }
 
-export function TagChips({ tags, onChange, loading = false }: TagChipsProps) {
+export interface ExtraChip {
+  key: string;
+  label: string;
+  /** Source badge: the title name behind this gift. */
+  badge: string;
+  onRemove: () => void;
+}
+
+export function TagChips({
+  tags,
+  onChange,
+  loading = false,
+  extraChips = [],
+  extraMatched = 0,
+}: TagChipsProps) {
   const [draft, setDraft] = useState("");
-  const matched = tags.filter((t) => t.status === "matched").length;
+  const matched =
+    tags.filter((t) => t.status === "matched").length + extraMatched;
   const canRun = matched >= MIN_MATCHED_TAGS;
 
   function remove(index: number) {
@@ -54,7 +77,8 @@ export function TagChips({ tags, onChange, loading = false }: TagChipsProps) {
       </div>
       <p className="mt-1 max-w-prose text-body text-ink-2">
         Matched tags are real Qloo tags and they carry the score. Not-found
-        words never score — remove them or edit them, then run.
+        words never score — remove them or edit them, then run. Title chips are
+        the named titles&apos; own top tastes from Qloo.
       </p>
 
       <ul className="mt-4 flex flex-wrap gap-2">
@@ -70,6 +94,7 @@ export function TagChips({ tags, onChange, loading = false }: TagChipsProps) {
               }
             >
               <span>{tag.label}</span>
+              <span className="font-mono text-[10px] text-ink-3">[pitch]</span>
               {isMatched ? null : (
                 <span className="font-mono text-xs">not found in Qloo</span>
               )}
@@ -84,6 +109,25 @@ export function TagChips({ tags, onChange, loading = false }: TagChipsProps) {
             </li>
           );
         })}
+        {extraChips.map((chip) => (
+          <li
+            key={chip.key}
+            className="inline-flex items-center gap-1.5 border-2 border-outline bg-split px-3 py-1.5 text-sm text-ink"
+          >
+            <span>{chip.label}</span>
+            <span className="font-mono text-[10px] text-ink-2">
+              [{chip.badge}]
+            </span>
+            <button
+              type="button"
+              onClick={chip.onRemove}
+              aria-label={`Remove ${chip.label}`}
+              className="ml-1 font-mono text-xs text-ink-2 underline underline-offset-2 hover:text-ink"
+            >
+              ×
+            </button>
+          </li>
+        ))}
       </ul>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
