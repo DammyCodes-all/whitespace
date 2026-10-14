@@ -23,6 +23,7 @@ import { TagChips } from "@/components/tag-chips";
 import LoadingState from "@/components/ui/loading-state";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowEvidence, FlowResult } from "@/lib/flow/contract";
+import { parseSimilarTitles } from "@/lib/flow/similar-titles";
 import type { FlowStepRow } from "@/lib/flow/view-types";
 import type { ChangedRun } from "@/lib/pipeline/change";
 import type { QlooCall, WorkType } from "@/lib/types";
@@ -68,7 +69,10 @@ export function FlowClient({
   // The pitch's type is read by the tag call, never picked by hand.
   const [workType, setWorkType] = useState<WorkType>("film");
   const [similarTitles, setSimilarTitles] = useState("");
-  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  const [qlooSuggestions, setQlooSuggestions] = useState<string[]>([]);
+  const [suggestBusy, setSuggestBusy] = useState(false);
+  /** True after the single-shot suggestions fetch settles (success or not). */
+  const [suggestDone, setSuggestDone] = useState(false);
   const [tags, setTags] = useState<FlowResult["tags"]>([]);
   const [steps, setSteps] = useState<FlowStepRow[]>([]);
   const [result, setResult] = useState<FlowResult | null>(null);
@@ -82,8 +86,17 @@ export function FlowClient({
   const [changed, setChanged] = useState<ChangedRun | null>(null);
   const [changeBusy, setChangeBusy] = useState(false);
   const [changeError, setChangeError] = useState<string | null>(null);
+  // On-demand title check (explicit click only, never on keystroke):
+  // informational — the run re-resolves everything at run time.
+  const [checkBusy, setCheckBusy] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const [checkResult, setCheckResult] = useState<{
+    resolved: { query: string; name: string; qlooId: string }[];
+    notFound: string[];
+  } | null>(null);
 
   const matched = tags.filter((t) => t.status === "matched").length;
+  const parsedSimilar = parseSimilarTitles(similarTitles);
   const autoStarted = useRef(false);
 
   /** Tap-to-add for a suggested title; dedupes case-insensitively. */
@@ -91,15 +104,75 @@ export function FlowClient({
     const clean = title.trim();
     if (clean === "") return;
     const have = new Set(
-      similarTitles
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean),
+      parseSimilarTitles(similarTitles).map((s) => s.toLowerCase()),
     );
     if (have.has(clean.toLowerCase())) return;
+    // The list changed, so any earlier check is stale.
+    setCheckResult(null);
     setSimilarTitles((prev) =>
       prev.trim() === "" ? clean : `${prev.replace(/\s*,\s*$/, "")}, ${clean}`,
     );
+  }
+
+  /** Explicit-click title check against Qloo; never runs on keystroke. */
+  async function checkSimilarTitles() {
+    const list = parseSimilarTitles(similarTitles);
+    if (list.length === 0 || checkBusy) return;
+    setCheckBusy(true);
+    setCheckError(null);
+    try {
+      const res = await fetch("/api/titles/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titles: list, workType }),
+      });
+      const data = (await res.json()) as {
+        resolved?: { query: string; name: string; qlooId: string }[];
+        notFound?: string[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setCheckError(data.error ?? "Could not check the titles.");
+        setCheckResult(null);
+        return;
+      }
+      setCheckResult({
+        resolved: Array.isArray(data.resolved) ? data.resolved : [],
+        notFound: Array.isArray(data.notFound) ? data.notFound : [],
+      });
+    } catch {
+      setCheckError("Could not reach the title check.");
+      setCheckResult(null);
+    } finally {
+      setCheckBusy(false);
+    }
+  }
+
+  /** Qloo similar-title suggestions: single shot after tags load,
+   *  never per keystroke. Silent on failure — suggestions are optional. */
+  async function fetchTitleSuggestions(tagIds: string[], wt: WorkType) {
+    if (tagIds.length === 0) return;
+    setSuggestBusy(true);
+    try {
+      const res = await fetch("/api/titles/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tagIds, workType: wt }),
+      });
+      const data = (await res.json()) as { suggestions?: unknown };
+      setQlooSuggestions(
+        res.ok && Array.isArray(data.suggestions)
+          ? data.suggestions.filter(
+              (t): t is string => typeof t === "string" && t.trim() !== "",
+            )
+          : [],
+      );
+    } catch {
+      setQlooSuggestions([]);
+    } finally {
+      setSuggestBusy(false);
+      setSuggestDone(true);
+    }
   }
 
   async function extractTags() {
@@ -114,30 +187,32 @@ export function FlowClient({
       const data = (await res.json()) as {
         tags?: FlowResult["tags"];
         workType?: WorkType;
-        similarTitles?: string[];
         error?: string;
       };
       if (!res.ok) {
         setError(data.error ?? "Could not read the pitch tags.");
         return;
       }
-      setTags(data.tags ?? []);
-      setSuggestedTitles(
-        Array.isArray(data.similarTitles)
-          ? data.similarTitles.filter(
-              (t): t is string => typeof t === "string" && t.trim() !== "",
-            )
-          : [],
-      );
-      if (
+      const nextTags = data.tags ?? [];
+      setTags(nextTags);
+      setQlooSuggestions([]);
+      setSuggestDone(false);
+      const nextType =
         data.workType === "film" ||
         data.workType === "music" ||
         data.workType === "book" ||
         data.workType === "game"
-      ) {
-        setWorkType(data.workType);
-      }
+          ? data.workType
+          : workType;
+      setWorkType(nextType);
       setPhase("tags");
+      // Single shot: matched tags' Qloo ids feed one suggestions call.
+      void fetchTitleSuggestions(
+        nextTags
+          .filter((t) => t.status === "matched" && t.qlooId !== undefined)
+          .map((t) => t.qlooId as string),
+        nextType,
+      );
     } catch {
       setError("Could not reach the tag matcher.");
     } finally {
@@ -234,10 +309,7 @@ export function FlowClient({
           pitchText,
           workType,
           tags,
-          similarTitles: similarTitles
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          similarTitles: parseSimilarTitles(similarTitles),
         }),
       });
       const data = (await res.json()) as RunResponseBody & { error?: string };
@@ -325,18 +397,114 @@ export function FlowClient({
         <section aria-label="Confirm tags">
           <p className="font-mono text-xs text-ink-3">Read as {workType}</p>
           <TagChips tags={tags} onChange={setTags} loading={busy} />
-          {suggestedTitles.length > 0 && (
-            <section aria-label="Suggested similar titles" className="mt-6">
+          <section aria-label="Similar-to titles" className="mt-6">
+            <h2 className="text-lg tracking-tight text-ink">
+              Similar-to titles
+            </h2>
+            <p className="mt-1 max-w-prose text-body text-ink-2">
+              What the run will resolve against Qloo. Check now for an early
+              look — the run re-checks everything, so this never decides
+              anything.
+            </p>
+            <label
+              htmlFor="similar-tags"
+              className="mt-3 block font-mono text-xs text-ink-3"
+            >
+              Comma separated
+            </label>
+            <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+              <input
+                id="similar-tags"
+                value={similarTitles}
+                onChange={(e) => {
+                  setSimilarTitles(e.target.value);
+                  setCheckResult(null);
+                }}
+                placeholder="Moon, Arrival"
+                className="min-w-0 flex-1 border-2 border-outline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-3"
+              />
+              <button
+                type="button"
+                onClick={checkSimilarTitles}
+                disabled={parsedSimilar.length === 0 || checkBusy}
+                className="btn-secondary shrink-0 px-5 py-2 text-sm"
+              >
+                {checkBusy ? "Checking…" : "Check in Qloo"}
+              </button>
+            </div>
+            {parsedSimilar.length > 0 && (
+              <ul
+                aria-label="Titles to check"
+                className="mt-3 flex flex-wrap gap-2"
+              >
+                {[...new Set(parsedSimilar)].map((title) => (
+                  <li
+                    key={title}
+                    className="border-2 border-outline bg-paper px-3 py-1 font-mono text-xs text-ink-2"
+                  >
+                    {title}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {checkError !== null && (
+              <p role="alert" className="mt-3 text-sm text-ink-2">
+                {checkError}
+              </p>
+            )}
+            {checkResult !== null && (
+              <div className="mt-3 space-y-2">
+                {checkResult.resolved.length > 0 && (
+                  <ul
+                    aria-label="Found in Qloo"
+                    className="flex flex-wrap gap-2"
+                  >
+                    {checkResult.resolved.map((hit) => (
+                      <li
+                        key={hit.qlooId}
+                        className="border-2 border-outline bg-strong px-3 py-1 font-mono text-xs text-ink"
+                      >
+                        ✓ {hit.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {checkResult.notFound.length > 0 && (
+                  <ul
+                    aria-label="Not found in Qloo"
+                    className="flex flex-wrap gap-2"
+                  >
+                    {checkResult.notFound.map((title) => (
+                      <li
+                        key={title}
+                        className="border-2 border-outline bg-weak px-3 py-1 font-mono text-xs text-ink"
+                      >
+                        ✕ {title} — not in Qloo
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </section>
+          {suggestBusy ? (
+            <output aria-live="polite" className="mt-6 block">
+              <LoadingState
+                label="Finding titles sharing your tags"
+                variant="Dots"
+              />
+            </output>
+          ) : qlooSuggestions.length > 0 ? (
+            <section aria-label="Titles sharing your tags" className="mt-6">
               <h2 className="text-lg tracking-tight text-ink">
-                Titles like yours?
+                Titles sharing your tags?
               </h2>
               <p className="mt-1 max-w-prose text-body text-ink-2">
-                The model suggests these from your pitch — unverified. Tap to
-                add; each one is checked against Qloo on the run and anything
-                missing is reported, never scored.
+                From the taste database — titles overlapping your matched words.
+                Tap to add; each is verified at the run.
               </p>
               <ul className="mt-3 flex flex-wrap gap-2">
-                {suggestedTitles.map((title) => {
+                {qlooSuggestions.map((title) => {
                   const added = similarTitles
                     .split(",")
                     .map((s) => s.trim().toLowerCase())
@@ -357,6 +525,13 @@ export function FlowClient({
                 })}
               </ul>
             </section>
+          ) : (
+            suggestDone && (
+              <p className="mt-6 max-w-prose text-body text-ink-2">
+                No suggestions this time — the database had nothing overlapping
+                your words. Type your own above; Check verifies each.
+              </p>
+            )
           )}
           <div className="mt-6 flex flex-wrap items-center gap-4">
             {busy ? (
@@ -456,8 +631,8 @@ export function FlowClient({
                   Change and re-check
                 </h2>
                 <p className="mt-1 text-sm leading-relaxed text-ink-2">
-                  A constraint can change the pitch, but the new version has
-                  to score higher to land.
+                  A constraint can change the pitch, but the new version has to
+                  score higher to land.
                 </p>
                 <form
                   className="mt-3"
@@ -512,10 +687,7 @@ export function FlowClient({
           {compareLoaded ? (
             <FlowCompareView
               result={result}
-              similarTitles={similarTitles
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)}
+              similarTitles={parseSimilarTitles(similarTitles)}
               chatbot={chatbot}
               error={chatbotError}
             />

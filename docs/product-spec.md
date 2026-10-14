@@ -72,19 +72,26 @@ Claims we will not make
 ### 6.1 Input
 
 The user provides the pitch text. The tag call reads 5 to 8
-descriptive words, the work type (film, music, book or game — there
-is no type selector anywhere), and 3 to 5 suggested similar titles.
-Suggestions are unverified strings for tap-to-add; the run resolves
-each one live and reports misses as not found. There is no
-"nothing like" input on the flow path: exclusion is unwired.
+descriptive words and the work type (film, music, book or game —
+there is no type selector anywhere). The AI suggests no titles: the
+tap-to-add suggestions come from Qloo itself (titles overlapping
+the matched tags, same type, one shot at the chip step), the user
+types the final list freely, and an explicit Check button verifies
+each title against Qloo before the run (one call per finished
+title, never as-you-type — typing is free, checking is on demand).
+The run re-resolves every title live and reports misses as not
+found, so the pre-check is informational and the run stays the
+source of truth. There is no "nothing like" input on the flow path:
+exclusion is unwired.
 
 ### 6.2 Named audience
 
-The confirmed similar titles are resolved live in Qloo. Resolved
-titles form the named audience; misses are reported as not found,
-never scored. Similar titles are optional: with none, there is no
-named row and the run is rival-led — the app never invents a
-hypothesis.
+The user-confirmed similar titles are resolved live in Qloo
+(pre-checked on demand before the run, re-resolved at run time).
+Resolved titles form the named audience; misses are reported as
+not found, never scored. Similar titles are optional: with none,
+there is no named row and the run is rival-led — the app never
+invents a hypothesis.
 
 ### 6.3 Rival audiences
 
@@ -102,11 +109,16 @@ About 20 fixed same-domain audiences (genre-spread seeds for film
 and music; 6 fallbacks each for book and game) are resolved once and
 their tag sets cached for 30 minutes; every pitch is scored fresh
 against the cached sets. Seeds that resolve to nothing are dropped
-and reported, never kept. The verdict ceiling is pitch-aware:
-controls sharing more than a third of titles with the named
-audience are excluded from the ceiling (same overlap rule as
-rivals); when every control is too close, the full set comes back
-so the ceiling never vanishes, and the step says so.
+and reported, never kept. They render as other-genre groups:
+context bars, not the line. The verdict ceiling is the strangers
+baseline: the bottom-unused entities of the same live discovery
+ranking rivals come from (weakest overlap with the pitch, own
+domain first), measured with one extra taste fetch and scored
+identically. When strangers are missing or unmeasured, the ceiling
+falls back to the pitch-aware control rule (controls sharing more
+than a third of titles with the named audience are excluded; when
+every control is too close, the full set comes back so the ceiling
+never vanishes), and the step says which source set the line.
 
 ### 6.5 Pitch tags
 
@@ -142,10 +154,11 @@ give same scores.
 
 ### 6.7 Control test and verdict
 
-An audience "clears control" when it beats the best eligible,
-judgeable control by the control margin (0.05, Margins v1 2026-10-09;
-observed noise ≤ 0.03, signal ≈ 0.10). Only judgeable controls set
-the ceiling: placeholder zeros never act as a floor.
+An audience "clears control" when it beats the strangers baseline
+(or the fallback other-genre ceiling when strangers are unmeasured)
+by the control margin (0.05, Margins v1 2026-10-09; observed noise
+≤ 0.03, signal ≈ 0.10). Only judgeable lines set the ceiling:
+placeholder zeros never act as a floor.
 
 | Verdict | Meaning |
 |---|---|
@@ -217,11 +230,11 @@ only); docs record aggregates and conclusions.
 
 | Component | Responsibility |
 |---|---|
-| Qloo | Looking up titles and tags, audience tastes, related items. The source of every number, tag and title |
-| The AI | Reads the pitch into words, type and title suggestions; points leftover words at fetched tastes (bridges); writes chatbot prose |
+| Qloo | Looking up titles and tags, audience tastes, related items, title suggestions. The source of every number, tag and title |
+| The AI | Reads the pitch into words and type; points leftover words at fetched tastes (bridges); writes chatbot prose |
 | Our code | Gates, rival discovery assembly, scoring, the control ceiling, the verdict, the change check, and grounding |
 
-The AI does not invent tags, titles, scores or audiences, and it does not rank anything. Bridge weights are fixed in code.
+The AI does not invent tags, titles, scores or audiences, and it does not rank anything. Bridge weights are fixed in code. Title suggestions come from Qloo overlap, never from the model.
 
 ## 8. How the run behaves
 
@@ -346,7 +359,8 @@ If no audience clears control, the verdict is Weak fit and the app recommends ch
 
 Named audience: the audience built from the user's own confirmed "similar to" titles. Absent when no titles are given.
 Rival audience: an audience built from Qloo-discovered entities related to the pitch, not from model prose.
-Control audience: an audience built from fixed unrelated seeds, used to see what a meaningless match looks like. The best eligible, judgeable control sets the ceiling.
+Control audience: an audience built from fixed other-genre seeds, shown as context bars. The best eligible, judgeable control sets the ceiling only when strangers are unmeasured.
+Strangers baseline: one far crowd per pitch, taken from the bottom-unused entities of the live discovery ranking and scored identically; sets the verdict line when judgeable.
 Pitch tags: real Qloo tags that match words from the pitch.
 Coverage: the share of suggested words that matched a real Qloo tag.
 Bridge: an AI-pointed link from a leftover pitch word to an already-fetched taste id, with a fixed-weight bucket (strong 0.75, related 0.5, distant 0).
