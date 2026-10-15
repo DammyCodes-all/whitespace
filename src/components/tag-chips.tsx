@@ -66,7 +66,7 @@ export function TagChips({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-lg tracking-tight text-ink">Confirm the tags</h2>
         <p data-numeric className="tnum font-mono text-sm text-ink-2">
-          {matched} matched
+          {matched} found
           {tags.length - matched > 0 && (
             <span className="text-clay">
               {" "}
@@ -76,9 +76,10 @@ export function TagChips({
         </p>
       </div>
       <p className="mt-1 max-w-prose text-body text-ink-2">
-        Matched tags are real Qloo tags and they carry the score. Not-found
-        words never score — remove them or edit them, then run. Title chips are
-        the named titles&apos; own top tastes from Qloo.
+        A tag is one word for your idea: what happens in it, how it feels, where
+        it&apos;s set. Every tag has to be a taste Qloo knows, because Qloo is
+        what scores the run. The green ones came back and count. The hatched
+        ones didn&apos;t, so fix the wording or take them off.
       </p>
 
       <ul className="mt-4 flex flex-wrap gap-2">
@@ -164,8 +165,8 @@ export function TagChips({
         }
       >
         {canRun
-          ? `${matched} matched tags score the run.`
-          : `Below the ${MIN_MATCHED_TAGS}-tag gate: the run would be Inconclusive and would not score.`}
+          ? `${matched} found tags carry the score.`
+          : `Under ${MIN_MATCHED_TAGS} found tags, the run comes back Inconclusive. Add sharper words.`}
       </p>
     </section>
   );
