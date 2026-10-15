@@ -28,6 +28,9 @@
   --nodata-bg: #eeece6; /* ink-3 text on it is 5.3:1 */
   --nodata-hatch: #c9c6bc;
   --clay: #8a4b2d; /* 6.3:1, "not found in Qloo" only */
+
+  /* orb sweep band: vivid green that reads on paper at full alpha */
+  --sweep: #22c55e;
 }
 
 @theme inline {
@@ -44,6 +47,7 @@
   --color-weak: var(--weak);
   --color-surprise: var(--surprise);
   --color-measured: var(--measured);
+  --color-sweep: var(--sweep);
   --color-clay: var(--clay);
 
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
@@ -83,6 +87,57 @@
   }
 }
 
+/* Scrollbars wear the same shape as .card: paper track, a solid ink thumb
+   with the 2px outline and a pill radius, no gradient and no glow
+   (design-direction.md §1, §5). Sizes are explicit px and every property
+   is a longhand, so one value can be retuned without a shorthand quietly
+   resetting its neighbours. Contrast of every state against the paper
+   track clears the 3:1 non-text floor: ink 16.8:1, ink-2 8.5:1, measured
+   6.1:1. Chrome and Safari paint this -webkit- path; the standard
+   scrollbar-* properties would make Chromium ignore it and its px sizing,
+   so they sit behind a guard that only engines without it match. */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background-color: var(--paper);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--ink);
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--outline);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ink-2);
+}
+
+/* Dragging is the engaged state, so it borrows the focus color. */
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--measured);
+}
+
+*::-webkit-scrollbar-corner {
+  background-color: var(--paper);
+}
+
+/* No arrow boxes: the scrollbar is a mark, not a control cluster. */
+*::-webkit-scrollbar-button {
+  display: none;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink) var(--paper);
+  }
+}
+
 @layer components {
   /* Chunky but flat: the one card and button shape, so nobody improvises
      it (design-direction.md §5). No glass, no gradients, no glow. The card
@@ -97,7 +152,6 @@
 }
 
 @layer utilities {
-
   /* Primary buttons use the card shape. On :active they translate(2px, 2px)
      while the shadow shrinks to 2px 2px 0. Padding and type size stay
      per-screen; only the shape lives here. */
@@ -237,6 +291,436 @@
   from {
     transform: scale(0.96);
   }
+}
+
+/* Landing → run handoff: the entry box hands the pitch to the blank run
+   page through an animated move. The ViewTransitions wrapper (root
+   layout, next-view-transitions) holds the snapshot across Next's async
+   navigation; page-enter covers browsers without the API. Flat fade/rise
+   only, in our 150–240ms timing — no glass, no glow. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: ease-out;
+}
+
+.page-enter {
+  animation: page-in 240ms ease-out;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* MorphOrb skin, drawn from our tokens (paper/surface/ink/measured).
+   The runtime drives unitless channels (--oPill/--oBall/... are 0–1,
+   --w/--h/--r carry px); this sheet only maps them onto flat fills,
+   2px borders and the hard offset plate. No glass, no gradients, no
+   glow. Only the orb animation and the morph live here — no input,
+   no buttons. */
+.mo-root {
+  position: relative;
+  width: 100%;
+  /* Box-first stage: the idle pill is the pitch box, centred 120px
+     down; the orb anchors 40px from the top. */
+  min-height: 230px;
+}
+
+.mo-bg {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+.mo-halo,
+.mo-halo-green {
+  display: none;
+}
+
+/* Flat idle life (token-safe, no gradients/glow): four ink dots drift
+   inside the pill, faded by the runtime's --oAur channel as launch
+   begins. Custom property inherits from .mo-actor, which owns it. */
+.mo-aurora {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  opacity: var(--oAur, 1);
+  pointer-events: none;
+}
+
+.mo-aurora i {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.45;
+  animation: mo-drift-flat 2.6s ease-in-out infinite alternate;
+}
+
+.mo-aurora i:nth-child(1) {
+  left: 18%;
+  top: 30%;
+  width: 8px;
+  height: 8px;
+}
+
+.mo-aurora i:nth-child(2) {
+  left: 58%;
+  top: 62%;
+  width: 6px;
+  height: 6px;
+  animation-duration: 3.1s;
+  animation-delay: -0.7s;
+}
+
+.mo-aurora i:nth-child(3) {
+  left: 78%;
+  top: 24%;
+  width: 5px;
+  height: 5px;
+  animation-duration: 2.2s;
+  animation-delay: -1.3s;
+}
+
+.mo-aurora i:nth-child(4) {
+  left: 38%;
+  top: 74%;
+  width: 7px;
+  height: 7px;
+  animation-duration: 2.9s;
+  animation-delay: -0.4s;
+}
+
+.mo-mover {
+  position: absolute;
+  left: 50%;
+  top: 40px;
+  width: 0;
+  height: 0;
+}
+
+.mo-actor {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--w, 560px);
+  height: var(--h, 200px);
+  border-radius: var(--r, 16px);
+  transform: translate(-50%, -50%);
+}
+
+/* No second input: the idle pill stays invisible until a leg starts.
+   The flight clone is the only box on the blank page; on landing it
+   swaps 1:1 for the pill (same rect, same card) as the morph begins. */
+.mo-root[data-phase="idle"] .mo-actor {
+  opacity: 0;
+}
+
+.mo-root:not([data-phase="idle"]) .mo-actor {
+  opacity: 1;
+  transition: opacity 120ms ease-out;
+}
+
+/* No disc behind the full orb: the stage stays paper and the dark
+   dots read on it directly. The ink ball still shows during the
+   launch grow (it fades as the dots assemble). */
+
+.mo-underglow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--ink);
+  transform: translate(4px, 4px);
+  opacity: var(--oGlow, 1);
+}
+
+.mo-surface,
+.mo-ball,
+.mo-green,
+.mo-card {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.mo-surface {
+  background: var(--surface);
+  border: 2px solid var(--outline);
+  box-shadow: 4px 4px 0 var(--outline);
+  opacity: var(--oPill, 1);
+}
+
+.mo-root[data-phase="assemble"] .mo-surface,
+.mo-root[data-phase="think"] .mo-surface,
+.mo-root[data-phase="resolve"] .mo-surface,
+.mo-root[data-phase="condense"] .mo-surface {
+  opacity: 0;
+}
+
+.mo-ball {
+  background: var(--ink);
+  border: 2px solid var(--outline);
+  opacity: var(--oBall, 0);
+}
+
+.mo-green {
+  background: var(--strong);
+  opacity: var(--oGreen, 0);
+  transform: scale(var(--gs, 0.55));
+}
+
+.mo-card {
+  background: var(--surface);
+  border: 2px solid var(--outline);
+  box-shadow: 4px 4px 0 var(--outline);
+  opacity: var(--oCard, 0);
+}
+
+.mo-ring {
+  position: absolute;
+  inset: -14px;
+  border: 2px solid var(--outline);
+  border-radius: 50%;
+  opacity: var(--oRing, 1);
+}
+
+.mo-root[data-phase="idle"] .mo-ring {
+  opacity: 0;
+}
+
+.mo-orb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 7;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.mo-pulse {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 8;
+  width: 132px;
+  height: 132px;
+  margin: -66px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mo-trail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mo-answer {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  padding: 18px 20px;
+  opacity: var(--oCard, 0);
+  text-align: left;
+  pointer-events: none;
+}
+
+.mo-a-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  opacity: var(--hOp, 0);
+}
+
+.mo-a-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: scale(var(--dotS, 0));
+}
+
+.mo-a-body {
+  margin-top: 8px;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.mo-w {
+  display: inline-block;
+  opacity: 0;
+}
+
+.mo-status {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  z-index: 10;
+  transform: translateX(-50%);
+  translate: 0 calc(var(--sTy, 0) * 1px);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  opacity: var(--sOp, 0);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.mo-lab {
+  display: inline-block;
+}
+
+.mo-lab.mo-in {
+  animation: mo-in 240ms ease-out;
+}
+
+.mo-lab.mo-out {
+  position: absolute;
+  inset: 0;
+  animation: mo-out 200ms ease-in forwards;
+}
+
+.mo-lab-done {
+  color: var(--ink);
+}
+
+.mo-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+}
+
+.mo-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: mo-dot 1.2s infinite;
+}
+
+.mo-dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.mo-dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.mo-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes mo-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes mo-drift-flat {
+  from {
+    transform: translate3d(-10px, 3px, 0);
+  }
+  to {
+    transform: translate3d(10px, -3px, 0);
+  }
+}
+
+@keyframes mo-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mo-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-dots i,
+  .mo-lab.mo-in,
+  .mo-lab.mo-out,
+  .mo-aurora i {
+    animation: none;
+  }
+  .page-enter {
+    animation: none;
+  }
+}
+
+/* Morph flight: the landing box flies onto the idle pill as a clone
+   (fixed, WAAPI-driven, reshaped in flight) before the runtime morph
+   begins. The clone twins the entry .card exactly (surface, 16px,
+   hard shadow) so touchdown has zero color shift. */
+.flight-clone {
+  position: fixed;
+  z-index: 50;
+  padding: 16px 20px 12px;
+  background: var(--surface);
+  border: 2px solid var(--outline);
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 var(--outline);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.flight-text {
+  max-height: 100%;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* Ball handoff: the entry finished its morph before navigating, so the
+   clone is already a 60px ink ball — no padding, no text, no shadow. */
+.flight-clone.flight-ball {
+  padding: 0;
+  background: var(--ink);
+  border-radius: 50%;
+  box-shadow: none;
 }
 
 @keyframes pixel-on {
