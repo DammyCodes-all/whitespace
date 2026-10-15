@@ -1,4 +1,4 @@
-import { FlowEntry } from "@/components/flow-entry";
+import { EntryBox } from "@/components/entry-box";
 
 export default function Home() {
   return (
@@ -14,8 +14,8 @@ export default function Home() {
             where to find those people, and we show our work at every step.
           </p>
 
-          <div className="flex w-full max-w-[720px] flex-col">
-            <FlowEntry />
+          <div className="mt-7 flex w-full max-w-[720px] flex-col">
+            <EntryBox />
 
             <p className="mt-10 text-center text-sm text-ink-3">
               Results are a hypothesis built from group-level taste data. They

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Figtree, IBM_Plex_Mono } from "next/font/google";
+import { ViewTransitions } from "next-view-transitions";
 import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
@@ -39,14 +40,16 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${figtree.variable} ${bricolage.variable} ${plexMono.variable} h-full`}
-    >
-      <body className="flex min-h-full flex-col font-sans text-ink antialiased">
-        <SiteHeader />
-        {children}
-      </body>
-    </html>
+    <ViewTransitions>
+      <html
+        lang="en"
+        className={`${figtree.variable} ${bricolage.variable} ${plexMono.variable} h-full`}
+      >
+        <body className="flex min-h-full flex-col font-sans text-ink antialiased">
+          <SiteHeader />
+          {children}
+        </body>
+      </html>
+    </ViewTransitions>
   );
 }
