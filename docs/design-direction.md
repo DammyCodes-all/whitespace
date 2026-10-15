@@ -50,6 +50,11 @@ Light only. Four neutrals, four verdict fills, two text-safe colors, one texture
   --weak:     #C4D8F5;  /* soft blue, 12.5:1 */
   --surprise: #FF6B4A;  /* coral,   6.4:1 */
 
+  /* hold state: the run paused on the human. Orange, 3.3:1 on paper,
+     4.6:1 with ink on it. One meaning only — "waiting for your input".
+     Mint stays the run-done color; coral stays the surprise color. */
+  --hold:     #EA580C;
+
   /* text-safe versions, for when a verdict color has to be text on paper */
   --measured: #0A6B47;  /* 6.1:1 on paper */
   --split-ink:#8A5A00;  /* 5.5:1 on paper */

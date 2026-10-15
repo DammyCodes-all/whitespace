@@ -99,6 +99,8 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
   const [changed, setChanged] = useState<ChangedRun | null>(null);
   const [changeBusy, setChangeBusy] = useState(false);
   const [changeError, setChangeError] = useState<string | null>(null);
+  /** Honest line for the orb's think phase — the work in flight. */
+  const [workLabel, setWorkLabel] = useState<string | null>(null);
 
   const orbRef = useRef<OrbHandle | null>(null);
   /** Hand-rolled morph flight: the landing box flies here as a clone
@@ -135,6 +137,7 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
     setError(null);
     setInterrupted(false);
     setStatus(working);
+    setWorkLabel(working);
   }
 
   /** One orb cycle around caller work. Legs end quietly — no receipt
@@ -619,6 +622,12 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
     const shared = (params.get("pitch") ?? "").slice(0, 2000).trim();
     if (shared === "") return;
     scheduledRef.current = true;
+    // Arm the entry leg before the runtime reaches its think phase: the
+    // orb reads the work line once, at think start — without this the
+    // first (autostarted) leg plays the generic label cycle.
+    setPitchText(shared);
+    beginLeg(legWorkingMessage("entry"));
+    retryRef.current = () => askEntry(shared);
     const startNow = () => {
       autoStarted.current = true;
       orbRef.current?.setText(shared);
@@ -813,13 +822,14 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
     <div
       className={`mx-auto w-full max-w-5xl px-6 pt-6 sm:px-8 ${leg === "entry" ? "" : "pb-12"}`}
     >
-      <div className="flex min-h-[60vh] flex-col justify-center">
+      <div className="flex min-h-[240px] flex-col justify-center">
         <div ref={stageRef}>
           <MorphOrb
             orbRef={orbRef}
             onPhaseChange={handlePhase}
             onSubmit={entrySubmit}
             minThinkMs={1500}
+            workingLabel={workLabel ?? undefined}
           />
         </div>
       </div>
@@ -847,12 +857,16 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
         </div>
       )}
 
-      <output
-        aria-live="polite"
-        className="mx-auto mt-2 block max-w-prose text-center text-sm leading-relaxed text-ink-2"
-      >
-        {status}
-      </output>
+      {/* Errors only — the work line lives under the orb, and leg
+          instructions live with the leg's own UI below. */}
+      {(error !== null || interrupted) && (
+        <output
+          aria-live="polite"
+          className="mx-auto mt-2 block max-w-prose text-center text-sm leading-relaxed text-ink-2"
+        >
+          {error ?? status}
+        </output>
+      )}
       {error !== null && (
         <p role="alert" className="mt-2 text-center text-sm text-ink-2">
           {error}
@@ -873,9 +887,8 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
       {(leg === "tags" || leg === "titles" || leg === "aggregate") && (
         <section
           aria-label="Tags under review"
-          className="mx-auto mt-8 max-w-3xl"
+          className="mx-auto mt-4 max-w-3xl"
         >
-          <p className="font-mono text-xs text-ink-3">Read as {workType}</p>
           <TagChips
             tags={tags}
             onChange={setTags}
@@ -901,29 +914,31 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
             cutGifts.length === 0 && (
               <p className="mt-4 max-w-prose text-body text-ink-2">
                 {previewNote === "no-tastes" &&
-                  "Qloo holds no taste data for these titles — only pitch words will score."}
+                  "Qloo has no taste data for these titles. Only your pitch words will score."}
                 {previewNote === "all-generic" &&
-                  "These titles' top tastes were all generic (half the controls hold them) — only your sharper pitch words will score."}
+                  "These titles' top tastes were all generic (half the controls hold them too). Only your sharper pitch words will score."}
                 {previewNote === "preview-failed" &&
-                  "Couldn't read the titles' tastes — only pitch words will score. Check again to retry."}
+                  "Couldn't read the titles' tastes. Only pitch words will score. Check again to retry."}
                 {(previewNote === null ||
                   previewNote === "ok" ||
                   previewNote === "unresolved") &&
-                  "The checked titles added no tags — only pitch words will score. The run still needs at least 1 similar title."}
+                  "The checked titles added no tags. Only pitch words will score; the run still needs one similar title."}
               </p>
             )}
           {!titleTagsBusy && titleTagsDone && cutGifts.length > 0 && (
             <div className="mt-4">
               <p className="max-w-prose text-body text-ink-2">
-                {cutGifts.length} gift{cutGifts.length === 1 ? "" : "s"} cut as
-                unfitting your pitch — restore any that should score.
+                We cut{" "}
+                {cutGifts.length === 1 ? "one tag" : `${cutGifts.length} tags`}{" "}
+                that didn&apos;t seem to fit your pitch. Put back any that
+                should count.
               </p>
               <button
                 type="button"
                 onClick={() => setShowCutGifts((v) => !v)}
                 className="btn-secondary mt-2 px-4 py-2 text-sm"
               >
-                {showCutGifts ? "Hide cut gifts" : "Show cut gifts"}
+                {showCutGifts ? "Hide cut tags" : "Show cut tags"}
               </button>
               {showCutGifts && (
                 <ul className="mt-3 flex flex-wrap gap-2">
@@ -964,7 +979,7 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
             }}
             className="btn-primary px-6 py-3 text-sm"
           >
-            These look right — name similar work
+            These look right, continue
           </button>
           <button
             type="button"
@@ -979,19 +994,19 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
       {(leg === "titles" || leg === "aggregate") && (
         <section
           aria-label="Similar-to titles"
-          className="mx-auto mt-8 max-w-3xl"
+          className="mx-auto mt-4 max-w-3xl"
         >
           <h2 className="text-lg tracking-tight text-ink">Similar-to titles</h2>
           <p className="mt-1 max-w-prose text-body text-ink-2">
-            What the run will resolve against Qloo. Name at least 1 — its tastes
-            ground the tags. Check now for an early look — the run re-checks
-            everything, so this never decides anything.
+            Put your idea next to a few titles it sits beside. Qloo reads what
+            those audiences already like and adds those tastes to your tags, and
+            the tags are what the score runs on. One title is enough to start.
           </p>
           <label
             htmlFor="orb-similar"
             className="mt-3 block font-mono text-xs text-ink-3"
           >
-            Comma separated
+            Separate with commas
           </label>
           <div className="mt-1 flex flex-col gap-2 sm:flex-row">
             <input
@@ -1020,7 +1035,7 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
             parsedSimilar.length > 0 &&
             (titleTagsDone || suggestDone) && (
               <p className="mt-3 max-w-prose text-body text-ink-2">
-                Titles changed — check again to refresh tags and suggestions.
+                Titles changed. Check again to refresh the tags and suggestions.
               </p>
             )}
           {parsedSimilar.length > 0 && (
@@ -1092,7 +1107,7 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
                 Similar to your idea?
               </h2>
               <p className="mt-1 max-w-prose text-body text-ink-2">
-                From the taste database — titles related to the ones you typed.
+                From the taste database: titles related to the ones you typed.
                 Tap to add; each is verified at the run.
               </p>
               <ul className="mt-3 flex flex-wrap gap-2">
@@ -1119,8 +1134,8 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
           ) : (
             suggestDone && (
               <p className="mt-6 max-w-prose text-body text-ink-2">
-                No suggestions this time — the database had nothing related to
-                your titles. Type your own above; Check verifies each.
+                Nothing related this time. Type your own titles above; Check
+                verifies each.
               </p>
             )
           )}
@@ -1139,11 +1154,11 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
             disabled={checkResult === null || parsedSimilar.length === 0}
             className="btn-primary px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Done — review the full tag set
+            Review the full tag set
           </button>
           {checkResult === null && (
             <p className="font-mono text-xs text-clay">
-              Check first — suggestions only grow from verified titles.
+              Check the titles first. Suggestions only come from verified ones.
             </p>
           )}
         </div>
@@ -1157,13 +1172,13 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
             disabled={!canContinue}
             className="btn-primary px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Continue — score my idea
+            Score my idea
           </button>
           {!canContinue && (
             <p className="font-mono text-xs text-clay">
               {parsedSimilar.length < 1
-                ? "Add at least 1 similar title — the run grounds its tags in it, and the pool gate still applies."
-                : `Need ${MIN_MATCHED_TAGS} pooled tags — untick less, add sharper words or titles.`}
+                ? "Add at least one similar title. Your tags get built from it."
+                : `${MIN_MATCHED_TAGS} tags minimum. Add sharper words or titles.`}
             </p>
           )}
         </div>
