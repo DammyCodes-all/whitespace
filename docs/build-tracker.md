@@ -227,5 +227,7 @@ Format:
 | 2026-10-15 | Humanize compare card per humanize-writing (short varied sentences, no em dashes, overlap tags line, checked-against source); deterministic templates, no LLM | §6.11 | node24 copy 16/16; tsc clean; biome clean |
 | 2026-10-15 | Compare left card gains measured substance (point-gap verdict line, where-to-find-them reach, lean-into gaps) from result data; still zero new calls | §6.8, §6.11 | node24 copy 16/16; tsc clean; biome clean |
 | 2026-10-15 | Remove completed-run steps ledger from results UI (running-phase stream stays per §5.3; steps still in API data + evidence) | §5 | tsc clean; biome clean |
+| 2026-10-15 | Evidence collapsed behind a click (call-count summary); hold-out deltas rehoused as a Hold-outs block inside it | §6.12 | tsc clean; biome clean |
+| 2026-10-15 | Restore mt-8 gap between idea card and verdict; rehouse full run-steps ledger (not just hold-outs) as collapsed Run steps inside Evidence | §5, §6.12 | tsc clean; biome clean |
 | 2026-10-13 | Merge bridge + semantic impl/test pairs into single self-tested files (tests behind a main-entry guard, explicit tsx paths) | n/a | tsc clean; biome clean; tsx 211/211 (29 self-tests); next build pass; prod-import probe keeps env key, runs 0 tests |
 | 2026-10-13 | Revert file merge: bridge + semantic back to separate impl and .test.ts files per owner request | n/a | biome clean on 4 files; tsc clean; tsx 211/211; next build pass |
