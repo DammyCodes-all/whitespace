@@ -58,9 +58,9 @@ Claims we will not make
 
 ## 5. User journey
 
-1. The user pastes an idea on the home page. The pitch goes straight into the flow; the work type is detected, never picked.
-2. The app shows descriptive word chips (matched / not found in Qloo) plus suggested similar titles. The user edits the words and taps titles to name their crowd.
-3. The user watches the run stream through its steps.
+1. The user types an idea into the plain entry box on the home page. Submit hands the pitch to a blank run page through an animated page move; the pitch box morphs into the dotted orb there and each leg plays its morph→think→resolve cycle, never on the landing page. Legs end quietly — no receipt cards: mid-run legs hold the orb with a "waiting for your input" nudge while the leg UI below takes over, and the scored run ends on the green flash before the result lands. The work type is detected, never picked.
+2. The app shows descriptive word chips (matched / not found in Qloo) under the circle, then asks for similar titles, shows entity-seeded suggestions on check, and finally the aggregated tag set for review. The user edits the words, taps titles to name their crowd, and confirms each step with Done / Continue.
+3. The user watches the circle report each step in one honest line beneath it while the run scores.
 4. The user sees the verdict, the ranked audiences with margins, and any "no data" flags.
 5. The user opens the reach plan for a winning audience.
 6. Optionally, the user adds a limit and sees an accepted change with a before-and-after score, or a withheld change naming the failed condition.
