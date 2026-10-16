@@ -1,7 +1,7 @@
 "use client";
 
-import LoadingState from "@/components/ui/loading-state";
 import type { FlowStepRow } from "@/components/flow/flow-types";
+import LoadingState from "@/components/ui/loading-state";
 
 /**
  * Running phase: streamed steps as an ordered list.
@@ -19,9 +19,7 @@ export function FlowRunningStep({ steps }: { steps: FlowStepRow[] }) {
       </output>
       <ol className="mt-4 space-y-2">
         {steps.length === 0 && (
-          <li className="font-mono text-sm text-ink-3">
-            starting the run…
-          </li>
+          <li className="font-mono text-sm text-ink-3">starting the run…</li>
         )}
         {steps.map((step) => (
           <li key={step.id} className="flex items-baseline gap-3">

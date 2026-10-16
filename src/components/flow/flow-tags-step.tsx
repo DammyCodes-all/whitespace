@@ -1,8 +1,8 @@
 "use client";
 
+import type { CheckResult, TitleGift } from "@/components/flow/flow-types";
 import { TagChips } from "@/components/tag-chips";
 import LoadingState from "@/components/ui/loading-state";
-import type { CheckResult, TitleGift } from "@/components/flow/flow-types";
 import type { FlowResult } from "@/lib/flow/contract";
 
 /**
