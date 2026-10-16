@@ -1,29 +1,26 @@
-"use client";
-
-import { parseSimilarTitles } from "@/lib/flow/similar-titles";
 import type { ChatbotView } from "@/components/chatbot-preview";
 import type {
   ChangeResponseBody,
   FlowPhase,
   FlowResult,
   RunResponseBody,
+  Setter,
   TitleGift,
 } from "@/components/flow/flow-types";
+import { parseSimilarTitles } from "@/lib/flow/similar-titles";
 import type { FlowStepRow } from "@/lib/flow/view-types";
 import type { ChangedRun } from "@/lib/pipeline/change";
 import type { QlooCall, WorkType } from "@/lib/types";
-
-type Set<T> = React.Dispatch<React.SetStateAction<T>>;
 
 export async function extractTagsAction(
   pitchText: string,
   workType: WorkType,
   set: {
-    setBusy: Set<boolean>;
-    setError: Set<string | null>;
-    setTags: Set<FlowResult["tags"]>;
-    setWorkType: Set<WorkType>;
-    setPhase: Set<FlowPhase>;
+    setBusy: Setter<boolean>;
+    setError: Setter<string | null>;
+    setTags: Setter<FlowResult["tags"]>;
+    setWorkType: Setter<WorkType>;
+    setPhase: Setter<FlowPhase>;
   },
 ) {
   set.setBusy(true);
@@ -69,17 +66,17 @@ export async function runAnalysisAction(
     titleTags: TitleGift[];
   },
   set: {
-    setBusy: Set<boolean>;
-    setError: Set<string | null>;
-    setSteps: Set<FlowStepRow[]>;
-    setPhase: Set<FlowPhase>;
-    setResult: Set<FlowResult | null>;
-    setChatbot: Set<ChatbotView | null>;
-    setChatbotError: Set<string | null>;
-    setCompareCalls: Set<QlooCall[]>;
-    setCompareLoaded: Set<boolean>;
-    setChanged: Set<ChangedRun | null>;
-    setChangeError: Set<string | null>;
+    setBusy: Setter<boolean>;
+    setError: Setter<string | null>;
+    setSteps: Setter<FlowStepRow[]>;
+    setPhase: Setter<FlowPhase>;
+    setResult: Setter<FlowResult | null>;
+    setChatbot: Setter<ChatbotView | null>;
+    setChatbotError: Setter<string | null>;
+    setCompareCalls: Setter<QlooCall[]>;
+    setCompareLoaded: Setter<boolean>;
+    setChanged: Setter<ChangedRun | null>;
+    setChangeError: Setter<string | null>;
   },
 ) {
   set.setBusy(true);
@@ -126,9 +123,9 @@ export async function checkChangeAction(
   constraint: string,
   changeBusy: boolean,
   set: {
-    setChangeBusy: Set<boolean>;
-    setChangeError: Set<string | null>;
-    setChanged: Set<ChangedRun | null>;
+    setChangeBusy: Setter<boolean>;
+    setChangeError: Setter<string | null>;
+    setChanged: Setter<ChangedRun | null>;
   },
 ) {
   if (result === null || constraint.trim() === "" || changeBusy) return;
