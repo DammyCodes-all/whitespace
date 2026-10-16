@@ -29,8 +29,9 @@
   --nodata-hatch: #c9c6bc;
   --clay: #8a4b2d; /* 6.3:1, "not found in Qloo" only */
 
-  /* orb sweep band: vivid green that reads on paper at full alpha */
-  --sweep: #22c55e;
+  /* hold state: the run paused on the human — orange, 3.3:1 on paper */
+  --hold: #ea580c; /* "waiting for your input", one meaning only */
+  --sweep: #ea580c; /* orb sweep endpoint; kept in step with --hold */
 }
 
 @theme inline {
@@ -48,6 +49,7 @@
   --color-surprise: var(--surprise);
   --color-measured: var(--measured);
   --color-sweep: var(--sweep);
+  --color-hold: var(--hold);
   --color-clay: var(--clay);
 
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
@@ -324,9 +326,9 @@
 .mo-root {
   position: relative;
   width: 100%;
-  /* Box-first stage: the idle pill is the pitch box, centred 120px
-     down; the orb anchors 40px from the top. */
-  min-height: 230px;
+  /* Compact stage: ball/orb centred ~120px down, hold label just
+     beneath it — no dead band between orb and the leg UI. */
+  min-height: 204px;
 }
 
 .mo-bg {
