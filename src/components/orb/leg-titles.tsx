@@ -44,7 +44,7 @@ export function LegTitles({
   const parsed = parseSimilarTitles(similarTitles);
 
   return (
-    <section aria-label="Similar-to titles" className="leg-in mt-4 w-full">
+    <section aria-label="Similar-to titles" className="leg-in mx-auto mt-4 max-w-3xl">
       <h2 className="text-lg tracking-tight text-ink">Similar-to titles</h2>
       <p className="mt-1 max-w-prose text-body text-ink-2">
         Put your idea next to a few titles it sits beside. Qloo reads what those
