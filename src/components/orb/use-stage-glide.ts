@@ -24,6 +24,19 @@ const useIsoLayoutEffect =
 /** The glide's length — the UI hold matches it exactly. */
 const GLIDE_MS = 500;
 
+/** How long the host holds a beat the glide covers: the full glide,
+ *  or nothing under reduced motion (the orb snaps, so there is nothing
+ *  to wait for). Single source of truth for both the hook and host. */
+export function glideWaitMs(): number {
+  if (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    return 0;
+  }
+  return GLIDE_MS;
+}
+
 export function useStageGlide(
   stageRef: RefObject<HTMLDivElement | null>,
   centered: boolean,
@@ -65,7 +78,7 @@ export function useStageGlide(
       setUiReady(false);
       return;
     }
-    const t = window.setTimeout(() => setUiReady(true), GLIDE_MS);
+    const t = window.setTimeout(() => setUiReady(true), glideWaitMs());
     return () => window.clearTimeout(t);
   }, [centered]);
 

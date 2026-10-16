@@ -36,10 +36,10 @@ export function FlowInputStep({
         What are you making?
       </h1>
       <p id="flow-input-lede" className="mt-2 max-w-prose text-body text-ink-2">
-        Explain it in detail — the world, the characters, what happens, what
-        it is about underneath. More detail means better tags and a fairer
-        verdict. We read its tags, check them against real Qloo data, and
-        show which audience it fits.
+        Explain it in detail — the world, the characters, what happens, what it
+        is about underneath. More detail means better tags and a fairer verdict.
+        We read its tags, check them against real Qloo data, and show which
+        audience it fits.
       </p>
       <label htmlFor={pitchId} className="sr-only">
         Explain your idea in detail
@@ -59,8 +59,8 @@ export function FlowInputStep({
             htmlFor={similarId}
             className="block font-mono text-xs text-ink-3"
           >
-            Similar to (optional here — required before the run, comma
-            separated — suggestions appear after you check them)
+            Similar to (optional here — required before the run, comma separated
+            — suggestions appear after you check them)
           </label>
           <input
             id={similarId}
