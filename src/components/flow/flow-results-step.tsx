@@ -1,18 +1,18 @@
 "use client";
 
 import { ChangeView } from "@/components/change";
-import { FlowCompareView } from "@/components/flow-compare";
-import { GapsCard } from "@/components/flow-gaps";
-import { FlowResultView } from "@/components/flow-result-view";
+import type { ChatbotView } from "@/components/chatbot-preview";
 import { FlowEvidenceBlock } from "@/components/flow/flow-evidence-block";
 import type {
   ChangedRun,
-  ChatbotView,
   FlowResult,
   FlowStepRow,
   QlooCall,
 } from "@/components/flow/flow-types";
 import { callToEvidence } from "@/components/flow/flow-types";
+import { FlowCompareView } from "@/components/flow-compare";
+import { GapsCard } from "@/components/flow-gaps";
+import { FlowResultView } from "@/components/flow-result-view";
 import LoadingState from "@/components/ui/loading-state";
 
 /**
