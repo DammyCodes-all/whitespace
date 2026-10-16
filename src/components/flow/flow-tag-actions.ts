@@ -1,31 +1,30 @@
-"use client";
-
+import {
+  chipFetch,
+  fetchTitleSuggestions,
+  fetchTitleTags,
+} from "@/components/flow/flow-title-io";
+import type {
+  CheckResult,
+  Setter,
+  TitleGift,
+} from "@/components/flow/flow-types";
 import { parseSimilarTitles } from "@/lib/flow/similar-titles";
 import type { WorkType } from "@/lib/types";
-import type { CheckResult, TitleGift } from "@/components/flow/flow-types";
 
-type Set<T> = React.Dispatch<React.SetStateAction<T>>;
-
-/** Plain fetch, no client timeout — slowness resolves as data or error. */
-export async function chipFetch(
-  url: string,
-  init: RequestInit,
-): Promise<Response> {
-  return fetch(url, init);
+export interface TitleSetterBag {
+  setCheckResult: Setter<CheckResult | null>;
+  setTitleTags: Setter<TitleGift[]>;
+  setCutGifts: Setter<TitleGift[]>;
+  setShowCutGifts: Setter<boolean>;
+  setPreviewNote: Setter<string | null>;
+  setTitleTagsDone: Setter<boolean>;
+  setSimilarTitles: Setter<string>;
 }
 
 export function addSuggestedTitle(
   title: string,
   similarTitles: string,
-  set: {
-    setCheckResult: Set<CheckResult | null>;
-    setTitleTags: Set<TitleGift[]>;
-    setCutGifts: Set<TitleGift[]>;
-    setShowCutGifts: Set<boolean>;
-    setPreviewNote: Set<string | null>;
-    setTitleTagsDone: Set<boolean>;
-    setSimilarTitles: Set<string>;
-  },
+  set: TitleSetterBag,
 ) {
   const clean = title.trim();
   if (clean === "") return;
@@ -33,12 +32,7 @@ export function addSuggestedTitle(
     parseSimilarTitles(similarTitles).map((s) => s.toLowerCase()),
   );
   if (have.has(clean.toLowerCase())) return;
-  set.setCheckResult(null);
-  set.setTitleTags([]);
-  set.setCutGifts([]);
-  set.setShowCutGifts(false);
-  set.setPreviewNote(null);
-  set.setTitleTagsDone(false);
+  resetTitleDerived(set);
   set.setSimilarTitles((prev) =>
     prev.trim() === "" ? clean : `${prev.replace(/\s*,\s*$/, "")}, ${clean}`,
   );
@@ -47,36 +41,18 @@ export function addSuggestedTitle(
 export function removeSimilarTitle(
   title: string,
   similarTitles: string,
-  set: {
-    setCheckResult: Set<CheckResult | null>;
-    setTitleTags: Set<TitleGift[]>;
-    setCutGifts: Set<TitleGift[]>;
-    setShowCutGifts: Set<boolean>;
-    setPreviewNote: Set<string | null>;
-    setTitleTagsDone: Set<boolean>;
-    setSimilarTitles: Set<string>;
-  },
+  set: TitleSetterBag,
 ) {
   const keep = parseSimilarTitles(similarTitles).filter(
     (s) => s.toLowerCase() !== title.trim().toLowerCase(),
   );
-  set.setCheckResult(null);
-  set.setTitleTags([]);
-  set.setCutGifts([]);
-  set.setShowCutGifts(false);
-  set.setPreviewNote(null);
-  set.setTitleTagsDone(false);
+  resetTitleDerived(set);
   set.setSimilarTitles(keep.join(", "));
 }
 
-export function resetTitleDerived(set: {
-  setCheckResult: Set<CheckResult | null>;
-  setTitleTags: Set<TitleGift[]>;
-  setCutGifts: Set<TitleGift[]>;
-  setShowCutGifts: Set<boolean>;
-  setPreviewNote: Set<string | null>;
-  setTitleTagsDone: Set<boolean>;
-}) {
+export function resetTitleDerived(
+  set: Omit<TitleSetterBag, "setSimilarTitles">,
+) {
   set.setCheckResult(null);
   set.setTitleTags([]);
   set.setCutGifts([]);
@@ -85,128 +61,93 @@ export function resetTitleDerived(set: {
   set.setTitleTagsDone(false);
 }
 
-/** Title-gift preview after an explicit check. Silent on failure. */
-export async function fetchTitleTags(
-  names: string[],
-  wt: WorkType,
-  pitchText: string,
-  set: {
-    setTitleTagsBusy: Set<boolean>;
-    setPreviewNote: Set<string | null>;
-    setTitleTags: Set<TitleGift[]>;
-    setCutGifts: Set<TitleGift[]>;
-    setShowCutGifts: Set<boolean>;
-    setTitleTagsDone: Set<boolean>;
+/** Explicit-click title check; previews gifts + suggestions on success. */
+export async function checkSimilarTitlesAction(
+  args: {
+    similarTitles: string;
+    workType: WorkType;
+    pitchText: string;
+    checkBusy: boolean;
+  },
+  set: TitleSetterBag & {
+    setCheckBusy: Setter<boolean>;
+    setCheckError: Setter<string | null>;
+    setQlooSuggestions: Setter<string[]>;
+    setSuggestBusy: Setter<boolean>;
+    setSuggestDone: Setter<boolean>;
+    setTitleTagsBusy: Setter<boolean>;
   },
 ) {
-  if (names.length === 0) return;
-  set.setTitleTagsBusy(true);
+  const list = parseSimilarTitles(args.similarTitles);
+  if (list.length === 0 || args.checkBusy) return;
+  set.setCheckBusy(true);
+  set.setCheckError(null);
   try {
-    const res = await chipFetch("/api/titles/tags", {
+    const res = await chipFetch("/api/titles/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ titles: names, workType: wt }),
+      body: JSON.stringify({ titles: list, workType: args.workType }),
     });
     const data = (await res.json()) as {
-      tags?: TitleGift[];
-      note?: unknown;
+      resolved?: { query: string; name: string; qlooId: string }[];
+      notFound?: string[];
+      error?: string;
     };
-    set.setPreviewNote(
-      res.ok && typeof data.note === "string" ? data.note : null,
-    );
-    const valid = res.ok && Array.isArray(data.tags)
-      ? data.tags.filter(
-          (t) =>
-            typeof t.qlooId === "string" &&
-            t.qlooId.trim() !== "" &&
-            typeof t.label === "string" &&
-            t.label.trim() !== "",
-        )
-      : [];
-    set.setTitleTags(valid);
-    if (res.ok && Array.isArray(data.tags) && data.tags.length > 0) {
-      try {
-        const pickRes = await chipFetch("/api/titles/pick", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pitchText,
-            candidates: data.tags.map((t) => ({
-              qlooId: t.qlooId,
-              label: t.label,
-              sourceTitleName: t.sourceTitleName,
-            })),
-          }),
-        });
-        const pick = (await pickRes.json()) as { keptIds?: unknown };
-        if (
-          pickRes.ok &&
-          Array.isArray(pick.keptIds) &&
-          pick.keptIds.length < data.tags.length
-        ) {
-          const keep = new Set(
-            pick.keptIds.filter(
-              (id): id is string =>
-                typeof id === "string" && id.trim() !== "",
-            ),
-          );
-          set.setCutGifts(data.tags.filter((t) => !keep.has(t.qlooId)));
-          set.setShowCutGifts(false);
-          set.setTitleTags((prev) => prev.filter((t) => keep.has(t.qlooId)));
-        } else {
-          set.setCutGifts([]);
-        }
-      } catch {
-        set.setCutGifts([]);
-      }
-    } else {
-      set.setCutGifts([]);
+    if (!res.ok) {
+      set.setCheckError(data.error ?? "Could not check the titles.");
+      set.setCheckResult(null);
+      return;
     }
-  } catch {
+    set.setCheckResult({
+      resolved: Array.isArray(data.resolved) ? data.resolved : [],
+      notFound: Array.isArray(data.notFound) ? data.notFound : [],
+    });
+    const resolvedNames = Array.isArray(data.resolved)
+      ? data.resolved
+          .map((r) => r.name)
+          .filter((n): n is string => typeof n === "string" && n.trim() !== "")
+      : [];
     set.setTitleTags([]);
     set.setCutGifts([]);
-    set.setPreviewNote("preview-failed");
-  } finally {
-    set.setTitleTagsBusy(false);
-    set.setTitleTagsDone(true);
-  }
-}
-
-/** Entity-seeded suggestions off checked titles only. Silent on failure. */
-export async function fetchTitleSuggestions(
-  entityIds: string[],
-  excludeNames: string[],
-  wt: WorkType,
-  set: {
-    setQlooSuggestions: Set<string[]>;
-    setSuggestBusy: Set<boolean>;
-    setSuggestDone: Set<boolean>;
-  },
-) {
-  if (entityIds.length === 0) {
+    set.setShowCutGifts(false);
+    set.setPreviewNote(null);
+    set.setTitleTagsDone(false);
     set.setQlooSuggestions([]);
-    set.setSuggestDone(true);
-    return;
-  }
-  set.setSuggestBusy(true);
-  try {
-    const res = await chipFetch("/api/titles/related", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ entityIds, excludeNames, workType: wt }),
-    });
-    const data = (await res.json()) as { suggestions?: unknown };
-    set.setQlooSuggestions(
-      res.ok && Array.isArray(data.suggestions)
-        ? data.suggestions.filter(
-            (t): t is string => typeof t === "string" && t.trim() !== "",
-          )
-        : [],
-    );
+    set.setSuggestDone(false);
+    if (resolvedNames.length > 0) {
+      void fetchTitleTags(resolvedNames, args.workType, args.pitchText, {
+        setTitleTagsBusy: set.setTitleTagsBusy,
+        setPreviewNote: set.setPreviewNote,
+        setTitleTags: set.setTitleTags,
+        setCutGifts: set.setCutGifts,
+        setShowCutGifts: set.setShowCutGifts,
+        setTitleTagsDone: set.setTitleTagsDone,
+      });
+      void fetchTitleSuggestions(
+        Array.isArray(data.resolved)
+          ? data.resolved
+              .map((r) => r.qlooId)
+              .filter(
+                (id): id is string =>
+                  typeof id === "string" && id.trim() !== "",
+              )
+          : [],
+        parseSimilarTitles(args.similarTitles),
+        args.workType,
+        {
+          setQlooSuggestions: set.setQlooSuggestions,
+          setSuggestBusy: set.setSuggestBusy,
+          setSuggestDone: set.setSuggestDone,
+        },
+      );
+    } else {
+      set.setTitleTagsDone(true);
+      set.setSuggestDone(true);
+    }
   } catch {
-    set.setQlooSuggestions([]);
+    set.setCheckError("Could not reach the title check.");
+    set.setCheckResult(null);
   } finally {
-    set.setSuggestBusy(false);
-    set.setSuggestDone(true);
+    set.setCheckBusy(false);
   }
 }
