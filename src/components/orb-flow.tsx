@@ -40,7 +40,7 @@ export function OrbFlow({
   speed?: number;
 }) {
   const orbRef = useRef<OrbHandle | null>(null);
-  const run = useOrbRun({ orbRef, homeHref });
+  const run = useOrbRun({ orbRef, homeHref, speed });
   const flight = useOrbFlight({ orbRef, arm: run.armEntry });
 
   const poolVisible = run.leg === "tags" || run.leg === "aggregate";
@@ -68,21 +68,27 @@ export function OrbFlow({
     <div
       className={`mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-6 sm:px-8 ${centered ? "" : "pb-12"}`}
     >
-      <div
-        ref={flight.stageRef}
-        className={`flex flex-col justify-center ${centered ? "flex-1" : "min-h-[240px]"}`}
-      >
-        <div>
-          <MorphOrb
-            orbRef={orbRef}
-            onPhaseChange={run.handlePhase}
-            onSubmit={run.entrySubmit}
-            minThinkMs={1500}
-            speed={speed}
-            workingLabel={run.workLabel ?? undefined}
-          />
+      {/* The stage unmounts with the result: the orb dissolved into
+          it, so keeping the empty 240px block would strand dead space
+          above the verdict. LegResults enters with leg-in as the
+          stage leaves. */}
+      {run.leg !== "done" && (
+        <div
+          ref={flight.stageRef}
+          className={`flex flex-col justify-center ${centered ? "flex-1" : "min-h-[240px]"}`}
+        >
+          <div>
+            <MorphOrb
+              orbRef={orbRef}
+              onPhaseChange={run.handlePhase}
+              onSubmit={run.entrySubmit}
+              minThinkMs={1500}
+              speed={speed}
+              workingLabel={run.workLabel ?? undefined}
+            />
+          </div>
         </div>
-      </div>
+      )}
       {flight.flight !== null && (
         <OrbFlightClone
           flight={flight.flight}

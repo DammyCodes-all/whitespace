@@ -19,9 +19,11 @@ import {
   type ResultSidecars,
   useResultSidecars,
 } from "@/components/orb/use-result-sidecars";
-import type {
-  OrbHandle,
-  OrbPhase,
+import {
+  CLEAR_FINALE_MS,
+  CLEAR_FINALE_REDUCED_MS,
+  type OrbHandle,
+  type OrbPhase,
 } from "@/components/ui/ai-thinking-orb-and-input";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowResult, FlowTag } from "@/lib/flow/contract";
@@ -106,10 +108,14 @@ export interface OrbRun extends ResultSidecars {
 export function useOrbRun({
   orbRef,
   homeHref,
+  speed = 1,
 }: {
   orbRef: RefObject<OrbHandle | null>;
   /** Where Edit-the-pitch hands back to (the entry that started this). */
   homeHref: string;
+  /** Orb pace multiplier (1 = live). Scales the finale wait like the
+   *  runtime scales its tracks, so the result never jumps a slow orb. */
+  speed?: number;
 }): OrbRun {
   const router = useTransitionRouter();
   const [leg, setLeg] = useState<Leg>("entry");
@@ -498,8 +504,19 @@ export function useOrbRun({
       end: "clear",
       run: async () => {
         const receipt = await postRun();
-        setLeg("done");
-        setStatus(legPrompt("done"));
+        // The finale plays on receipt — flip to done as it completes
+        // so the flash shows before the result takes over. Bounded
+        // wait, never gated on the animation.
+        const reduced =
+          typeof window !== "undefined" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const wait =
+          (reduced ? CLEAR_FINALE_REDUCED_MS : CLEAR_FINALE_MS) /
+          Math.max(0.1, speed);
+        window.setTimeout(() => {
+          setLeg("done");
+          setStatus(legPrompt("done"));
+        }, wait);
         return receipt;
       },
       retry: askRun,
