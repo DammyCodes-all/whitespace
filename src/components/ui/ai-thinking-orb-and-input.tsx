@@ -314,6 +314,17 @@ const R_CONDENSE: Track[] = [
   T("sOp", 1, 0, 0, 250, E.out),
 ];
 const R_GREEN_OUT: Track[] = [T("oGreen", 1, 0, 0, 120, E.out)];
+
+/**
+ * Clear-ending finale length: resolve sweep (tail 1700) + condense
+ * (tail 1300) + green-out (120). The scored run returns its receipt
+ * at once and flips to done after this, so the flash plays before the
+ * result takes over. Bounded wait, never gated on the animation —
+ * a dead runtime delays the result, never strands it.
+ */
+export const CLEAR_FINALE_MS = 3150;
+/** Same finale under reduced motion (250 + 250 + 120). */
+export const CLEAR_FINALE_REDUCED_MS = 650;
 const rCardIn = (tw: number): Track[] => [
   T("oCard", 0, 1, 0, 250, E.out),
   T("hOp", 0, 1, 0, 250, E.out),
