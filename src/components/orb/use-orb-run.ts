@@ -119,6 +119,7 @@ export function useOrbRun({
     error,
     interrupted,
     workLabel,
+    setWorkLabel,
     setStatus,
     setError,
     beginLeg,
@@ -515,10 +516,12 @@ export function useOrbRun({
 
   /** Park an input-leg advance: the old UI unmounts at once, the orb
    *  glides back to centre, and the host settles the parked leg once
-   *  it lands. Status updates on settle, not before. */
+   *  it lands. Status updates on settle, not before; the work line
+   *  holds a neutral beat so the old leg's text never lingers alone. */
   function requestAdvance(next: Leg) {
     pendingLeg.current = next;
     setReturning(true);
+    setWorkLabel("One moment. Setting up the next step.");
   }
 
   /** Play the parked advance now that the orb is back at centre. */
@@ -526,6 +529,7 @@ export function useOrbRun({
     const next = pendingLeg.current;
     pendingLeg.current = null;
     setReturning(false);
+    setWorkLabel(null);
     if (next === null) return;
     setLeg(next);
     setStatus(legPrompt(next));
