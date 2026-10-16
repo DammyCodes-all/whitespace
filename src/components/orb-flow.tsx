@@ -25,7 +25,7 @@ import { LegTitles } from "@/components/orb/leg-titles";
 import { OrbFlightClone } from "@/components/orb/orb-flight-clone";
 import { useOrbFlight } from "@/components/orb/use-orb-flight";
 import { useOrbRun } from "@/components/orb/use-orb-run";
-import { glideWaitMs, useStageGlide } from "@/components/orb/use-stage-glide";
+import { returnWaitMs, useStageGlide } from "@/components/orb/use-stage-glide";
 import MorphOrb, {
   type OrbHandle,
 } from "@/components/ui/ai-thinking-orb-and-input";
@@ -54,12 +54,12 @@ export function OrbFlow({
    *  during the between-leg return to centre. */
   const uiVisible = uiReady && !run.returning;
 
-  // Settle the parked leg advance once the orb is back at centre: the
-  // wait matches the glide exactly (nothing under reduced motion).
+  // Settle the parked leg advance once the orb has rested at centre:
+  // the wait is glide + hold (nothing under reduced motion).
   // biome-ignore lint/correctness/useExhaustiveDependencies: settle on the returning edge
   useEffect(() => {
     if (!run.returning) return;
-    const t = window.setTimeout(() => run.settleAdvance(), glideWaitMs());
+    const t = window.setTimeout(() => run.settleAdvance(), returnWaitMs());
     return () => window.clearTimeout(t);
   }, [run.returning]);
 
