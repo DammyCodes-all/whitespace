@@ -488,7 +488,11 @@ export function useOrbRun({
   }
 
   function askRun() {
-    askLeg({
+    // Quiet cycle like Check: the orb is already assembled in its
+    // waiting frame, so the scored run thinks from there instead of
+    // tearing down and replaying the launch morph. The clear ending
+    // (green flash, dissolve into the result) plays as usual.
+    askQuiet({
       text: pitchText,
       working: legWorkingMessage("run"),
       end: "clear",

@@ -20,7 +20,7 @@ import {
 const COPY = {
   labels: ["Thinking", "Searching", "Analyzing", "Composing"],
   done: "Done",
-  waiting: "Waiting for your input",
+  waiting: "Over to you.",
   answerTitle: "Answer",
   answerBody: "The answer goes here",
 };
@@ -46,7 +46,7 @@ export interface MorphOrbProps {
    *  tags…"). When set, it replaces the generic Thinking/Searching
    *  cycle — the label names only the call actually in flight. */
   workingLabel?: string;
-  /** Copy for the hold state (default "Waiting for your input"). */
+  /** Copy for the hold state (default "Over to you."). */
   waitingLabel?: string;
   /** Ref drive for multi-leg flows: ask() runs one morph→think→receipt
    *  cycle around caller-supplied work; reset() returns to the idle pill. */
