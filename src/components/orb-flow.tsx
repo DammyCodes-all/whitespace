@@ -17,7 +17,7 @@
  * Spec ref: §5 (the run reports itself as it goes).
  */
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ScoreCta, TagsCtas, TitlesCta } from "@/components/orb/leg-ctas";
 import { LegResults } from "@/components/orb/leg-results";
 import { LegTags } from "@/components/orb/leg-tags";
@@ -25,7 +25,7 @@ import { LegTitles } from "@/components/orb/leg-titles";
 import { OrbFlightClone } from "@/components/orb/orb-flight-clone";
 import { useOrbFlight } from "@/components/orb/use-orb-flight";
 import { useOrbRun } from "@/components/orb/use-orb-run";
-import { useStageGlide } from "@/components/orb/use-stage-glide";
+import { glideWaitMs, useStageGlide } from "@/components/orb/use-stage-glide";
 import MorphOrb, {
   type OrbHandle,
 } from "@/components/ui/ai-thinking-orb-and-input";
@@ -47,9 +47,22 @@ export function OrbFlow({
     run.leg === "tags" || run.leg === "titles" || run.leg === "aggregate";
   const titlesVisible = run.leg === "titles" || run.leg === "aggregate";
   /** Working legs show the orb alone; input legs show UI below it —
-   *  held back until the orb settles (see use-stage-glide). */
-  const centered = run.leg === "entry" || run.leg === "run";
+   *  held back until the orb settles (see use-stage-glide). Between
+   *  legs the old UI is gone and the orb returns to centre first. */
+  const centered = run.leg === "entry" || run.leg === "run" || run.returning;
   const uiReady = useStageGlide(flight.stageRef, centered);
+  /** Leg UI shows only once the orb has settled on its leg — never
+   *  during the between-leg return to centre. */
+  const uiVisible = uiReady && !run.returning;
+
+  // Settle the parked leg advance once the orb is back at centre: the
+  // wait matches the glide exactly (nothing under reduced motion).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: settle on the returning edge
+  useEffect(() => {
+    if (!run.returning) return;
+    const t = window.setTimeout(() => run.settleAdvance(), glideWaitMs());
+    return () => window.clearTimeout(t);
+  }, [run.returning]);
 
   return (
     <div
@@ -105,7 +118,7 @@ export function OrbFlow({
         </div>
       )}
 
-      {poolVisible && uiReady && (
+      {poolVisible && uiVisible && (
         <LegTags
           tags={run.tags}
           onTagsChange={run.setTags}
@@ -122,14 +135,14 @@ export function OrbFlow({
         />
       )}
 
-      {run.leg === "tags" && uiReady && (
+      {run.leg === "tags" && uiVisible && (
         <TagsCtas
           onContinue={run.onContinueToTitles}
           onEditPitch={run.onEditPitch}
         />
       )}
 
-      {titlesVisible && uiReady && (
+      {titlesVisible && uiVisible && (
         <LegTitles
           similarTitles={run.similarTitles}
           onSimilarTitlesChange={run.onSimilarTitlesChange}
@@ -146,7 +159,7 @@ export function OrbFlow({
         />
       )}
 
-      {run.leg === "titles" && uiReady && (
+      {run.leg === "titles" && uiVisible && (
         <TitlesCta
           checked={run.checkResult !== null}
           named={run.similar.length > 0}
@@ -154,7 +167,7 @@ export function OrbFlow({
         />
       )}
 
-      {run.leg === "aggregate" && uiReady && (
+      {run.leg === "aggregate" && uiVisible && (
         <ScoreCta
           canRun={run.canContinue}
           similarCount={run.similar.length}
@@ -162,7 +175,7 @@ export function OrbFlow({
         />
       )}
 
-      {run.leg === "done" && run.result !== null && uiReady && (
+      {run.leg === "done" && run.result !== null && uiVisible && (
         <LegResults
           result={run.result}
           similarTitles={run.similarTitles}
