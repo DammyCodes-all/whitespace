@@ -41,6 +41,16 @@ export interface OrbBridge {
     run: () => Promise<string>;
     retry: () => void;
   }) => void;
+  /** Think-only cycle around caller work: same bookkeeping as askLeg
+   *  but the orb never leaves its frame (no box morph). For mid-leg
+   *  refreshes like Check. Returns false when the orb refused. */
+  askQuiet: (opts: {
+    text: string;
+    working: string;
+    end: OrbEnd;
+    run: () => Promise<string>;
+    retry: () => void;
+  }) => boolean;
   handlePhase: (p: OrbPhase) => void;
   /** Point the shared Retry at a leg the caller is driving itself. */
   setRetry: (fn: () => void) => void;
@@ -98,6 +108,41 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
     );
   }
 
+  function askQuiet(opts: {
+    text: string;
+    working: string;
+    end: OrbEnd;
+    run: () => Promise<string>;
+    retry: () => void;
+  }): boolean {
+    beginLeg(opts.working);
+    retryRef.current = opts.retry;
+    const run = opts.run;
+    const started = orbRef.current?.pulse(
+      opts.text,
+      async () => {
+        try {
+          const receipt = await run();
+          legOkRef.current = true;
+          pendingRef.current = false;
+          return receipt;
+        } catch {
+          legOkRef.current = false;
+          pendingRef.current = false;
+          return "That step failed — retry below.";
+        }
+      },
+      opts.end,
+    );
+    if (started !== true) {
+      // Orb mid-cycle (never the waiting orb): unwind so the caller
+      // can release its own busy state and the step stays retryable.
+      pendingRef.current = false;
+      setStatus("The orb is busy — retry this step.");
+    }
+    return started === true;
+  }
+
   /** The orb fires answered once a leg's receipt lands (never gated on
    *  animation — a dead orb must not strand the flow). Esc mid-leg drops
    *  through idle/reset inside 800ms of our own ask, so only a later
@@ -129,6 +174,7 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
     setError,
     beginLeg,
     askLeg,
+    askQuiet,
     handlePhase,
     setRetry: (fn: () => void) => {
       retryRef.current = fn;
