@@ -14,6 +14,7 @@
 import { useSearchParams } from "next/navigation";
 import { useTransitionRouter } from "next-view-transitions";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChangeView } from "@/components/change";
 import type { ChatbotView } from "@/components/chatbot-preview";
 import {
@@ -109,6 +110,8 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
   } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const cloneRef = useRef<HTMLDivElement>(null);
+  /** Inner clone layer: the one that scales (outer only translates). */
+  const cloneInnerRef = useRef<HTMLDivElement>(null);
   const cloneTextRef = useRef<HTMLParagraphElement>(null);
   const flightAnim = useRef<Animation | null>(null);
   const scheduledRef = useRef(false);
@@ -647,96 +650,98 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
         startFlight();
       }, 120);
     });
+    /** End of the flight: join the runtime at the ball, then cut the
+     *  clone a frame later. Its last frame IS the runtime's first (60px
+     *  flat ink, same centre, same fill), so the swap reads as one
+     *  object — the old 160ms crossfade double-exposed two inks. */
+    function finishFlight() {
+      flightAnim.current = null;
+      // The runtime fades its actor in from idle; a handoff needs the
+      // ball opaque in the same frame the clone clears (see the
+      // data-handoff rule in globals.css).
+      stageRef.current?.setAttribute("data-handoff", "flight");
+      startFromBall();
+      window.requestAnimationFrame(() => {
+        setFlight(null);
+        clearFlight();
+      });
+    }
+
     function startFlight() {
       const target = pillTarget();
       const clone = cloneRef.current;
-      if (target === null || clone === null) {
+      const shape = cloneInnerRef.current;
+      if (target === null || clone === null || shape === null) {
         setFlight(null);
         clearFlight();
         startNow();
         return;
       }
-      // Ball handoff (the entry morphed in place before navigating):
-      // the clone is already a 60px ink ball — fly it to the pill
-      // centre, then join the runtime at the ball. Legacy card rects
-      // (no shape, 30s window) keep the old in-flight morph.
-      if (box.shape === "ball") {
-        const dest = {
-          left: target.left + target.width / 2 - 30,
-          top: target.top + target.height / 2 - 30,
-        };
-        const anim = clone.animate(
-          [
-            { left: `${box.left}px`, top: `${box.top}px` },
-            { left: `${dest.left}px`, top: `${dest.top}px` },
-          ],
+      const cx = target.left + target.width / 2 - 30;
+      const cy = target.top + target.height / 2 - 30;
+      // Two composited layers, one job each: the outer translates the
+      // flight, the inner scales the reshape. No frame re-lays-out, and
+      // the translate runs on one curve the whole way — the old single
+      // track stopped dead at the pill (60%) and restarted.
+      const fly = clone.animate(
+        [
+          { transform: "translate3d(0px, 0px, 0)" },
           {
-            duration: 450,
-            easing: "cubic-bezier(0.65, 0, 0.35, 1)",
-            fill: "forwards",
+            transform: `translate3d(${cx - box.left}px, ${cy - box.top}px, 0)`,
           },
-        );
-        flightAnim.current = anim;
-        anim.onfinish = () => {
-          flightAnim.current = null;
-          startFromBall();
-          // Crossfade into the runtime ball (it fades in underneath
-          // over ~120ms): the clone fades out instead of cutting.
-          const hide = () => {
-            setFlight(null);
-            clearFlight();
-          };
-          try {
-            const fade = clone.animate([{ opacity: "1" }, { opacity: "0" }], {
-              duration: 160,
-              easing: "ease-out",
-              fill: "forwards",
-            });
-            if (typeof fade.finished === "object" && fade.finished !== null) {
-              fade.finished.then(hide, hide);
-            } else {
-              window.setTimeout(hide, 170);
-            }
-          } catch {
-            hide();
-          }
-        };
-        return;
-      }
-      // Twin of the entry card → ink ball at the pill centre.
-      const ball = {
-        left: target.left + target.width / 2 - 30,
-        top: target.top + target.height / 2 - 30,
-      };
-      const anim = clone.animate(
+        ],
+        {
+          duration: 650,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "forwards",
+        },
+      );
+      flightAnim.current = fly;
+      fly.onfinish = finishFlight;
+      // Ball handoff (the entry morphed in place before navigating): the
+      // clone is already a 60px ink ball — the flight is pure translate.
+      if (box.shape === "ball") return;
+      // Card → ball: hold the entry's own shape through the flight (card
+      // and pill are the same 720×200 at every width we ship), then
+      // condense in the last third. The radius lands in local px, so the
+      // non-uniform scale resolves it to a true 30px circle at touchdown.
+      shape.animate(
+        [
+          { transform: "scale(1, 1)", offset: 0 },
+          {
+            transform: `scale(${target.width / box.width}, ${target.height / box.height})`,
+            offset: 0.62,
+          },
+          {
+            transform: `scale(${60 / box.width}, ${60 / box.height})`,
+            offset: 1,
+          },
+        ],
+        {
+          duration: 650,
+          easing: "cubic-bezier(0.65, 0, 0.35, 1)",
+          fill: "forwards",
+        },
+      );
+      shape.animate(
         [
           {
-            left: `${box.left}px`,
-            top: `${box.top}px`,
-            width: `${box.width}px`,
-            height: `${box.height}px`,
-            borderRadius: "16px",
+            borderRadius: "16px / 16px",
             backgroundColor: "#ffffff",
             boxShadow: "4px 4px 0 #17151f",
+            offset: 0,
           },
           {
-            left: `${target.left}px`,
-            top: `${target.top}px`,
-            width: `${target.width}px`,
-            height: `${target.height}px`,
-            borderRadius: "16px",
+            borderRadius: "16px / 16px",
             backgroundColor: "#ffffff",
             boxShadow: "4px 4px 0 #17151f",
-            offset: 0.6,
+            offset: 0.68,
           },
           {
-            left: `${ball.left}px`,
-            top: `${ball.top}px`,
-            width: "60px",
-            height: "60px",
-            borderRadius: "30px",
+            borderRadius: `${box.width / 2}px / ${box.height / 2}px`,
             backgroundColor: "#17151f",
             boxShadow: "0px 0px 0 rgba(23,21,31,0)",
+            offset: 1,
           },
         ],
         {
@@ -755,30 +760,6 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
         ],
         { duration: 200, easing: "ease-out", fill: "forwards" },
       );
-      flightAnim.current = anim;
-      anim.onfinish = () => {
-        flightAnim.current = null;
-        startFromBall();
-        // Same crossfade as the ball path: clone out, runtime in.
-        const hide = () => {
-          setFlight(null);
-          clearFlight();
-        };
-        try {
-          const fade = clone.animate([{ opacity: "1" }, { opacity: "0" }], {
-            duration: 160,
-            easing: "ease-out",
-            fill: "forwards",
-          });
-          if (typeof fade.finished === "object" && fade.finished !== null) {
-            fade.finished.then(hide, hide);
-          } else {
-            window.setTimeout(hide, 170);
-          }
-        } catch {
-          hide();
-        }
-      };
     }
     return () => {
       window.cancelAnimationFrame(raf);
@@ -823,29 +804,37 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
           />
         </div>
       </div>
-      {flight !== null && (
-        <div
-          ref={cloneRef}
-          aria-hidden="true"
-          className={
-            flight.rect.shape === "ball"
-              ? "flight-clone flight-ball"
-              : "flight-clone"
-          }
-          style={{
-            left: flight.rect.left,
-            top: flight.rect.top,
-            width: flight.rect.width,
-            height: flight.rect.height,
-          }}
-        >
-          {flight.rect.shape === "ball" ? null : (
-            <p ref={cloneTextRef} className="flight-text">
-              {flight.pitch}
-            </p>
-          )}
-        </div>
-      )}
+      {flight !== null &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={cloneRef}
+            aria-hidden="true"
+            className="flight-clone"
+            style={{
+              left: flight.rect.left,
+              top: flight.rect.top,
+              width: flight.rect.width,
+              height: flight.rect.height,
+            }}
+          >
+            <div
+              ref={cloneInnerRef}
+              className={
+                flight.rect.shape === "ball"
+                  ? "flight-inner flight-ball"
+                  : "flight-inner"
+              }
+            >
+              {flight.rect.shape === "ball" ? null : (
+                <p ref={cloneTextRef} className="flight-text">
+                  {flight.pitch}
+                </p>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
 
       <output
         aria-live="polite"
