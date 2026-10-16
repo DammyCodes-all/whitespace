@@ -24,6 +24,11 @@ const useIsoLayoutEffect =
 /** The glide's length — the UI hold matches it exactly. */
 const GLIDE_MS = 500;
 
+/** Docking up reads over a longer travel with UI arriving after, so it
+ *  gets its own slower length — otherwise the return to work is over
+ *  before the eye catches it. */
+const DOCK_MS = 800;
+
 /** Beat the orb rests at centre between legs, so return-then-dock
  *  reads as two moves with a rest, not one abrupt out-and-back. */
 export const RETURN_HOLD_MS = 450;
@@ -41,6 +46,12 @@ function reducedMotion(): boolean {
 export function glideWaitMs(): number {
   if (reducedMotion()) return 0;
   return GLIDE_MS;
+}
+
+/** How long docking up takes — the UI hold matches it. */
+function dockWaitMs(): number {
+  if (reducedMotion()) return 0;
+  return DOCK_MS;
 }
 
 /** Full between-legs wait: glide back to centre, rest, then settle —
@@ -78,8 +89,11 @@ export function useStageGlide(
           ],
           // Plain ease-out, no overshoot: the return-then-dock beat
           // already gives the move its shape, so the glide itself
-          // stays smooth.
-          { duration: GLIDE_MS, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+          // stays smooth. Docking up takes the slower length.
+          {
+            duration: centered ? GLIDE_MS : DOCK_MS,
+            easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          },
         );
       }
     }
@@ -91,7 +105,8 @@ export function useStageGlide(
       setUiReady(false);
       return;
     }
-    const t = window.setTimeout(() => setUiReady(true), glideWaitMs());
+    // The UI hold matches the docking glide, which runs slower.
+    const t = window.setTimeout(() => setUiReady(true), dockWaitMs());
     return () => window.clearTimeout(t);
   }, [centered]);
 
