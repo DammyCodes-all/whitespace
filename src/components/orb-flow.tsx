@@ -10,7 +10,9 @@
  *
  * This file is the host: the run's state and leg work live in
  * `use-orb-run`, the handoff in `use-orb-flight`, and the leg UI in
- * `components/orb/*`.
+ * `components/orb/*`. The orb owns the page centre on working legs
+ * and moves up only when input UI appears below it (see
+ * `use-stage-glide`).
  *
  * Spec ref: §5 (the run reports itself as it goes).
  */
@@ -23,11 +25,20 @@ import { LegTitles } from "@/components/orb/leg-titles";
 import { OrbFlightClone } from "@/components/orb/orb-flight-clone";
 import { useOrbFlight } from "@/components/orb/use-orb-flight";
 import { useOrbRun } from "@/components/orb/use-orb-run";
+import { useStageGlide } from "@/components/orb/use-stage-glide";
 import MorphOrb, {
   type OrbHandle,
 } from "@/components/ui/ai-thinking-orb-and-input";
 
-export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
+export function OrbFlow({
+  homeHref = "/",
+  speed = 1,
+}: {
+  homeHref?: string;
+  /** Orb pace multiplier (1 = live). Demo passes < 1 to slow the
+   *  morph→think→resolve beats for review; the real run stays at 1. */
+  speed?: number;
+}) {
   const orbRef = useRef<OrbHandle | null>(null);
   const run = useOrbRun({ orbRef, homeHref });
   const flight = useOrbFlight({ orbRef, arm: run.armEntry });
@@ -35,18 +46,26 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
   const poolVisible =
     run.leg === "tags" || run.leg === "titles" || run.leg === "aggregate";
   const titlesVisible = run.leg === "titles" || run.leg === "aggregate";
+  /** Working legs show the orb alone; input legs show UI below it —
+   *  held back until the orb settles (see use-stage-glide). */
+  const centered = run.leg === "entry" || run.leg === "run";
+  const uiReady = useStageGlide(flight.stageRef, centered);
 
   return (
     <div
-      className={`mx-auto w-full max-w-5xl px-6 pt-6 sm:px-8 ${run.leg === "entry" ? "" : "pb-12"}`}
+      className={`mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-6 sm:px-8 ${centered ? "" : "pb-12"}`}
     >
-      <div className="flex min-h-[240px] flex-col justify-center">
+      <div
+        ref={flight.stageRef}
+        className={`flex flex-col justify-center ${centered ? "flex-1" : "min-h-[240px]"}`}
+      >
         <div ref={flight.stageRef}>
           <MorphOrb
             orbRef={orbRef}
             onPhaseChange={run.handlePhase}
             onSubmit={run.entrySubmit}
             minThinkMs={1500}
+            speed={speed}
             workingLabel={run.workLabel ?? undefined}
           />
         </div>
@@ -86,7 +105,7 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
         </div>
       )}
 
-      {poolVisible && (
+      {poolVisible && uiReady && (
         <LegTags
           tags={run.tags}
           onTagsChange={run.setTags}
@@ -103,14 +122,14 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
         />
       )}
 
-      {run.leg === "tags" && (
+      {run.leg === "tags" && uiReady && (
         <TagsCtas
           onContinue={run.onContinueToTitles}
           onEditPitch={run.onEditPitch}
         />
       )}
 
-      {titlesVisible && (
+      {titlesVisible && uiReady && (
         <LegTitles
           similarTitles={run.similarTitles}
           onSimilarTitlesChange={run.onSimilarTitlesChange}
@@ -127,7 +146,7 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
         />
       )}
 
-      {run.leg === "titles" && (
+      {run.leg === "titles" && uiReady && (
         <TitlesCta
           checked={run.checkResult !== null}
           named={run.similar.length > 0}
@@ -135,7 +154,7 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
         />
       )}
 
-      {run.leg === "aggregate" && (
+      {run.leg === "aggregate" && uiReady && (
         <ScoreCta
           canRun={run.canContinue}
           similarCount={run.similar.length}
@@ -143,7 +162,7 @@ export function OrbFlow({ homeHref = "/" }: { homeHref?: string }) {
         />
       )}
 
-      {run.leg === "done" && run.result !== null && (
+      {run.leg === "done" && run.result !== null && uiReady && (
         <LegResults
           result={run.result}
           similarTitles={run.similarTitles}
