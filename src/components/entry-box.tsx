@@ -9,7 +9,7 @@
  */
 
 import { useTransitionRouter } from "next-view-transitions";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 export const PITCH_PLACEHOLDER =
   "Tell us about your story: premise, mood, themes, and setting. More detail means better tags. Something like: a gritty but tender heist movie about loyalty and aging out.";
@@ -80,6 +80,7 @@ export function EntryBox({
 }) {
   const router = useTransitionRouter();
   const [value, setValue] = useState("");
+  const fieldId = useId();
   const cardRef = useRef<HTMLDivElement>(null);
   const morphingRef = useRef(false);
 
@@ -127,13 +128,19 @@ export function EntryBox({
   const ready = value.trim() !== "";
 
   return (
-    <div>
+    <form
+      aria-label="Pitch entry"
+      onSubmit={(e) => {
+        e.preventDefault();
+        go(value);
+      }}
+    >
       <div className="card h-[200px] px-5 pb-3 pt-4" ref={cardRef}>
-        <label htmlFor="pitch" className="sr-only">
+        <label htmlFor={fieldId} className="sr-only">
           Tell us about your story
         </label>
         <textarea
-          id="pitch"
+          id={fieldId}
           value={value}
           rows={5}
           maxLength={2000}
@@ -145,9 +152,8 @@ export function EntryBox({
 
       <div className="mt-5 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
         <button
-          type="button"
+          type="submit"
           disabled={!ready}
-          onClick={() => go(value)}
           className="btn-primary inline-flex min-h-11 items-center justify-center px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           Find my audience
@@ -160,6 +166,6 @@ export function EntryBox({
           Try an example
         </button>
       </div>
-    </div>
+    </form>
   );
 }

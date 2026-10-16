@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { EntryBox } from "@/components/entry-box";
-import { SiteFooter } from "@/components/site-footer";
 
 export const metadata: Metadata = {
   title: "Demo flow: Whitespace",
@@ -15,7 +14,7 @@ export const metadata: Metadata = {
 export default function DemoFlowPage() {
   return (
     <>
-      <main className="flex flex-1 flex-col">
+      <main id="main-content" className="flex flex-1 flex-col">
         <div className="flex w-full flex-1 flex-col px-6 pb-12 pt-24 sm:px-8">
           <div className="mx-auto flex w-full max-w-[960px] flex-col items-center">
             <h1 className="mx-auto w-max max-w-[calc(100vw-3rem)] whitespace-nowrap text-center font-serif text-[clamp(1.35rem,4.2vw,2.75rem)] leading-tight tracking-tight">
@@ -37,7 +36,6 @@ export default function DemoFlowPage() {
           </div>
         </div>
       </main>
-      <SiteFooter />
     </>
   );
 }
