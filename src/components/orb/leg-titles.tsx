@@ -80,57 +80,56 @@ export function LegTitles({
           </p>
         )}
       {parsed.length > 0 && (
-        <ul aria-label="Titles to check" className="mt-3 flex flex-wrap gap-2">
-          {[...new Set(parsed)].map((title) => (
-            <li
-              key={title}
-              className="flex items-center gap-2 border-2 border-outline bg-paper px-3 py-1 font-mono text-xs text-ink-2"
-            >
-              <span>{title}</span>
-              <button
-                type="button"
-                onClick={() => onRemoveSimilar(title)}
-                aria-label={`Remove ${title}`}
-                className="text-ink-3 hover:text-ink"
+        <ul aria-label="Your titles" className="mt-3 flex flex-wrap gap-2">
+          {[...new Set(parsed)].map((title) => {
+            const key = title.trim().toLowerCase();
+            const hit =
+              checkResult?.resolved.find(
+                (r) =>
+                  typeof r.query === "string" &&
+                  r.query.trim().toLowerCase() === key,
+              ) ?? null;
+            const missing =
+              checkResult?.notFound.some(
+                (n) => n.trim().toLowerCase() === key,
+              ) ?? false;
+            return (
+              <li
+                key={title}
+                className={
+                  hit !== null
+                    ? "flex items-center gap-2 border-2 border-outline bg-strong px-3 py-1 font-mono text-xs text-ink"
+                    : missing
+                      ? "flex items-center gap-2 border-2 border-outline bg-weak px-3 py-1 font-mono text-xs text-ink"
+                      : "flex items-center gap-2 border-2 border-outline bg-paper px-3 py-1 font-mono text-xs text-ink-2"
+                }
               >
-                ✕
-              </button>
-            </li>
-          ))}
+                {hit !== null ? (
+                  <span title={`Verified in Qloo as ${hit.name}`}>
+                    ✓ {title}
+                  </span>
+                ) : missing ? (
+                  <span>{title} — not in Qloo</span>
+                ) : (
+                  <span>{title}</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemoveSimilar(title)}
+                  aria-label={`Remove ${title}`}
+                  className="text-ink-3 hover:text-ink"
+                >
+                  ✕
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
       {checkError !== null && (
         <p role="alert" className="mt-3 text-sm text-ink-2">
           {checkError}
         </p>
-      )}
-      {checkResult !== null && (
-        <div className="mt-3 space-y-2">
-          {checkResult.resolved.length > 0 && (
-            <ul aria-label="Found in Qloo" className="flex flex-wrap gap-2">
-              {checkResult.resolved.map((hit) => (
-                <li
-                  key={hit.qlooId}
-                  className="border-2 border-outline bg-strong px-3 py-1 font-mono text-xs text-ink"
-                >
-                  ✓ {hit.name}
-                </li>
-              ))}
-            </ul>
-          )}
-          {checkResult.notFound.length > 0 && (
-            <ul aria-label="Not found in Qloo" className="flex flex-wrap gap-2">
-              {checkResult.notFound.map((title) => (
-                <li
-                  key={title}
-                  className="border-2 border-outline bg-weak px-3 py-1 font-mono text-xs text-ink"
-                >
-                  ✕ {title} — not in Qloo
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       )}
       {suggestBusy ? (
         <p className="mt-6 font-mono text-xs text-ink-3">
