@@ -28,6 +28,8 @@ export interface OrbBridge {
   interrupted: boolean;
   /** Honest line for the orb's think phase — the work in flight. */
   workLabel: string | null;
+  /** Override the orb's work line (e.g. a between-leg beat). */
+  setWorkLabel: (line: string | null) => void;
   setStatus: (line: string) => void;
   setError: (line: string | null) => void;
   /** Arm a leg: clear the last outcome, show the work line. */
@@ -122,6 +124,7 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
     error,
     interrupted,
     workLabel,
+    setWorkLabel,
     setStatus,
     setError,
     beginLeg,
