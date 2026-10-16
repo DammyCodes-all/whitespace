@@ -42,7 +42,7 @@ export function LegTags({
   onRestoreGift,
 }: LegTagsProps) {
   return (
-    <section aria-label="Tags under review" className="mx-auto mt-4 max-w-3xl">
+    <section aria-label="Tags under review" className="leg-in mx-auto mt-4 max-w-3xl">
       <TagChips
         tags={tags}
         onChange={onTagsChange}
