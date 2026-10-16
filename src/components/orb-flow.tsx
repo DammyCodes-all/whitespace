@@ -43,13 +43,12 @@ export function OrbFlow({
   const run = useOrbRun({ orbRef, homeHref });
   const flight = useOrbFlight({ orbRef, arm: run.armEntry });
 
-  const poolVisible =
-    run.leg === "tags" || run.leg === "titles" || run.leg === "aggregate";
+  const poolVisible = run.leg === "tags" || run.leg === "aggregate";
   const titlesVisible = run.leg === "titles" || run.leg === "aggregate";
   /** Working legs show the orb alone; input legs show UI below it —
    *  held back until the orb settles (see use-stage-glide). Between
    *  legs the old UI is gone and the orb returns to centre first. */
-  const centered = run.leg === "entry" || run.leg === "run" || run.returning;
+  const centered = run.leg === "entry" || run.returning;
   const uiReady = useStageGlide(flight.stageRef, centered);
   /** Leg UI shows only once the orb has settled on its leg — never
    *  during the between-leg return to centre. */

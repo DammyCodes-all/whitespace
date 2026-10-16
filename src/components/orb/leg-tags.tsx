@@ -1,10 +1,11 @@
 "use client";
 
 /**
- * The tags under review — shared by the tags, titles and aggregate
- * legs, so the pool stays visible while the user edits it. Pitch tags
- * and title gifts share one row; a Check's gift verdict, its preview
- * note and any cut gifts render beneath.
+ * The tags under review — shown on the tags leg (confirm) and the
+ * aggregate leg (review before scoring), never on titles: that leg is
+ * the titles section alone. Pitch tags and title gifts share one row;
+ * a Check's gift verdict, its preview note and any cut gifts render
+ * beneath.
  */
 
 import type { TitleGift } from "@/components/orb/types";
