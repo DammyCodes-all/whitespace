@@ -63,6 +63,14 @@ export interface OrbHandle {
     work: (text: string) => Promise<string> | string,
     end?: OrbEnd,
   ) => void;
+  /** Think-only cycle around caller work: no box morph — the orb works
+   *  from its current frame into think, then resolves. For mid-leg
+   *  refreshes (Check). Returns false while a cycle is mid-flight. */
+  pulse: (
+    text: string,
+    work: (text: string) => Promise<string> | string,
+    end?: OrbEnd,
+  ) => boolean;
   reset: () => void;
   /** Entry-leg controls for the ?pitch= autostart. */
   setText: (text: string) => void;
@@ -731,6 +739,10 @@ interface Runtime {
   start(text: string, cfg: RunCfg): boolean;
   /** Join at the ball: clone already did card → ball, grow to orb. */
   startFromBall(text: string, cfg: RunCfg): boolean;
+  /** Think-only: skip launch + assemble and work from the current
+   *  (assembled) orb straight into think, then resolve. For mid-leg
+   *  refreshes like Check that must never replay the box morph. */
+  pulse(text: string, cfg: RunCfg): boolean;
   escape(): void;
   reset(): void;
   hard(): void;
@@ -977,6 +989,7 @@ function createRuntime(env: Env): Runtime {
     sig: AbortSignal,
     cfg: RunCfg,
     fromBall = false,
+    quiet = false,
   ) => {
     const reduced = env.isReduced();
     const go = async (tracks: Track[]) => {
@@ -984,30 +997,31 @@ function createRuntime(env: Env): Runtime {
       if (sig.aborted) throw ABORT;
     };
     try {
-      env.ui.setPhase("launch");
-      hist.length = 0;
-      if (!reduced) {
-        if (fromBall) {
-          await go(launchBallTracks());
+      if (!quiet) {
+        env.ui.setPhase("launch");
+        hist.length = 0;
+        if (!reduced) {
+          if (fromBall) {
+            await go(launchBallTracks());
+          } else {
+            await go(launchTracks(geo));
+          }
+          setNow("r", ORB_D / 2);
+          env.ui.setPhase("assemble");
+          await go(ASSEMBLE);
         } else {
-          await go(launchTracks(geo));
+          await go(R_OUT);
+          setNow("u", 1);
+          setNow("w", ORB_D);
+          setNow("h", ORB_D);
+          setNow("r", ORB_D / 2);
+          setNow("sTy", 0);
+          setNow("orb.k", 1);
+          setNow("orb.spin", 0);
+          env.ui.setPhase("assemble");
+          await go(R_IN);
         }
-        setNow("r", ORB_D / 2);
-        env.ui.setPhase("assemble");
-        await go(ASSEMBLE);
-      } else {
-        await go(R_OUT);
-        setNow("u", 1);
-        setNow("w", ORB_D);
-        setNow("h", ORB_D);
-        setNow("r", ORB_D / 2);
-        setNow("sTy", 0);
-        setNow("orb.k", 1);
-        setNow("orb.spin", 0);
-        env.ui.setPhase("assemble");
-        await go(R_IN);
       }
-
       /* think — until the answer settled AND the minimum time elapsed */
       env.ui.setPhase("think");
       const workLabel = env.getWorkLabel();
@@ -1237,6 +1251,17 @@ function createRuntime(env: Env): Runtime {
       void run(text, ac.signal, cfg, true);
       return true;
     },
+    pulse(text, cfg) {
+      if (busy) return false;
+      busy = true;
+      // No reset, no launch: the orb is already assembled (waiting),
+      // so work starts straight into think from the current frame.
+      const ac = child();
+      current = ac;
+      env.ui.lock(true);
+      void run(text, ac.signal, cfg, false, true);
+      return true;
+    },
     escape() {
       if (!busy || idling) return;
       current?.abort();
@@ -1449,6 +1474,20 @@ export default function MorphOrb(props: MorphOrbProps) {
       },
       reset: () => {
         rtRef.current?.reset();
+      },
+      pulse: (text, work, end = "card") => {
+        const rt = rtRef.current;
+        if (!rt) return false;
+        // Assembled orb only (waiting): from the pill or a receipt
+        // card there is no orb frame to think from.
+        if (phaseRef.current !== "waiting") return false;
+        textRef.current = text;
+        const cfg: RunCfg = {
+          onSubmit: () => work(text),
+          minThink: propsRef.current.minThinkMs ?? 3450,
+          end,
+        };
+        return rt.pulse(text, cfg);
       },
       setText: (text: string) => {
         textRef.current = text;

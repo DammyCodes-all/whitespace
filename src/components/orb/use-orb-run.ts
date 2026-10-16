@@ -124,6 +124,7 @@ export function useOrbRun({
     setError,
     beginLeg,
     askLeg,
+    askQuiet,
     handlePhase,
     setRetry,
     retry,
@@ -392,7 +393,10 @@ export function useOrbRun({
     const list = parseSimilarTitles(similarTitles);
     if (list.length === 0 || checkBusy) return;
     setCheckBusy(true);
-    askLeg({
+    // Quiet cycle: the orb thinks from its current frame and resolves
+    // back to waiting — Check refreshes inside the titles leg, so it
+    // never replays the leg's box morph.
+    const started = askQuiet({
       text: list.join(", "),
       working: legWorkingMessage("titles", list.join(", ")),
       end: "wait",
@@ -405,6 +409,7 @@ export function useOrbRun({
       },
       retry: askCheck,
     });
+    if (!started) setCheckBusy(false);
   }
 
   async function postRun(): Promise<string> {
