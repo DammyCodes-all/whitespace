@@ -42,6 +42,12 @@ export interface MorphOrbProps {
   onSubmit?: (text: string) => Promise<string> | string;
   minThinkMs?: number;
   speed?: number;
+  /** Real work line for the think phase ("Reading your pitch's
+   *  tags…"). When set, it replaces the generic Thinking/Searching
+   *  cycle — the label names only the call actually in flight. */
+  workingLabel?: string;
+  /** Copy for the hold state (default "Waiting for your input"). */
+  waitingLabel?: string;
   /** Ref drive for multi-leg flows: ask() runs one morph→think→receipt
    *  cycle around caller-supplied work; reset() returns to the idle pill. */
   orbRef?: React.Ref<OrbHandle | null>;
@@ -432,13 +438,14 @@ const G_STEPS = 24,
   A_STEPS = 48;
 const COLORS: string[] = (() => {
   // Dark on light: dots read on paper, never on a disc. Base is ink,
-  // sweeping toward vivid sweep-green so the band holds no dark tint.
+  // sweeping toward --hold orange (#ea580c) so the hold state reads
+  // as "waiting on you" — mint stays the run-done color.
   const out: string[] = [];
   for (let gi = 0; gi <= G_STEPS; gi++) {
     const g = gi / G_STEPS;
-    const r = Math.round(lerp(23, 34, g)),
-      gg = Math.round(lerp(21, 197, g)),
-      b = Math.round(lerp(31, 94, g));
+    const r = Math.round(lerp(23, 234, g)),
+      gg = Math.round(lerp(21, 88, g)),
+      b = Math.round(lerp(31, 12, g));
     for (let ai = 0; ai <= A_STEPS; ai++)
       out.push(`rgba(${r},${gg},${b},${(ai / A_STEPS).toFixed(3)})`);
   }
@@ -708,6 +715,9 @@ interface Env {
   pulse: HTMLElement;
   status: HTMLElement;
   getBody: () => HTMLElement | null;
+  /** Real work line while a leg runs, or null to cycle generic labels. */
+  getWorkLabel: () => string | null;
+  getWaitLabel: () => string;
   ui: UI;
   getSpeed: () => number;
   isReduced: () => boolean;
@@ -950,6 +960,7 @@ function createRuntime(env: Env): Runtime {
 
   /* ── thinking labels ── */
   const labelLoop = async (sig: AbortSignal, ctl: { stop: boolean }) => {
+    if (env.getWorkLabel() !== null) return; // real line: never cycle
     let i = 0;
     for (;;) {
       await sleep(1150 / env.getSpeed(), sig);
@@ -999,9 +1010,16 @@ function createRuntime(env: Env): Runtime {
 
       /* think — until the answer settled AND the minimum time elapsed */
       env.ui.setPhase("think");
-      orb.P.prog = 0;
-      env.ui.swapLabel(COPY.labels[0]);
-      env.ui.live(COPY.labels[0]);
+      const workLabel = env.getWorkLabel();
+      if (workLabel !== null) {
+        // Honest line: names the call actually in flight, no cycling.
+        env.ui.swapLabel(workLabel);
+        env.ui.live(workLabel);
+      } else {
+        orb.P.prog = 0;
+        env.ui.swapLabel(COPY.labels[0]);
+        env.ui.live(COPY.labels[0]);
+      }
       const ctl = { stop: false };
       void labelLoop(sig, ctl);
       const t0 = performance.now();
@@ -1035,8 +1053,9 @@ function createRuntime(env: Env): Runtime {
         }
         if (cfg.end === "wait") {
           env.ui.setPhase("waiting");
-          env.ui.swapLabel(COPY.waiting);
-          env.ui.live(COPY.waiting);
+          const waitLabel = env.getWaitLabel();
+          env.ui.swapLabel(waitLabel);
+          env.ui.live(waitLabel);
           if (!reduced) setNow("orb.spin", 0.25);
           return;
         }
@@ -1265,14 +1284,19 @@ export default function MorphOrb(props: MorphOrbProps) {
   const liveRef = useRef<HTMLDivElement>(null);
   const ghostRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
-  const propsRef = useRef(props);
-  propsRef.current = props;
-  const speedRef = useRef(1);
-  speedRef.current = props.speed ?? 1;
   const phaseRef = useRef<Phase>("idle");
   const reducedRef = useRef(false);
   const rtRef = useRef<Runtime | null>(null);
   const textRef = useRef("");
+  const workLabelRef = useRef<string | null>(null);
+  const waitLabelRef = useRef("");
+
+  const propsRef = useRef(props);
+  propsRef.current = props;
+  workLabelRef.current = props.workingLabel ?? null;
+  waitLabelRef.current = props.waitingLabel ?? "";
+  const speedRef = useRef(1);
+  speedRef.current = props.speed ?? 1;
 
   useIsoLayoutEffect(() => {
     const root = rootRef.current,
@@ -1301,6 +1325,8 @@ export default function MorphOrb(props: MorphOrbProps) {
       pulse,
       status,
       getBody: () => bodyRef.current,
+      getWorkLabel: () => workLabelRef.current,
+      getWaitLabel: () => waitLabelRef.current || COPY.waiting,
       getSpeed: () => speedRef.current,
       isReduced: () => reducedRef.current,
       ui: {
