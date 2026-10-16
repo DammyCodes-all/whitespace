@@ -8,6 +8,7 @@
  * verified.
  */
 
+import { FieldRow } from "@/components/orb/field-row";
 import type { CheckResult } from "@/components/orb/types";
 import { parseSimilarTitles } from "@/lib/flow/similar-titles";
 
@@ -56,22 +57,19 @@ export function LegTitles({
       >
         Separate with commas
       </label>
-      <div className="mt-1 flex flex-col gap-2 sm:flex-row">
-        <input
+      <div className="mt-1">
+        <FieldRow
           id="orb-similar"
           value={similarTitles}
-          onChange={(e) => onSimilarTitlesChange(e.target.value)}
+          onChange={onSimilarTitlesChange}
           placeholder="Moon, Arrival"
-          className="min-w-0 flex-1 border-2 border-outline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-3"
+          ariaLabel="Similar titles, separated with commas"
+          actionLabel={
+            checkBusy ? "Checking & refreshing…" : "Check titles & refresh tags"
+          }
+          onAction={onCheck}
+          actionDisabled={parsed.length === 0 || checkBusy}
         />
-        <button
-          type="button"
-          onClick={onCheck}
-          disabled={parsed.length === 0 || checkBusy}
-          className="btn-secondary shrink-0 px-5 py-2 text-sm"
-        >
-          {checkBusy ? "Checking & refreshing…" : "Check titles & refresh tags"}
-        </button>
       </div>
       {checkResult === null &&
         !checkBusy &&

@@ -13,6 +13,7 @@
  */
 
 import { useState } from "react";
+import { FieldRow } from "@/components/orb/field-row";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowTag } from "@/lib/flow/contract";
 
@@ -131,30 +132,18 @@ export function TagChips({
         ))}
       </ul>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-        <input
-          type="text"
+      <div className="mt-4">
+        <FieldRow
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addDraft();
-            }
-          }}
+          onChange={setDraft}
           placeholder="Add a word describing your pitch"
-          aria-label="Add a tag"
-          disabled={loading}
-          className="min-w-0 flex-1 border border-rule bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-3"
+          ariaLabel="Add a tag"
+          inputDisabled={loading}
+          onEnter={addDraft}
+          actionLabel="Add word"
+          onAction={addDraft}
+          actionDisabled={loading || draft.trim() === ""}
         />
-        <button
-          type="button"
-          onClick={addDraft}
-          disabled={loading || draft.trim() === ""}
-          className="btn-secondary px-5 py-2.5 text-sm"
-        >
-          Add word
-        </button>
       </div>
       <p
         role={canRun ? undefined : "status"}
