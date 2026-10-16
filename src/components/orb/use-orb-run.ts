@@ -25,7 +25,10 @@ import type {
 } from "@/components/ui/ai-thinking-orb-and-input";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowResult, FlowTag } from "@/lib/flow/contract";
-import { parseSimilarTitles } from "@/lib/flow/similar-titles";
+import {
+  parseSimilarTitles,
+  titleVerdictKey,
+} from "@/lib/flow/similar-titles";
 import type { FlowStepRow } from "@/lib/flow/view-types";
 import {
   legPrompt,
@@ -331,14 +334,56 @@ export function useOrbRun({
     }
   }
 
+  /** Keep the previous verdicts for titles still in the box, and fold
+   *  a fresh batch in. Verdicts for removed titles drop out. */
+  function mergeVerdicts(
+    prev: CheckResult | null,
+    list: string[],
+    resolved: CheckResult["resolved"],
+    notFound: string[],
+  ): CheckResult {
+    const keys = new Set(list.map(titleVerdictKey));
+    const keptResolved = (prev?.resolved ?? []).filter(
+      (r) => typeof r.query === "string" && keys.has(titleVerdictKey(r.query)),
+    );
+    const keptNotFound = (prev?.notFound ?? []).filter((n) =>
+      keys.has(titleVerdictKey(n)),
+    );
+    return {
+      resolved: [...keptResolved, ...resolved],
+      notFound: [...keptNotFound, ...notFound],
+    };
+  }
+
   async function postCheck(): Promise<string> {
     const list = parseSimilarTitles(similarTitles);
     setCheckError(null);
+    // Only titles without a verdict go out — greens stay green with no
+    // new call spent on them.
+    const covered = new Set<string>();
+    if (checkResult !== null) {
+      for (const r of checkResult.resolved) {
+        if (typeof r.query === "string") covered.add(titleVerdictKey(r.query));
+      }
+      for (const n of checkResult.notFound) covered.add(titleVerdictKey(n));
+    }
+    const fresh = list.filter((t) => !covered.has(titleVerdictKey(t)));
+    if (fresh.length === 0) {
+      const merged = mergeVerdicts(checkResult, list, [], []);
+      setCheckResult(
+        merged.resolved.length === 0 && merged.notFound.length === 0
+          ? null
+          : merged,
+      );
+      const line = receiptLine("titles", merged.resolved.length, merged.notFound.length);
+      setStatus(`${line} Nothing new — every title here is already checked.`);
+      return `${line} Nothing new.`;
+    }
     try {
       const res = await chipFetch("/api/titles/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ titles: list, workType }),
+        body: JSON.stringify({ titles: fresh, workType }),
       });
       const data = (await res.json()) as {
         resolved?: { query: string; name: string; qlooId: string }[];
@@ -346,13 +391,15 @@ export function useOrbRun({
         error?: string;
       };
       if (!res.ok) {
+        // Keep the previous verdicts — a failed call must not wipe
+        // greens the run already earned.
         setCheckError(data.error ?? "Could not check the titles.");
-        setCheckResult(null);
         throw new Error("check-failed");
       }
       const resolved = Array.isArray(data.resolved) ? data.resolved : [];
       const notFound = Array.isArray(data.notFound) ? data.notFound : [];
-      setCheckResult({ resolved, notFound });
+      const merged = mergeVerdicts(checkResult, list, resolved, notFound);
+      setCheckResult(merged);
       setTitleTags([]);
       setCutGifts([]);
       setShowCutGifts(false);
@@ -360,13 +407,15 @@ export function useOrbRun({
       setTitleTagsDone(false);
       setQlooSuggestions([]);
       setSuggestDone(false);
-      const names = resolved
+      // Gifts and suggestions rebuild from the full merged set, so the
+      // kept titles' tastes are never silently dropped.
+      const names = merged.resolved
         .map((r) => r.name)
         .filter((n): n is string => typeof n === "string" && n.trim() !== "");
       if (names.length > 0) {
         void fetchTitleTags(names, workType);
         void fetchTitleSuggestions(
-          resolved
+          merged.resolved
             .map((r) => r.qlooId)
             .filter(
               (id): id is string => typeof id === "string" && id.trim() !== "",
@@ -378,13 +427,12 @@ export function useOrbRun({
         setTitleTagsDone(true);
         setSuggestDone(true);
       }
-      const line = receiptLine("titles", resolved.length, notFound.length);
+      const line = receiptLine("titles", merged.resolved.length, merged.notFound.length);
       setStatus(`${line} Tap suggestions to add, Done when set.`);
       return `${line} Done when set.`;
     } catch (e) {
       if (e instanceof Error && e.message === "check-failed") throw e;
       setCheckError("Could not reach the title check.");
-      setCheckResult(null);
       throw new Error("check-failed");
     }
   }
@@ -456,10 +504,22 @@ export function useOrbRun({
 
   /* ── local edits (no calls, no orb) ── */
 
-  /** Any title edit invalidates the last Check — its tags, gifts,
-   *  suggestions and gift verdict all come from the checked set. */
-  function touchTitles() {
-    setCheckResult(null);
+  /** Any title edit re-scopes the last Check to the titles still in
+   *  the box: kept verdicts stay green, added or reworded titles go
+   *  plain until the next Check. Gifts clear — they belong to the
+   *  checked set and rebuild from it. */
+  function touchTitles(next: string) {
+    const keys = new Set(parseSimilarTitles(next).map(titleVerdictKey));
+    setCheckResult((prev) => {
+      if (prev === null) return null;
+      const resolved = prev.resolved.filter(
+        (r) => typeof r.query === "string" && keys.has(titleVerdictKey(r.query)),
+      );
+      const notFound = prev.notFound.filter((n) => keys.has(titleVerdictKey(n)));
+      return resolved.length === 0 && notFound.length === 0
+        ? null
+        : { resolved, notFound };
+    });
     setTitleTags([]);
     setCutGifts([]);
     setShowCutGifts(false);
@@ -474,7 +534,7 @@ export function useOrbRun({
     setPitchText("");
     setTags([]);
     setSimilarTitles("");
-    touchTitles();
+    touchTitles("");
     setQlooSuggestions([]);
     setSuggestDone(false);
     setSteps([]);
@@ -492,18 +552,21 @@ export function useOrbRun({
       parseSimilarTitles(similarTitles).map((s) => s.toLowerCase()),
     );
     if (have.has(clean.toLowerCase())) return;
-    touchTitles();
-    setSimilarTitles((prev) =>
-      prev.trim() === "" ? clean : `${prev.replace(/\s*,\s*$/, "")}, ${clean}`,
-    );
+    const next =
+      similarTitles.trim() === ""
+        ? clean
+        : `${similarTitles.replace(/\s*,\s*$/, "")}, ${clean}`;
+    touchTitles(next);
+    setSimilarTitles(next);
   }
 
   function removeSimilar(title: string) {
     const keep = parseSimilarTitles(similarTitles).filter(
       (s) => s.toLowerCase() !== title.trim().toLowerCase(),
     );
-    touchTitles();
-    setSimilarTitles(keep.join(", "));
+    const next = keep.join(", ");
+    touchTitles(next);
+    setSimilarTitles(next);
   }
 
   function removeTitleTag(qlooId: string) {
@@ -593,7 +656,7 @@ export function useOrbRun({
     setTags,
     onSimilarTitlesChange: (value: string) => {
       setSimilarTitles(value);
-      touchTitles();
+      touchTitles(value);
     },
     onAddSuggested: addSuggested,
     onRemoveSimilar: removeSimilar,

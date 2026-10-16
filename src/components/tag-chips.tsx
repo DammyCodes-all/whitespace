@@ -77,10 +77,8 @@ export function TagChips({
         </p>
       </div>
       <p className="mt-1 max-w-prose text-body text-ink-2">
-        A tag is one word for your idea: what happens in it, how it feels, where
-        it&apos;s set. Every tag has to be a taste Qloo knows, because Qloo is
-        what scores the run. The green ones came back and count. The hatched
-        ones didn&apos;t, so fix the wording or take them off.
+        Review your tags below: green ones count, hatched ones don&apos;t, so
+        fix the wording or take them off.
       </p>
 
       <ul className="mt-4 flex flex-wrap gap-2">

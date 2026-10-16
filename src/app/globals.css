@@ -739,14 +739,16 @@
   transition: none;
 }
 /* Leg UI entrance: plays after the stage glide settles — the orb
-   finishes moving first, then the input UI fades up beneath it. */
+   finishes moving first, then the input UI arrives beneath it. One
+   shared definition so every entering section lands the same way:
+   slow enough to read, simple enough to ignore. */
 .leg-in {
-  animation: leg-in 350ms ease-out;
+  animation: leg-in 500ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes leg-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;

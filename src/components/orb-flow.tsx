@@ -44,7 +44,8 @@ export function OrbFlow({
   const flight = useOrbFlight({ orbRef, arm: run.armEntry });
 
   const poolVisible = run.leg === "tags" || run.leg === "aggregate";
-  const titlesVisible = run.leg === "titles" || run.leg === "aggregate";
+  /** Titles input lives on the titles leg only; aggregate keeps the
+   *  pool, the suggestions and the score action — never the input. */
   /** Working legs show the orb alone; input legs show UI below it —
    *  held back until the orb settles (see use-stage-glide). Between
    *  legs the old UI is gone and the orb returns to centre first. */
@@ -141,7 +142,7 @@ export function OrbFlow({
         />
       )}
 
-      {titlesVisible && uiVisible && (
+      {run.leg === "titles" && uiVisible && (
         <LegTitles
           similarTitles={run.similarTitles}
           onSimilarTitlesChange={run.onSimilarTitlesChange}
