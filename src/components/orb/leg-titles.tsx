@@ -105,9 +105,7 @@ export function LegTitles({
                 }
               >
                 {hit !== null ? (
-                  <span title={`Verified in Qloo as ${hit.name}`}>
-                    ✓ {title}
-                  </span>
+                  <span title="Verified in Qloo">{title}</span>
                 ) : missing ? (
                   <span>{title} — not in Qloo</span>
                 ) : (
