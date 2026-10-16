@@ -695,19 +695,17 @@
   }
 }
 
-/* Morph flight: the landing box flies onto the idle pill as a clone
-   (portaled to <body>, WAAPI-driven, reshaped in flight) before the
-   runtime morph begins. Two composited layers, one job each — the
-   outer translates, the inner scales + reshapes — so no flight frame
-   re-lays-out. The portal matters: a fixed child of a transformed
-   ancestor (the .page-enter rise) would ride along with it. The inner
-   twins the entry .card exactly (surface, 16px, hard shadow) so
-   touchdown has zero color shift. */
+/* Morph handoff: the landing box's twin renders at the idle pill
+   (portaled to <body>, WAAPI-driven) and condenses card → ball in
+   place before the runtime joins at the ball. Nothing travels. The
+   portal matters: a fixed child of a transformed ancestor (the
+   .page-enter rise) would ride along with it. The inner twins the
+   entry .card exactly (surface, 16px, hard shadow) so the opening
+   frame has zero color shift. */
 .flight-clone {
   position: fixed;
   z-index: 50;
   pointer-events: none;
-  will-change: transform;
 }
 
 .flight-inner {
@@ -719,7 +717,7 @@
   border-radius: 16px;
   box-shadow: 4px 4px 0 var(--outline);
   overflow: hidden;
-  transform-origin: 0 0;
+  transform-origin: center;
   will-change: transform;
 }
 
@@ -731,15 +729,6 @@
   color: var(--ink);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-}
-
-/* Ball handoff: the entry finished its morph before navigating, so the
-   clone is already a 60px ink ball — no padding, no text, no shadow. */
-.flight-inner.flight-ball {
-  padding: 0;
-  background: var(--ink);
-  border-radius: 50%;
-  box-shadow: none;
 }
 
 /* Flight handoff (set in orb-flow at the moment of touchdown): the

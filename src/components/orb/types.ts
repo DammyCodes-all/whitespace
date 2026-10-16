@@ -22,8 +22,11 @@ export interface CheckResult {
   notFound: string[];
 }
 
-/** The landing box's state while it hands over to the run page. */
+/** The landing box's state while it hands over to the run page. The
+ *  twin renders at `target` (the pill) and condenses in place — `rect`
+ *  sizes the opening card frame so it lands as the box it came from. */
 export interface OrbFlightState {
   rect: FlightRect;
+  target: FlightRect;
   pitch: string;
 }

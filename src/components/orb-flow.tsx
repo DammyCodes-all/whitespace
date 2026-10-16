@@ -73,7 +73,6 @@ export function OrbFlow({
       {flight.flight !== null && (
         <OrbFlightClone
           flight={flight.flight}
-          cloneRef={flight.cloneRef}
           cloneInnerRef={flight.cloneInnerRef}
           cloneTextRef={flight.cloneTextRef}
         />
