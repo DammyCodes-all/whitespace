@@ -24,10 +24,10 @@ const useIsoLayoutEffect =
 /** The glide's length — the UI hold matches it exactly. */
 const GLIDE_MS = 500;
 
-/** Docking up reads over a longer travel with UI arriving after, so it
- *  gets its own slower length — otherwise the return to work is over
- *  before the eye catches it. */
-const DOCK_MS = 800;
+/** Docking up is the move the eye follows, so it gets its own slower
+ *  length and a slow-start curve — otherwise the return to work is
+ *  over before the eye catches it. */
+const DOCK_MS = 900;
 
 /** Beat the orb rests at centre between legs, so return-then-dock
  *  reads as two moves with a rest, not one abrupt out-and-back. */
@@ -87,12 +87,14 @@ export function useStageGlide(
             { transform: `translateY(${dy}px)` },
             { transform: "translateY(0px)" },
           ],
-          // Plain ease-out, no overshoot: the return-then-dock beat
-          // already gives the move its shape, so the glide itself
-          // stays smooth. Docking up takes the slower length.
+          // Docking up eases in-out (slow start, slow landing) so the
+          // long return reads as a glide; the shorter trip back to
+          // centre stays a plain ease-out.
           {
             duration: centered ? GLIDE_MS : DOCK_MS,
-            easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+            easing: centered
+              ? "cubic-bezier(0.22, 1, 0.36, 1)"
+              : "cubic-bezier(0.65, 0, 0.35, 1)",
           },
         );
       }
