@@ -110,6 +110,10 @@ export function useOrbRun({
 }): OrbRun {
   const router = useTransitionRouter();
   const [leg, setLeg] = useState<Leg>("entry");
+  /** Between-leg beat: the advance parks here while the orb returns
+   *  to centre, then the host settles it (see settleAdvance). */
+  const [returning, setReturning] = useState(false);
+  const pendingLeg = useRef<Leg | null>(null);
   const {
     status,
     error,
@@ -509,15 +513,31 @@ export function useOrbRun({
     setCutGifts((prev) => prev.filter((t) => t.qlooId !== gift.qlooId));
   }
 
+  /** Park an input-leg advance: the old UI unmounts at once, the orb
+   *  glides back to centre, and the host settles the parked leg once
+   *  it lands. Status updates on settle, not before. */
+  function requestAdvance(next: Leg) {
+    pendingLeg.current = next;
+    setReturning(true);
+  }
+
+  /** Play the parked advance now that the orb is back at centre. */
+  function settleAdvance() {
+    const next = pendingLeg.current;
+    pendingLeg.current = null;
+    setReturning(false);
+    if (next === null) return;
+    setLeg(next);
+    setStatus(legPrompt(next));
+  }
+
   function continueToTitles() {
-    setLeg("titles");
-    setStatus(legPrompt("titles"));
+    requestAdvance("titles");
   }
 
   function reviewFullSet() {
     if (checkResult === null || parsedSimilar.length === 0) return;
-    setLeg("aggregate");
-    setStatus(legPrompt("aggregate"));
+    requestAdvance("aggregate");
   }
 
   function armEntry(pitch: string) {
@@ -529,6 +549,8 @@ export function useOrbRun({
   return {
     ...sidecars,
     leg,
+    returning,
+    settleAdvance,
     status,
     error,
     interrupted,
