@@ -37,6 +37,9 @@ export interface ChangeResponseBody {
 
 export type { FlowResult, FlowStepRow, ChangedRun, QlooCall, WorkType };
 
+/** A React state setter, shared so action modules don't redeclare it. */
+export type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
+
 export function callToEvidence(call: QlooCall): FlowEvidence {
   return {
     request: { endpoint: call.endpoint, params: { ...call.params } },

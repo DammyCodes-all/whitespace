@@ -12,7 +12,7 @@
  */
 
 import { useTransitionRouter } from "next-view-transitions";
-import { type RefObject, useState } from "react";
+import { type RefObject, useRef, useState } from "react";
 import type { CheckResult, Leg, TitleGift } from "@/components/orb/types";
 import { useOrbBridge } from "@/components/orb/use-orb-bridge";
 import {
@@ -38,6 +38,11 @@ import type { WorkType } from "@/lib/types";
 export interface OrbRun extends ResultSidecars {
   /** Which leg the run is on. */
   leg: Leg;
+  /** True between legs: the old UI is gone and the orb is gliding
+   *  back to centre before the parked leg settles (see settleAdvance). */
+  returning: boolean;
+  /** Play the parked leg advance now that the orb is back at centre. */
+  settleAdvance: () => void;
   /** The one honest line under the orb — errors and interruption only. */
   status: string;
   error: string | null;
