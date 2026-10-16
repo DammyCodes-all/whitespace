@@ -52,8 +52,9 @@ export function useOrbFlight({
   const scheduledRef = useRef(false);
   const autoStarted = useRef(false);
 
-  /** Where the idle pill sits in viewport coords: stage centre-x, mover
-   *  anchor (40px) plus the 80px flight offset, pill 200px tall. */
+  /** Flight target: the runtime rests the pill ~120px down the 240px
+   *  .mo-root block, and the block sits centred in the stage — so the
+   *  ball the runtime joins at is the stage's centre. */
   function pillTarget(): FlightRect | null {
     const stage = stageRef.current;
     if (stage === null) return null;
@@ -63,7 +64,7 @@ export function useOrbFlight({
     const h = 200;
     return {
       left: r.left + r.width / 2 - w / 2,
-      top: r.top + 120 - h / 2,
+      top: r.top + r.height / 2 - h / 2,
       width: w,
       height: h,
     };

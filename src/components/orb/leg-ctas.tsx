@@ -17,7 +17,7 @@ export function TagsCtas({
   onEditPitch: () => void;
 }) {
   return (
-    <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+    <div className="leg-in mt-6 flex flex-wrap items-center justify-center gap-4">
       <button
         type="button"
         onClick={onContinue}
@@ -49,7 +49,7 @@ export function TitlesCta({
   onReview: () => void;
 }) {
   return (
-    <div className="mt-6 flex flex-col items-center gap-2">
+    <div className="leg-in mt-6 flex flex-col items-center gap-2">
       <button
         type="button"
         onClick={onReview}
@@ -79,7 +79,7 @@ export function ScoreCta({
   onRun: () => void;
 }) {
   return (
-    <div className="mt-6 flex flex-col items-center gap-2">
+    <div className="leg-in mt-6 flex flex-col items-center gap-2">
       <button
         type="button"
         onClick={onRun}
