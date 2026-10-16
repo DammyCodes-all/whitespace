@@ -13,3 +13,9 @@ export function parseSimilarTitles(value: string): string[] {
     .map((s) => s.trim())
     .filter((s) => s !== "");
 }
+
+/** Identity of a typed title for verdict matching: verdicts keyed by
+ *  query survive renames of nothing — an edited title is a new title. */
+export function titleVerdictKey(value: string): string {
+  return value.trim().toLowerCase();
+}

@@ -9,8 +9,9 @@
  */
 
 import { FieldRow } from "@/components/orb/field-row";
+import { TitleSuggestions } from "@/components/orb/leg-suggestions";
 import type { CheckResult } from "@/components/orb/types";
-import { parseSimilarTitles } from "@/lib/flow/similar-titles";
+import { parseSimilarTitles, titleVerdictKey } from "@/lib/flow/similar-titles";
 
 export interface LegTitlesProps {
   similarTitles: string;
@@ -82,17 +83,16 @@ export function LegTitles({
       {parsed.length > 0 && (
         <ul aria-label="Your titles" className="mt-3 flex flex-wrap gap-2">
           {[...new Set(parsed)].map((title) => {
-            const key = title.trim().toLowerCase();
+            const key = titleVerdictKey(title);
             const hit =
               checkResult?.resolved.find(
                 (r) =>
                   typeof r.query === "string" &&
-                  r.query.trim().toLowerCase() === key,
+                  titleVerdictKey(r.query) === key,
               ) ?? null;
             const missing =
-              checkResult?.notFound.some(
-                (n) => n.trim().toLowerCase() === key,
-              ) ?? false;
+              checkResult?.notFound.some((n) => titleVerdictKey(n) === key) ??
+              false;
             return (
               <li
                 key={title}
@@ -131,47 +131,14 @@ export function LegTitles({
           {checkError}
         </p>
       )}
-      {suggestBusy ? (
-        <p className="mt-6 font-mono text-xs text-ink-3">
-          Finding titles like yours…
-        </p>
-      ) : suggestions.length > 0 ? (
-        <section aria-label="Similar to your idea" className="mt-6">
-          <h2 className="text-lg tracking-tight text-ink">
-            Similar to your idea?
-          </h2>
-          <p className="mt-1 max-w-prose text-body text-ink-2">
-            From the taste database: titles related to the ones you typed. Tap
-            to add; each is verified at the run.
-          </p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {suggestions.map((title) => {
-              const added = parsed.some(
-                (t) => t.toLowerCase() === title.trim().toLowerCase(),
-              );
-              if (added) return null;
-              return (
-                <li key={title}>
-                  <button
-                    type="button"
-                    onClick={() => onAddSuggested(title)}
-                    className="btn-secondary px-4 py-2 text-sm"
-                  >
-                    + {title}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : (
-        suggestDone && (
-          <p className="mt-6 max-w-prose text-body text-ink-2">
-            Nothing related this time. Type your own titles above; Check
-            verifies each.
-          </p>
-        )
-      )}
+      <TitleSuggestions
+        similarTitles={similarTitles}
+        onAddSuggested={onAddSuggested}
+        suggestions={suggestions}
+        suggestBusy={suggestBusy}
+        suggestDone={suggestDone}
+        inputAbove
+      />
     </section>
   );
 }
