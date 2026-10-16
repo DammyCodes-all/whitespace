@@ -5,7 +5,9 @@
  * to the real fetch untouched.
  *
  * Delays are stagecraft, not measurement: they let each morph beat
- * read before its receipt lands. node --test compatible for the
+ * read before its receipt lands. Kept deliberately slow (review pace)
+ * so each leg can be watched end to end before judging it.
+ * node --test compatible for the
  * mapper; the window shim lives behind installDemoFetch.
  */
 
@@ -109,14 +111,14 @@ export function demoResponseFor(
     case "/api/tags":
       return {
         status: 200,
-        delayMs: 400,
+        delayMs: 1400,
         json: { tags: DEMO_FLOW_TAGS, workType: "film" },
       };
     case "/api/titles/check": {
       const titles = asStrings((b as TitlesCheckBody).titles);
       return {
         status: 200,
-        delayMs: 400,
+        delayMs: 1400,
         json: {
           resolved: titles.map((t, i) => ({
             query: t,
@@ -132,7 +134,7 @@ export function demoResponseFor(
       const first = names[0] ?? "Demo";
       return {
         status: 200,
-        delayMs: 300,
+        delayMs: 1100,
         json: {
           tags: GIFTS.map((g) => ({ ...g, sourceTitleName: first })),
           note: "ok",
@@ -150,7 +152,7 @@ export function demoResponseFor(
             )
             .filter((id): id is string => typeof id === "string" && id !== "")
         : [];
-      return { status: 200, delayMs: 300, json: { keptIds: ids } };
+      return { status: 200, delayMs: 1000, json: { keptIds: ids } };
     }
     case "/api/titles/related": {
       const excluded = new Set(
@@ -158,7 +160,7 @@ export function demoResponseFor(
       );
       return {
         status: 200,
-        delayMs: 300,
+        delayMs: 1100,
         json: {
           suggestions: SUGGESTION_POOL.filter(
             (s) => !excluded.has(s.toLowerCase()),
@@ -170,7 +172,7 @@ export function demoResponseFor(
       const flow = b as FlowBody;
       return {
         status: 200,
-        delayMs: 900,
+        delayMs: 2600,
         json: {
           result: {
             ...DEMO_FLOW_RESULT,
@@ -191,13 +193,13 @@ export function demoResponseFor(
     case "/api/compare":
       return {
         status: 200,
-        delayMs: 600,
+        delayMs: 1600,
         json: { chatbot: DEMO_CHATBOT, error: null, calls: [] },
       };
     case "/api/flow/change":
       return {
         status: 200,
-        delayMs: 500,
+        delayMs: 1400,
         json: { changed: DEMO_CHANGE_ACCEPTED },
       };
     default:

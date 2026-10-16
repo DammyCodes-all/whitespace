@@ -1045,7 +1045,10 @@ function createRuntime(env: Env): Runtime {
          dissolves everything so the result below takes over. */
       if (cfg.end !== "card") {
         env.ui.setPhase("resolve");
-        env.ui.swapLabel(COPY.done);
+        // Legs end quietly: only the final leg ("clear") may print
+        // Done. Mid-run legs keep the work line through the sweep,
+        // then hand straight to the waiting nudge. Spec §5.
+        if (cfg.end === "clear") env.ui.swapLabel(COPY.done);
         if (!reduced) {
           await go(RESOLVE);
         } else {
