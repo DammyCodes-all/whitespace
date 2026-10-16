@@ -16,7 +16,6 @@ import {
   TypeSection,
   VerdictsSection,
 } from "@/components/demo/demo-sections";
-import { SiteFooter } from "@/components/site-footer";
 
 /**
  * Design-system showcase. Internal tool, not a product screen.
@@ -54,7 +53,7 @@ const NAV = [
 export default function DemoPage() {
   return (
     <>
-      <main className="flex flex-1 flex-col">
+      <main id="main-content" className="flex flex-1 flex-col">
         <div className="mx-auto w-full max-w-6xl px-6 py-12 sm:px-8">
           <p className="font-mono text-xs tracking-tight text-ink-3">
             design system
@@ -123,7 +122,6 @@ export default function DemoPage() {
           <ScreensSection />
         </div>
       </main>
-      <SiteFooter />
     </>
   );
 }

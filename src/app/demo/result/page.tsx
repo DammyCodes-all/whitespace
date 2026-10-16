@@ -33,7 +33,7 @@ const REACH_GROUPS = [
 
 export default function DemoResultPage() {
   return (
-    <main className="flex-1">
+    <main id="main-content" className="flex-1">
       <div className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-8 sm:py-14">
         <section className="mt-10 rounded-[18px] border-2 border-outline bg-surface p-5 shadow-[4px_4px_0_var(--outline)] sm:p-7">
           <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-3">

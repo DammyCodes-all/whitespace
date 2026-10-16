@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  */
 export default function RunPage() {
   return (
-    <main className="page-enter flex flex-1 flex-col">
+    <main id="main-content" className="page-enter flex flex-1 flex-col">
       <Suspense>
         <OrbFlow />
       </Suspense>
