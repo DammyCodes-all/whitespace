@@ -1252,7 +1252,14 @@ function createRuntime(env: Env): Runtime {
       return true;
     },
     pulse(text, cfg) {
-      if (busy) return false;
+      // Take over from a settled cycle: the wait-end resolve returns
+      // with busy still set (only hard()/toIdle clear it), yet no work
+      // remains — release it here without touching the current frame,
+      // so the orb thinks from exactly what is on screen. The ref
+      // entry only allows this from waiting, where no cycle runs.
+      busy = false;
+      current?.abort();
+      current = null;
       busy = true;
       // No reset, no launch: the orb is already assembled (waiting),
       // so work starts straight into think from the current frame.
