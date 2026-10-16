@@ -689,19 +689,31 @@
 }
 
 /* Morph flight: the landing box flies onto the idle pill as a clone
-   (fixed, WAAPI-driven, reshaped in flight) before the runtime morph
-   begins. The clone twins the entry .card exactly (surface, 16px,
-   hard shadow) so touchdown has zero color shift. */
+   (portaled to <body>, WAAPI-driven, reshaped in flight) before the
+   runtime morph begins. Two composited layers, one job each — the
+   outer translates, the inner scales + reshapes — so no flight frame
+   re-lays-out. The portal matters: a fixed child of a transformed
+   ancestor (the .page-enter rise) would ride along with it. The inner
+   twins the entry .card exactly (surface, 16px, hard shadow) so
+   touchdown has zero color shift. */
 .flight-clone {
   position: fixed;
   z-index: 50;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.flight-inner {
+  position: absolute;
+  inset: 0;
   padding: 16px 20px 12px;
   background: var(--surface);
   border: 2px solid var(--outline);
   border-radius: 16px;
   box-shadow: 4px 4px 0 var(--outline);
   overflow: hidden;
-  pointer-events: none;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 .flight-text {
@@ -716,11 +728,19 @@
 
 /* Ball handoff: the entry finished its morph before navigating, so the
    clone is already a 60px ink ball — no padding, no text, no shadow. */
-.flight-clone.flight-ball {
+.flight-inner.flight-ball {
   padding: 0;
   background: var(--ink);
   border-radius: 50%;
   box-shadow: none;
+}
+
+/* Flight handoff (set in orb-flow at the moment of touchdown): the
+   clone's last frame IS the runtime's first ball frame, so the ball has
+   to arrive opaque — the idle→launch actor fade would otherwise dim the
+   swap under an already-opaque clone. */
+[data-handoff="flight"] .mo-root:not([data-phase="idle"]) .mo-actor {
+  transition: none;
 }
 
 @keyframes pixel-on {
