@@ -3,11 +3,15 @@
 /**
  * The handoff's orchestration. When the landing entry navigates to
  * /run?pitch=, the box's rect is waiting in session storage: this hook
- * arms the entry leg, flies a twin clone from that rect to the idle
- * pill (reshaping card → ball on the way), then joins the runtime at
- * the ball. Mount-only, so one pitch spends one tag call, never two.
+ * arms the entry leg, renders a twin of the box at the idle pill that
+ * condenses card → ball in place, then joins the runtime at the ball.
+ * Mount-only, so one pitch spends one tag call, never two.
  *
- * The morph lives inside the move — the entry navigates at once, with
+ * Nothing travels — the twin appears at the pill and reshapes where it
+ * sits. A ball-shaped rect (the entry already morphed in place) skips
+ * the twin entirely and joins the runtime at once.
+ *
+ * The morph lives in the page move — the entry navigates at once, with
  * no landing hold, and the run page replays nothing.
  *
  * Spec ref: §5.
@@ -20,7 +24,7 @@ import {
   type FlightRect,
   peekFlight,
 } from "@/components/entry-box";
-import { flyClone } from "@/components/orb/flight-animation";
+import { morphClone } from "@/components/orb/flight-animation";
 import type { OrbFlightState } from "@/components/orb/types";
 import type { OrbHandle } from "@/components/ui/ai-thinking-orb-and-input";
 
@@ -29,9 +33,7 @@ export interface OrbFlight {
   flight: OrbFlightState | null;
   /** Attach to the element the orb sits in — the pill-target anchor. */
   stageRef: RefObject<HTMLDivElement | null>;
-  /** Attach to the clone root (portaled to <body>); it translates only. */
-  cloneRef: RefObject<HTMLDivElement | null>;
-  /** Attach to the clone's inner layer; it scales + reshapes card → ball. */
+  /** Attach to the clone's inner layer; it condenses card → ball. */
   cloneInnerRef: RefObject<HTMLDivElement | null>;
   /** Attach to the clone's pitch text; melted out in flight. */
   cloneTextRef: RefObject<HTMLParagraphElement | null>;
@@ -48,8 +50,7 @@ export function useOrbFlight({
   const params = useSearchParams();
   const [flight, setFlight] = useState<OrbFlightState | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const cloneRef = useRef<HTMLDivElement>(null);
-  /** Inner clone layer: the one that scales (outer only translates). */
+  /** Inner clone layer: condenses card → ball in place at the pill. */
   const cloneInnerRef = useRef<HTMLDivElement>(null);
   const cloneTextRef = useRef<HTMLParagraphElement>(null);
   const flightAnim = useRef<Animation | null>(null);
@@ -104,10 +105,27 @@ export function useOrbFlight({
       startNow();
       return;
     }
-    setFlight({ rect, pitch: shared });
     const box: FlightRect = rect;
-    // Let the page crossfade get going first so the flight isn't
-    // buried under the outgoing snapshot — then fly + morph live.
+    // Ball handoff (the entry already morphed in place): no twin, no
+    // travel — join the runtime at the ball once the page crossfade
+    // gets going, same beat the morph would have played on.
+    if (box.shape === "ball") {
+      let timer = 0;
+      const raf = window.requestAnimationFrame(() => {
+        timer = window.setTimeout(() => {
+          clearFlight();
+          startFromBall();
+        }, 120);
+      });
+      return () => {
+        window.cancelAnimationFrame(raf);
+        window.clearTimeout(timer);
+        scheduledRef.current = false;
+      };
+    }
+    // Let the page crossfade get going first so the twin isn't buried
+    // under the outgoing snapshot — then it appears at the pill and
+    // condenses in place.
     let timer = 0;
     const raf = window.requestAnimationFrame(() => {
       timer = window.setTimeout(() => {
@@ -116,31 +134,40 @@ export function useOrbFlight({
     });
     function startFlight() {
       const target = pillTarget();
-      const clone = cloneRef.current;
-      if (target === null || clone === null) {
-        setFlight(null);
+      if (target === null) {
         clearFlight();
         startNow();
         return;
       }
-      flightAnim.current = flyClone({
-        clone,
-        shape: cloneInnerRef.current,
-        text: cloneTextRef.current,
-        from: box,
-        target,
-        onJoin: () => {
-          flightAnim.current = null;
-          // The runtime fades its actor in from idle; a handoff needs
-          // the ball opaque in the same frame the clone clears (see the
-          // data-handoff rule in globals.css).
-          stageRef.current?.setAttribute("data-handoff", "flight");
-          startFromBall();
-        },
-        onDone: () => {
+      setFlight({ rect: box, target, pitch: shared });
+      // The twin mounts on setState — its refs attach a frame later,
+      // so the morph starts on the next frame.
+      window.requestAnimationFrame(() => {
+        const shape = cloneInnerRef.current;
+        if (shape === null) {
           setFlight(null);
           clearFlight();
-        },
+          startNow();
+          return;
+        }
+        flightAnim.current = morphClone({
+          shape,
+          text: cloneTextRef.current,
+          from: box,
+          target,
+          onJoin: () => {
+            flightAnim.current = null;
+            // The runtime fades its actor in from idle; a handoff needs
+            // the ball opaque in the same frame the clone clears (see the
+            // data-handoff rule in globals.css).
+            stageRef.current?.setAttribute("data-handoff", "flight");
+            startFromBall();
+          },
+          onDone: () => {
+            setFlight(null);
+            clearFlight();
+          },
+        });
       });
     }
     return () => {
@@ -152,5 +179,5 @@ export function useOrbFlight({
     };
   }, []);
 
-  return { flight, stageRef, cloneRef, cloneInnerRef, cloneTextRef };
+  return { flight, stageRef, cloneInnerRef, cloneTextRef };
 }
