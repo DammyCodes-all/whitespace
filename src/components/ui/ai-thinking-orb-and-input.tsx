@@ -71,6 +71,12 @@ export interface OrbHandle {
     work: (text: string) => Promise<string> | string,
     end?: OrbEnd,
   ) => boolean;
+  /** Between-leg advance beat: no cycle runs while the orb glides down
+   *  and back, but the orb still holds its thinking pose for the whole
+   *  window (`label` is the honest line for it) — and hands back to the
+   *  waiting pose on `false`. Only applies to the settled waiting orb:
+   *  a live cycle owns its own pose. */
+  beat: (on: boolean, label?: string) => void;
   reset: () => void;
   /** Entry-leg controls for the ?pitch= autostart. */
   setText: (text: string) => void;
@@ -754,6 +760,9 @@ interface Runtime {
    *  (assembled) orb straight into think, then resolve. For mid-leg
    *  refreshes like Check that must never replay the box morph. */
   pulse(text: string, cfg: RunCfg): boolean;
+  /** Between-leg beat: park the orb in its thinking pose while no cycle
+   *  runs (see OrbHandle.beat). */
+  beat(on: boolean, label?: string): void;
   escape(): void;
   reset(): void;
   hard(): void;
@@ -808,8 +817,10 @@ function createRuntime(env: Env): Runtime {
 
   let current: AbortController | null = null;
   let idleCtl: AbortController | null = null;
+  let beatCtl: AbortController | null = null;
   let busy = false,
     idling = false,
+    settled = false,
     epoch = 0;
   let curX = 0,
     curY = 0,
@@ -827,6 +838,14 @@ function createRuntime(env: Env): Runtime {
     else
       life.signal.addEventListener("abort", () => ac.abort(), { once: true });
     return ac;
+  };
+
+  /** A cycle is taking the orb: stop any beat pose blend under it, so
+   *  a stale blend can never write over the cycle's own tracks. */
+  const stopBeat = () => {
+    beatCtl?.abort();
+    beatCtl = null;
+    settled = false;
   };
 
   /* ── flight path + comet trail ── */
@@ -981,6 +1000,47 @@ function createRuntime(env: Env): Runtime {
       raf = requestAnimationFrame(step);
     });
 
+  /* ── resting poses ── */
+  /* The orb has two resting looks: thinking (ink dots, working spin,
+     the light programs on) and holding (the orange nudge, programs
+     off). A leg ending leaves the holding pose on screen, so quiet
+     work and the between-leg beat blend the orb back to whichever
+     pose the moment implies. */
+  const POSE_MS = 260;
+  interface Pose {
+    sweep: number;
+    gain: number;
+    floor: number;
+    rad: number;
+    spin: number;
+  }
+  const THINK_POSE: Pose = { sweep: 0, gain: 1, floor: 0, rad: 0, spin: 0.9 };
+  const HOLD_POSE: Pose = {
+    sweep: 1,
+    gain: 0,
+    floor: 0.95,
+    rad: 0.15,
+    spin: 0.25,
+  };
+  const toPose = (pose: Pose, sig: AbortSignal) => {
+    if (env.isReduced()) {
+      /* No spin under reduced motion (matches the wait ending). */
+      for (const key of ["sweep", "gain", "floor", "rad"] as const)
+        setNow("orb." + key, pose[key]);
+      return;
+    }
+    const tracks: Track[] = [];
+    for (const key of ["sweep", "gain", "floor", "rad"] as const) {
+      const from = orb.P[key];
+      if (Math.abs(from - pose[key]) > 0.001)
+        tracks.push(T("orb." + key, from, pose[key], 0, POSE_MS, E.io));
+    }
+    if (Math.abs(orb.P.spin - pose.spin) > 0.001)
+      tracks.push(T("orb.spin", orb.P.spin, pose.spin, 0, POSE_MS + 140, E.out));
+    if (tracks.length === 0) return;
+    void play(tracks, sig);
+  };
+
   /* ── thinking labels ── */
   /* The label follows the work line for the whole cycle, read live
      rather than once at think start: a line that lands a commit after
@@ -1076,6 +1136,10 @@ function createRuntime(env: Env): Runtime {
       }
       /* think — until the answer settled AND the minimum time elapsed */
       env.ui.setPhase("think");
+      // Ink dots, working spin, the light programs back on: a quiet
+      // pulse starts from the settled holding pose, so blend back to
+      // the thinking pose here (no-op when a fresh cycle already is one).
+      toPose(THINK_POSE, sig);
       const workLabel = env.getWorkLabel();
       if (workLabel !== null) {
         // Honest line: names the call actually in flight, no cycling.
@@ -1126,6 +1190,7 @@ function createRuntime(env: Env): Runtime {
           env.ui.swapLabel(waitLabel);
           env.ui.live(waitLabel);
           if (!reduced) setNow("orb.spin", 0.25);
+          settled = true;
           return;
         }
         if (!reduced) {
@@ -1194,6 +1259,7 @@ function createRuntime(env: Env): Runtime {
   const toIdle = async (kind: "reset" | "esc") => {
     if (idling) return;
     idling = true;
+    stopBeat();
     const my = ++epoch;
     const ac = child();
     idleCtl = ac;
@@ -1245,6 +1311,7 @@ function createRuntime(env: Env): Runtime {
     current = null;
     idleCtl?.abort();
     idleCtl = null;
+    stopBeat();
     orb.reset();
     hist.length = 0;
     env.ui.setAnswer("");
@@ -1261,12 +1328,29 @@ function createRuntime(env: Env): Runtime {
     env.ui.idleReady();
   }
 
+  /** Between-leg beat (see OrbHandle.beat): the host parks an advance
+   *  while the orb glides down and back up; no cycle runs, so hold the
+   *  thinking pose for the whole window — the glide never rides in the
+   *  waiting colour. `false` hands back to the holding pose. Refused
+   *  off the settled waiting orb: a live cycle owns its own pose. */
+  function beat(on: boolean, label?: string) {
+    if (!settled || idling) return;
+    beatCtl?.abort();
+    beatCtl = child();
+    toPose(on ? THINK_POSE : HOLD_POSE, beatCtl.signal);
+    if (on) orb.P.prog = 0;
+    const line = on ? (label ?? COPY.waiting) : env.getWaitLabel();
+    env.ui.swapLabel(line);
+    env.ui.live(line);
+  }
+
   resetChannels();
 
   return {
     start(text, cfg) {
       if (busy) return false;
       busy = true;
+      stopBeat();
       geo.pw = pillW();
       geo.cw = cardW();
       geo.H = homeDy(); // snapshot once, never read layout in frames
@@ -1282,6 +1366,7 @@ function createRuntime(env: Env): Runtime {
     startFromBall(text, cfg) {
       if (busy) return false;
       busy = true;
+      stopBeat();
       geo.pw = pillW();
       geo.cw = cardW();
       geo.H = homeDy();
@@ -1309,6 +1394,7 @@ function createRuntime(env: Env): Runtime {
       // remains — release it here without touching the current frame,
       // so the orb thinks from exactly what is on screen. The ref
       // entry only allows this from waiting, where no cycle runs.
+      stopBeat();
       busy = false;
       current?.abort();
       current = null;
@@ -1331,6 +1417,7 @@ function createRuntime(env: Env): Runtime {
       void toIdle("reset");
     },
     hard,
+    beat,
     home() {
       if (busy) return;
       geo.pw = pillW();
@@ -1547,6 +1634,9 @@ export default function MorphOrb(props: MorphOrbProps) {
           end,
         };
         return rt.pulse(text, cfg);
+      },
+      beat: (on, label) => {
+        rtRef.current?.beat(on, label);
       },
       setText: (text: string) => {
         textRef.current = text;

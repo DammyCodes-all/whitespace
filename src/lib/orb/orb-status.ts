@@ -35,6 +35,11 @@ export function legWorkingMessage(leg: OrbLeg, detail = ""): string {
  *  line — one process, one vocabulary. */
 export const CHECK_TAIL_LINE = "Reading the titles' tags…";
 
+/** The between-leg beat: the old section is gone and the next one is
+ *  being set up. Shown while the orb glides down and back with no
+ *  cycle running — the orb holds its thinking pose through it. */
+export const SETUP_LINE = "One moment. Setting up the next step.";
+
 /** Shown when the leg needs the human. Pure instruction, no numbers.
  *  Empty means the page already says it — no line renders. */
 export function legPrompt(leg: OrbLeg): string {

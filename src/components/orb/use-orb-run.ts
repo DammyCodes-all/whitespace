@@ -38,6 +38,7 @@ import {
   legWorkingMessage,
   receiptLine,
   runReceipt,
+  SETUP_LINE,
 } from "@/lib/orb/orb-status";
 import type { WorkType } from "@/lib/types";
 
@@ -138,6 +139,8 @@ export function useOrbRun({
     beginLeg,
     askLeg,
     askQuiet,
+    beatWork,
+    beatSettle,
     handlePhase,
     setRetry,
     retry,
@@ -650,12 +653,14 @@ export function useOrbRun({
 
   /** Park an input-leg advance: the old UI unmounts at once, the orb
    *  glides back to centre, and the host settles the parked leg once
-   *  it lands. Status updates on settle, not before; the work line
-   *  holds a neutral beat so the old leg's text never lingers alone. */
+   *  it lands. Status updates on settle, not before; the orb holds its
+   *  thinking pose through the whole glide (beatWork), so the window
+   *  between legs never reads as the waiting colour. */
   function requestAdvance(next: Leg) {
     pendingLeg.current = next;
     setReturning(true);
-    setWorkLabel("One moment. Setting up the next step.");
+    setWorkLabel(SETUP_LINE);
+    beatWork(SETUP_LINE);
   }
 
   /** Play the parked advance now that the orb is back at centre. The
@@ -668,10 +673,19 @@ export function useOrbRun({
     runPulseRef.current = false;
     setReturning(false);
     setWorkLabel(null);
-    if (next === null) return;
+    if (next === null) {
+      beatSettle();
+      return;
+    }
     setLeg(next);
     setStatus(legPrompt(next));
-    if (next === "run" && !runStarted) startScore();
+    if (next === "run" && !runStarted) {
+      startScore();
+    } else {
+      // Hands back to the waiting pose (a live run cycle refuses this
+      // itself — it owns its own pose).
+      beatSettle();
+    }
   }
 
   function continueToTitles() {
