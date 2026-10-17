@@ -42,10 +42,13 @@ export interface OrbFlight {
 export function useOrbFlight({
   orbRef,
   arm,
+  speed = 1,
 }: {
   orbRef: RefObject<OrbHandle | null>;
   /** Arms the entry leg before the runtime reads its work line. */
   arm: (pitch: string) => void;
+  /** Orb pace multiplier (1 = live); the flight squeeze slows with it. */
+  speed?: number;
 }): OrbFlight {
   const params = useSearchParams();
   const [flight, setFlight] = useState<OrbFlightState | null>(null);
@@ -154,7 +157,7 @@ export function useOrbFlight({
           shape,
           text: cloneTextRef.current,
           from: box,
-          target,
+          speed,
           onJoin: () => {
             flightAnim.current = null;
             // The runtime fades its actor in from idle; a handoff needs
