@@ -493,34 +493,56 @@ export function useOrbRun({
     return runReceipt(data.result.verdict);
   }
 
-  function askRun() {
-    // Quiet cycle like Check: the orb is already assembled in its
-    // waiting frame, so the scored run thinks from there instead of
-    // tearing down and replaying the launch morph. The clear ending
-    // (green flash, dissolve into the result) plays as usual.
-    askQuiet({
+  /** The scored run's work: fetch the result, then let the clear
+   *  finale (green flash, dissolve) play out before the result takes
+   *  over. Bounded wait on receipt — never gated on the animation,
+   *  so a dead runtime cannot strand the flow. */
+  async function runScore(): Promise<string> {
+    const receipt = await postRun();
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const wait =
+      (reduced ? CLEAR_FINALE_REDUCED_MS : CLEAR_FINALE_MS) /
+      Math.max(0.1, speed);
+    window.setTimeout(() => {
+      setLeg("done");
+      setStatus(legPrompt("done"));
+    }, wait);
+    return receipt;
+  }
+
+  /** Start (or retry) the scored run from the orb's settled frame at
+   *  centre: a quiet cycle like Check — the orb is already assembled,
+   *  so it thinks from there instead of replaying the launch morph.
+   *  When there is no waiting frame to pulse from (a failed clear
+   *  finale leaves the orb answered), rekindle from a hard reset so
+   *  Retry still works. */
+  function startScore() {
+    const quiet = askQuiet({
       text: pitchText,
       working: legWorkingMessage("run"),
       end: "clear",
-      run: async () => {
-        const receipt = await postRun();
-        // The finale plays on receipt — flip to done as it completes
-        // so the flash shows before the result takes over. Bounded
-        // wait, never gated on the animation.
-        const reduced =
-          typeof window !== "undefined" &&
-          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const wait =
-          (reduced ? CLEAR_FINALE_REDUCED_MS : CLEAR_FINALE_MS) /
-          Math.max(0.1, speed);
-        window.setTimeout(() => {
-          setLeg("done");
-          setStatus(legPrompt("done"));
-        }, wait);
-        return receipt;
-      },
-      retry: askRun,
+      run: runScore,
+      retry: startScore,
     });
+    if (!quiet) {
+      askLeg({
+        text: pitchText,
+        working: legWorkingMessage("run"),
+        end: "clear",
+        run: runScore,
+        retry: startScore,
+      });
+    }
+  }
+
+  /** Score my idea: park the scored run like any leg advance — the
+   *  pool unmounts at once, the orb glides back to centre, and the
+   *  host starts the run there (see settleAdvance). */
+  function requestScore() {
+    if (pendingLeg.current !== null) return;
+    requestAdvance("run");
   }
 
   /* ── local edits (no calls, no orb) ── */
@@ -613,7 +635,8 @@ export function useOrbRun({
     setWorkLabel("One moment. Setting up the next step.");
   }
 
-  /** Play the parked advance now that the orb is back at centre. */
+  /** Play the parked advance now that the orb is back at centre. The
+   *  scored run starts here and stays here — no dock back up. */
   function settleAdvance() {
     const next = pendingLeg.current;
     pendingLeg.current = null;
@@ -622,6 +645,7 @@ export function useOrbRun({
     if (next === null) return;
     setLeg(next);
     setStatus(legPrompt(next));
+    if (next === "run") startScore();
   }
 
   function continueToTitles() {
@@ -687,7 +711,7 @@ export function useOrbRun({
     onCheck: askCheck,
     onContinueToTitles: continueToTitles,
     onReviewFullSet: reviewFullSet,
-    onRun: askRun,
+    onRun: requestScore,
     onEditPitch: editPitch,
   };
 }

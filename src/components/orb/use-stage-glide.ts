@@ -77,8 +77,12 @@ export function useStageGlide(
       lastCenterY.current = null;
       return;
     }
-    const rect = stage.getBoundingClientRect();
-    const y = rect.top + rect.height / 2;
+    // Layout-space centre. A glide in flight is a transform, and
+    // transforms never affect layout — getBoundingClientRect() would
+    // read the mid-flight painted position and poison the next FLIP
+    // baseline, snapping the dock instead of gliding it. The offset
+    // metrics also ignore page scroll.
+    const y = stage.offsetTop + stage.offsetHeight / 2;
     if (!reducedMotion() && was !== centered && lastCenterY.current !== null) {
       const dy = lastCenterY.current - y;
       if (Math.abs(dy) > 4) {
