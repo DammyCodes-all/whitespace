@@ -74,7 +74,7 @@ export function OrbFlow({
     >
       {/* The stage unmounts with the result: the orb dissolved into
           it, so keeping the empty 240px block would strand dead space
-          above the verdict. LegResults enters with leg-in as the
+          above the verdict. LegResults enters with leg-in-swap as the
           stage leaves. */}
       {run.leg !== "done" && (
         <div
@@ -186,7 +186,7 @@ export function OrbFlow({
       )}
 
       {/* The result lands the moment the run is done: the stage is
-          gone, so there is no glide to wait for — the leg-in
+          gone, so there is no glide to wait for — the leg-in-swap
           entrance covers the swap. */}
       {run.leg === "done" && run.result !== null && (
         <LegResults
