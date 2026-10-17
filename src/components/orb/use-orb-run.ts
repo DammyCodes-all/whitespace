@@ -33,6 +33,7 @@ import {
 } from "@/lib/flow/similar-titles";
 import type { FlowStepRow } from "@/lib/flow/view-types";
 import {
+  CHECK_TAIL_LINE,
   legPrompt,
   legWorkingMessage,
   receiptLine,
@@ -426,6 +427,9 @@ export function useOrbRun({
         .map((r) => r.name)
         .filter((n): n is string => typeof n === "string" && n.trim() !== "");
       if (names.length > 0) {
+        // The tail belongs to the Check: step the orb's line with it so
+        // its state never goes stale mid-cycle (§5, §6.1).
+        setWorkLabel(CHECK_TAIL_LINE);
         await Promise.all([
           fetchTitleTags(names, workType),
           fetchTitleSuggestions(
