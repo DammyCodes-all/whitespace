@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Figtree, IBM_Plex_Mono } from "next/font/google";
 import { ViewTransitions } from "next-view-transitions";
 import type { ReactNode } from "react";
-import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -55,7 +54,6 @@ export default function RootLayout({
           </a>
           <SiteHeader />
           {children}
-          <SiteFooter />
         </body>
       </html>
     </ViewTransitions>
