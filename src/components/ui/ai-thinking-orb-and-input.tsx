@@ -982,15 +982,45 @@ function createRuntime(env: Env): Runtime {
     });
 
   /* ── thinking labels ── */
-  const labelLoop = async (sig: AbortSignal, ctl: { stop: boolean }) => {
-    if (env.getWorkLabel() !== null) return; // real line: never cycle
+  /* The label follows the work line for the whole cycle, read live
+     rather than once at think start: a line that lands a commit after
+     the pulse (quiet starts), or one the caller steps forward as its
+     chained calls land, is picked up within a beat. The generic cycle
+     is only the no-line fallback. */
+  const LABEL_POLL_MS = 110;
+  const labelFollow = async (sig: AbortSignal, ctl: { stop: boolean }) => {
+    let shown = env.getWorkLabel() ?? COPY.labels[0];
     let i = 0;
-    for (;;) {
-      await sleep(1150 / env.getSpeed(), sig);
+    let cycledAt = performance.now();
+    while (!sig.aborted && !ctl.stop) {
+      await sleep(LABEL_POLL_MS, sig);
       if (sig.aborted || ctl.stop) return;
-      i = (i + 1) % COPY.labels.length;
-      orb.P.prog = i % 4;
-      env.ui.swapLabel(COPY.labels[i]);
+      const line = env.getWorkLabel();
+      if (line !== null) {
+        if (line !== shown) {
+          shown = line;
+          env.ui.swapLabel(line);
+          env.ui.live(line);
+        }
+        continue;
+      }
+      const now = performance.now();
+      if (!COPY.labels.includes(shown)) {
+        // A line was cleared (between-leg settle): cycle again.
+        i = 0;
+        shown = COPY.labels[0];
+        cycledAt = now;
+        orb.P.prog = 0;
+        env.ui.swapLabel(shown);
+      } else {
+        const beat = 1150 / env.getSpeed();
+        if (now - cycledAt < beat) continue;
+        i = (i + 1) % COPY.labels.length;
+        shown = COPY.labels[i];
+        cycledAt = now;
+        orb.P.prog = i % 4;
+        env.ui.swapLabel(shown);
+      }
     }
   };
 
@@ -1057,7 +1087,7 @@ function createRuntime(env: Env): Runtime {
         env.ui.live(COPY.labels[0]);
       }
       const ctl = { stop: false };
-      void labelLoop(sig, ctl);
+      void labelFollow(sig, ctl);
       const t0 = performance.now();
       const pending = Promise.resolve()
         .then(() => cfg.onSubmit(text))

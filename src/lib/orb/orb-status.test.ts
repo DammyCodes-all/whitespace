@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  CHECK_TAIL_LINE,
   legPrompt,
   legWorkingMessage,
   receiptLine,
@@ -28,6 +29,11 @@ describe("orb-status", () => {
       "Checking Moon, Arrival in Qloo…",
     );
     assert.equal(legWorkingMessage("titles"), "Checking titles in Qloo…");
+  });
+
+  it("check tail line names the chained reads in flight", () => {
+    assert.equal(CHECK_TAIL_LINE, "Reading the titles' tags…");
+    assert.ok(!CHECK_TAIL_LINE.match(/\d/));
   });
 
   it("prompts instruct without inventing", () => {

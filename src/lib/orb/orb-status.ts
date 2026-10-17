@@ -29,6 +29,12 @@ export function legWorkingMessage(leg: OrbLeg, detail = ""): string {
   }
 }
 
+/** The Check's chained tail (gifts' tags, fit-pick, suggestions) runs
+ *  inside the check's own orb cycle (spec §6.1): the orb names the
+ *  family until the whole tail lands. Same words as the section busy
+ *  line — one process, one vocabulary. */
+export const CHECK_TAIL_LINE = "Reading the titles' tags…";
+
 /** Shown when the leg needs the human. Pure instruction, no numbers.
  *  Empty means the page already says it — no line renders. */
 export function legPrompt(leg: OrbLeg): string {
