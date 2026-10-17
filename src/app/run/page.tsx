@@ -12,6 +12,7 @@ export const metadata: Metadata = {
  * move is transitioned (View Transition morph where supported, fade
  * fallback elsewhere — see EntryBox). OrbFlow auto-starts from the
  * param, so the orb's work happens here, never on the landing page.
+ * The run runs at 0.85 pace: a beat slower than utility UI, on purpose.
  *
  * Spec ref: §5.
  */
@@ -19,7 +20,7 @@ export default function RunPage() {
   return (
     <main id="main-content" className="page-enter flex flex-1 flex-col">
       <Suspense>
-        <OrbFlow />
+        <OrbFlow speed={0.85} />
       </Suspense>
     </main>
   );
