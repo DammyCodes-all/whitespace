@@ -51,6 +51,12 @@ export interface OrbBridge {
     run: () => Promise<string>;
     retry: () => void;
   }) => boolean;
+  /** Between-leg advance beat: no cycle runs while the orb glides down
+   *  and back, but the orb holds its thinking pose for the whole window
+   *  (`line` is the honest line for it). */
+  beatWork: (line: string) => void;
+  /** The beat is over: hand the orb back to the waiting pose. */
+  beatSettle: () => void;
   handlePhase: (p: OrbPhase) => void;
   /** Point the shared Retry at a leg the caller is driving itself. */
   setRetry: (fn: () => void) => void;
@@ -143,6 +149,14 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
     return started === true;
   }
 
+  function beatWork(line: string) {
+    orbRef.current?.beat(true, line);
+  }
+
+  function beatSettle() {
+    orbRef.current?.beat(false);
+  }
+
   /** The orb fires answered once a leg's receipt lands (never gated on
    *  animation — a dead orb must not strand the flow). Esc mid-leg drops
    *  through idle/reset inside 800ms of our own ask, so only a later
@@ -175,6 +189,8 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
     beginLeg,
     askLeg,
     askQuiet,
+    beatWork,
+    beatSettle,
     handlePhase,
     setRetry: (fn: () => void) => {
       retryRef.current = fn;

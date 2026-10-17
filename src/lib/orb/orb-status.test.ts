@@ -11,6 +11,7 @@ import {
   legWorkingMessage,
   receiptLine,
   runReceipt,
+  SETUP_LINE,
 } from "./orb-status.ts";
 
 describe("orb-status", () => {
@@ -34,6 +35,11 @@ describe("orb-status", () => {
   it("check tail line names the chained reads in flight", () => {
     assert.equal(CHECK_TAIL_LINE, "Reading the titles' tags…");
     assert.ok(!CHECK_TAIL_LINE.match(/\d/));
+  });
+
+  it("setup line names the between-leg beat, never numbers", () => {
+    assert.equal(SETUP_LINE, "One moment. Setting up the next step.");
+    assert.ok(!SETUP_LINE.match(/\d/));
   });
 
   it("prompts instruct without inventing", () => {
