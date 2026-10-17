@@ -50,8 +50,10 @@ export function OrbFlow({
    *  pool, the suggestions and the score action — never the input. */
   /** Working legs show the orb alone; input legs show UI below it —
    *  held back until the orb settles (see use-stage-glide). Between
-   *  legs the old UI is gone and the orb returns to centre first. */
-  const centered = run.leg === "entry" || run.returning;
+   *  legs the old UI is gone and the orb returns to centre first —
+   *  and the scored run stays there: it is a working leg, so the
+   *  centre is home until the result takes over. */
+  const centered = run.leg === "entry" || run.leg === "run" || run.returning;
   const uiReady = useStageGlide(flight.stageRef, centered);
   /** Leg UI shows only once the orb has settled on its leg — never
    *  during the between-leg return to centre. */
@@ -183,7 +185,10 @@ export function OrbFlow({
         />
       )}
 
-      {run.leg === "done" && run.result !== null && uiVisible && (
+      {/* The result lands the moment the run is done: the stage is
+          gone, so there is no glide to wait for — the leg-in
+          entrance covers the swap. */}
+      {run.leg === "done" && run.result !== null && (
         <LegResults
           result={run.result}
           similarTitles={run.similarTitles}
