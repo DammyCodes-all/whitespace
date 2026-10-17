@@ -771,6 +771,21 @@
     transform: translateY(0);
   }
 }
+/* The orb-to-result swap: the green flash has just faded, so the
+   result must already be there — a bare 100ms fade, no travel, so
+   the verdict reads as if it was always underneath. Used only by
+   LegResults; in-page leg UI keeps the 500ms read-in above. */
+.leg-in-swap {
+  animation: leg-in-swap 100ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes leg-in-swap {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 @keyframes pixel-on {
   0%,
@@ -796,7 +811,8 @@
   .surprise-pop,
   .pixel-cell,
   .shimmer-label,
-  .leg-in {
+  .leg-in,
+  .leg-in-swap {
     animation: none !important;
   }
   .pixel-cell {

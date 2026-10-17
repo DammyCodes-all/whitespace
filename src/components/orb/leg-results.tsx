@@ -50,7 +50,7 @@ export function LegResults({
   onCheckChange,
 }: LegResultsProps) {
   return (
-    <section aria-label="Results" className="leg-in mt-10">
+    <section aria-label="Results" className="leg-in-swap mt-10">
       <section className="rounded-[18px] border-2 border-outline bg-surface p-5 shadow-[4px_4px_0_var(--outline)] sm:p-7">
         <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-3">
           The idea
