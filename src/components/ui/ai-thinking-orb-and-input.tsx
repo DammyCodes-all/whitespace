@@ -1033,6 +1033,17 @@ function createRuntime(env: Env): Runtime {
           await go(R_IN);
         }
       }
+      /* Quiet starts skip the morph, so the caller's work line (set in
+         the same tick the pulse is requested) is still one React commit
+         away — yield a frame so the read below names the real call
+         instead of falling into the generic label cycle. */
+      if (quiet) {
+        await abortable(
+          new Promise<void>((r) => requestAnimationFrame(() => r())),
+          sig,
+        );
+        if (sig.aborted) throw ABORT;
+      }
       /* think — until the answer settled AND the minimum time elapsed */
       env.ui.setPhase("think");
       const workLabel = env.getWorkLabel();

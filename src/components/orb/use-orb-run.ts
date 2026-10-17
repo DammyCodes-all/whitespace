@@ -123,6 +123,9 @@ export function useOrbRun({
    *  to centre, then the host settles it (see settleAdvance). */
   const [returning, setReturning] = useState(false);
   const pendingLeg = useRef<Leg | null>(null);
+  /** True when the scored run's cycle already started on the press
+   *  (see requestScore) — settleAdvance must not start it twice. */
+  const runPulseRef = useRef(false);
   const {
     status,
     error,
@@ -414,21 +417,27 @@ export function useOrbRun({
       setQlooSuggestions([]);
       setSuggestDone(false);
       // Gifts and suggestions rebuild from the full merged set, so the
-      // kept titles' tastes are never silently dropped.
+      // kept titles' tastes are never silently dropped. They belong to
+      // the Check (spec §6.1 — one call chained to the explicit Check),
+      // so the cycle's work promise waits for them: the orb never says
+      // "Over to you." while these are still in flight. Both helpers
+      // swallow their own errors, so this cannot fail the cycle.
       const names = merged.resolved
         .map((r) => r.name)
         .filter((n): n is string => typeof n === "string" && n.trim() !== "");
       if (names.length > 0) {
-        void fetchTitleTags(names, workType);
-        void fetchTitleSuggestions(
-          merged.resolved
-            .map((r) => r.qlooId)
-            .filter(
-              (id): id is string => typeof id === "string" && id.trim() !== "",
-            ),
-          parseSimilarTitles(similarTitles),
-          workType,
-        );
+        await Promise.all([
+          fetchTitleTags(names, workType),
+          fetchTitleSuggestions(
+            merged.resolved
+              .map((r) => r.qlooId)
+              .filter(
+                (id): id is string => typeof id === "string" && id.trim() !== "",
+              ),
+            parseSimilarTitles(similarTitles),
+            workType,
+          ),
+        ]);
       } else {
         setTitleTagsDone(true);
         setSuggestDone(true);
@@ -537,12 +546,22 @@ export function useOrbRun({
     }
   }
 
-  /** Score my idea: park the scored run like any leg advance — the
-   *  pool unmounts at once, the orb glides back to centre, and the
-   *  host starts the run there (see settleAdvance). */
+  /** Score my idea: the run starts working on the press — the pool
+   *  unmounts at once and the orb carries its thinking state down the
+   *  glide to centre, so the descent is never idle. The parked advance
+   *  only switches the leg on settle (see settleAdvance); a refused
+   *  pulse is started there instead. */
   function requestScore() {
     if (pendingLeg.current !== null) return;
-    requestAdvance("run");
+    pendingLeg.current = "run";
+    setReturning(true);
+    runPulseRef.current = askQuiet({
+      text: pitchText,
+      working: legWorkingMessage("run"),
+      end: "clear",
+      run: runScore,
+      retry: startScore,
+    });
   }
 
   /* ── local edits (no calls, no orb) ── */
@@ -636,16 +655,19 @@ export function useOrbRun({
   }
 
   /** Play the parked advance now that the orb is back at centre. The
-   *  scored run starts here and stays here — no dock back up. */
+   *  scored run normally already started on the press (requestScore)
+   *  and stays centred — only a refused early pulse starts here. */
   function settleAdvance() {
     const next = pendingLeg.current;
+    const runStarted = runPulseRef.current;
     pendingLeg.current = null;
+    runPulseRef.current = false;
     setReturning(false);
     setWorkLabel(null);
     if (next === null) return;
     setLeg(next);
     setStatus(legPrompt(next));
-    if (next === "run") startScore();
+    if (next === "run" && !runStarted) startScore();
   }
 
   function continueToTitles() {
