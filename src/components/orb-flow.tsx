@@ -35,13 +35,15 @@ export function OrbFlow({
   speed = 1,
 }: {
   homeHref?: string;
-  /** Orb pace multiplier (1 = live). Demo passes < 1 to slow the
-   *  morph→think→resolve beats for review; the real run stays at 1. */
+  /** Orb pace multiplier (1 = live pace). The run page passes 0.85 so
+   *  the whole journey — squeeze, grow, think, resolve — reads a beat
+   *  slower and more deliberate; the demo drops further to 0.6 for
+   *  review pacing. */
   speed?: number;
 }) {
   const orbRef = useRef<OrbHandle | null>(null);
   const run = useOrbRun({ orbRef, homeHref, speed });
-  const flight = useOrbFlight({ orbRef, arm: run.armEntry });
+  const flight = useOrbFlight({ orbRef, arm: run.armEntry, speed });
 
   const poolVisible = run.leg === "tags" || run.leg === "aggregate";
   /** Titles input lives on the titles leg only; aggregate keeps the
