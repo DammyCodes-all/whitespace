@@ -299,15 +299,17 @@
    page through an animated move. The ViewTransitions wrapper (root
    layout, next-view-transitions) holds the snapshot across Next's async
    navigation; page-enter covers browsers without the API. Flat fade/rise
-   only, in our 150–240ms timing — no glass, no glow. */
+   only. Premium pace: the move holds a beat slower than utility UI on
+   purpose (300ms) — the old page lingers while the twin condenses, so
+   the card fades out as its copy fades in. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 220ms;
+  animation-duration: 300ms;
   animation-timing-function: ease-out;
 }
 
 .page-enter {
-  animation: page-in 240ms ease-out;
+  animation: page-in 300ms ease-out;
 }
 
 @keyframes page-in {
@@ -695,30 +697,36 @@
   }
 }
 
-/* Morph handoff: the landing box's twin renders at the idle pill
-   (portaled to <body>, WAAPI-driven) and condenses card → ball in
-   place before the runtime joins at the ball. Nothing travels. The
-   portal matters: a fixed child of a transformed ancestor (the
-   .page-enter rise) would ride along with it. The inner twins the
-   entry .card exactly (surface, 16px, hard shadow) so the opening
-   frame has zero color shift. */
+/* Morph handoff: the landing box's twin renders centred on the ball
+   spot (portaled to <body>, WAAPI-driven) and condenses card → ball on
+   real geometry — width/height/radius, never scale — before the
+   runtime joins at the ball. Nothing travels. The portal matters: a
+   fixed child of a transformed ancestor (the .page-enter rise) would
+   ride along with it. The .flight-clone is a 0×0 anchor point at the
+   pill's centre; .flight-inner sits absolutely centred on it and twins
+   the entry .card exactly (surface, 16px, hard shadow) so the opening
+   frame has zero color shift, sizing inline from the landing rect so
+   there is no unstyled frame before the animation arms. */
 .flight-clone {
   position: fixed;
   z-index: 50;
+  width: 0;
+  height: 0;
   pointer-events: none;
 }
 
 .flight-inner {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
   padding: 16px 20px 12px;
   background: var(--surface);
   border: 2px solid var(--outline);
   border-radius: 16px;
   box-shadow: 4px 4px 0 var(--outline);
   overflow: hidden;
-  transform-origin: center;
-  will-change: transform;
 }
 
 .flight-text {
