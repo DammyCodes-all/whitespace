@@ -63,6 +63,12 @@
 @layer base {
   html {
     background: var(--paper);
+    /* Reserve the scrollbar gutter on every page: the landing and the
+       run page overflow differently, and a gutter that appears or
+       vanishes at the navigation point reflows both snapshots sideways
+       mid-move — the flash that distorts the handoff. The reserved
+       track is paper-on-paper, so an unfilled gutter reads as nothing. */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -298,10 +304,13 @@
 /* Landing → run handoff: the entry box hands the pitch to the blank run
    page through an animated move. The ViewTransitions wrapper (root
    layout, next-view-transitions) holds the snapshot across Next's async
-   navigation; page-enter covers browsers without the API. Flat fade/rise
-   only. Premium pace: the move holds a beat slower than utility UI on
-   purpose (300ms) — the old page lingers while the twin condenses, so
-   the card fades out as its copy fades in. */
+   navigation; page-enter covers browsers without the API. Opacity only,
+   on purpose: a rise (translateY) adds 10px of scrollable overflow for
+   the length of the animation, which pops a scrollbar thumb in at the
+   navigation point and pops it out again when it ends — the flash over
+   the handoff. A fade displaces nothing, so no scrollbar can ever
+   appear. Premium pace: 300ms, a beat slower than utility UI, so the
+   old page lingers while the twin condenses. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 300ms;
@@ -315,7 +324,6 @@
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
 }
 

@@ -13,16 +13,12 @@ import type { FlightRect } from "@/components/entry-box";
  *                      shape travels, never two motions fighting
  *   gather    0–126ms  the card nips 16px narrower — a breath before the
  *                      squeeze, so the condense reads as intentional
- *   condense  126–357ms the empty card collapses toward the ball; the
+ *   condense  126–357ms the empty card collapses to a 54px circle; the
  *                      30px radius clamps to a true circle as it lands
- *   ink       231–378ms the fill and shadow ease from surface to ink
- *                      across the late collapse — a smooth darkening
- *                      (same io family as the orb's own curves), not a
- *                      snap at touchdown, and never grey across the
- *                      whole squeeze: the card keeps its identity while
- *                      it is big and only turns black as it condenses
- *   settle    357–420ms 54 → 60px, the flip completes — the card is the
- *                      ink ball exactly as it lands
+ *   settle    357–420ms 54 → 60px, surface → ink, shadow fades — the
+ *                      flip to ink holds until this closing beat: the
+ *                      card keeps its identity while it is big, and a
+ *                      mid-squeeze darkening only reads as a blink
  *
  * The swap: the clone's last frame IS the runtime's first ball frame
  * (60px flat ink, same centre, same fill), so a crossfade would
@@ -98,31 +94,21 @@ export function morphClone({
         offset: 0.3,
         easing: "cubic-bezier(0.77, 0, 0.175, 1)",
       },
-      /* The ink beat: fill + shadow only, so width/height interpolate
-         straight across these frames. The darkening runs on the same
-         io curve the orb runtime uses for on-screen morphs. */
-      {
-        backgroundColor: surface,
-        boxShadow: `4px 4px 0 ${outline}`,
-        offset: 0.55,
-        easing: "cubic-bezier(0.65, 0, 0.35, 1)",
-      },
       {
         width: "54px",
         height: "54px",
         borderRadius: "30px",
+        backgroundColor: surface,
+        boxShadow: `2px 2px 0 ${outline}`,
         offset: 0.85,
         easing: "cubic-bezier(0.23, 1, 0.32, 1)",
-      },
-      {
-        backgroundColor: ink,
-        boxShadow: "0px 0px 0 rgba(23, 21, 31, 0)",
-        offset: 0.9,
       },
       {
         width: "60px",
         height: "60px",
         borderRadius: "30px",
+        backgroundColor: ink,
+        boxShadow: "0px 0px 0 rgba(23, 21, 31, 0)",
         offset: 1,
       },
     ],
