@@ -51,6 +51,13 @@ export interface FlowTag {
    * Absent on older runs, which were pitch-only and read as pitch.
    */
   source?: FlowTagSource;
+  /**
+   * Qloo's own display name when it differs from `label`, so a
+   * semantic match stays legible (`lonely` scored as `Loneliness`).
+   * Absent means the names agree — which is also how older saved runs
+   * read, and was correct for them. `label` is never replaced.
+   */
+  qlooName?: string;
 }
 
 /**
