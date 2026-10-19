@@ -15,6 +15,19 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  BALL_D,
+  BALL_MS,
+  COLLAPSE_FROM_MS,
+  cubicBezier,
+  INK_MS,
+  MELT_MS,
+  pushEase,
+  SQUASH_MS,
+  SQUEEZE_OVER,
+  SQUEEZE_TALL,
+  settleEase,
+} from "@/components/orb/morph-geometry";
 
 /* ───────────────────────────── copy ───────────────────────────── */
 const COPY = {
@@ -95,7 +108,8 @@ export type OrbEnd = "card" | "wait" | "clear";
    16px corners), so submit deforms it — wide card → ball → orb — on the
    runtime's own w/h/r tracks. */
 const PILL_H = 200,
-  BALL_SMALL = 60,
+  /** Join ball — shared with the flight clone (morph-geometry). */
+  BALL_SMALL = BALL_D,
   ORB_D = 132,
   ORB_R = 66,
   CANVAS = 220;
@@ -135,39 +149,8 @@ function mulberry32(a: number) {
   };
 }
 
-function cubicBezier(x1: number, y1: number, x2: number, y2: number): Ease {
-  const cx = 3 * x1,
-    bx = 3 * (x2 - x1) - cx,
-    ax = 1 - cx - bx;
-  const cy = 3 * y1,
-    by = 3 * (y2 - y1) - cy,
-    ay = 1 - cy - by;
-  const sx = (t: number) => ((ax * t + bx) * t + cx) * t;
-  const sy = (t: number) => ((ay * t + by) * t + cy) * t;
-  const dx = (t: number) => (3 * ax * t + 2 * bx) * t + cx;
-  const solve = (x: number) => {
-    let t = x;
-    for (let i = 0; i < 8; i++) {
-      const e = sx(t) - x;
-      if (Math.abs(e) < 1e-6) return t;
-      const d = dx(t);
-      if (Math.abs(d) < 1e-6) break;
-      t -= e / d;
-    }
-    let lo = 0,
-      hi = 1;
-    t = x;
-    for (let i = 0; i < 40; i++) {
-      const e = sx(t);
-      if (Math.abs(e - x) < 1e-6) break;
-      if (x > e) lo = t;
-      else hi = t;
-      t = (hi - lo) / 2 + lo;
-    }
-    return t;
-  };
-  return (x) => (x <= 0 ? 0 : x >= 1 ? 1 : sy(solve(x)));
-}
+/* cubicBezier lives in morph-geometry: the morph's beats and this
+   file's own curves are the same solver, defined once. */
 
 const E = {
   out: cubicBezier(0.22, 1, 0.36, 1),
@@ -178,6 +161,10 @@ const E = {
   vortex: cubicBezier(0.6, 0, 0.2, 1),
   spring: cubicBezier(0.34, 1.4, 0.64, 1),
   card: cubicBezier(0.65, 0, 0.2, 1),
+  /* The morph's beats (mirrors of morph-geometry's EASE_PUSH/EASE_SETTLE):
+     push compresses into the squash point, settle springs back out. */
+  push: pushEase,
+  settle: settleEase,
   lin: (t: number) => t,
 };
 
@@ -209,31 +196,65 @@ interface Geo {
   dir: number;
 }
 
+/* One shape, never cut (see morph-geometry): the pill's content melts
+   out first, then the empty pill falls straight into the circle — past
+   it, SQUEEZE_OVER narrower and SQUEEZE_TALL taller — before springing
+   back out to it; the ink turn is the closing beat (here the pill →
+   ball crossfade). Beats mirror the flight clone's, so a direct entry
+   reads the same as the landing handoff. */
 const launchTracks = (g: Geo): Track[] => [
-  T("w", g.pw, g.pw - 12, 0, 100, E.out),
-  T("oInput", 1, 0, 0, 160, E.in),
-  T("oGlow", 1, 0, 0, 300, E.out),
-  T("oAur", 1, 0, 0, 300, E.out),
-  T("w", g.pw - 12, BALL_SMALL, 100, 560, E.io),
-  T("h", PILL_H, PILL_H + 6, 380, 500, E.out),
-  T("h", PILL_H + 6, BALL_SMALL, 500, 620, E.out),
-  T("r", BOX_R, BALL_SMALL / 2, 100, 560, E.io),
-  T("oPill", 1, 0, 300, 560, E.out),
-  T("oBall", 0, 1, 300, 560, E.out),
-  T("u", 0, 1, 620, 1500, E.fly),
-  T("w", BALL_SMALL, FLY_D, 620, 1300, E.grow),
-  T("h", BALL_SMALL, FLY_D, 620, 1300, E.grow),
-  T("r", BALL_SMALL / 2, ORB_D / 2, 620, 1500, E.out),
-  T("w", FLY_D, ORB_D, 1300, 1500, E.out),
-  T("h", FLY_D, ORB_D, 1300, 1500, E.out),
-  T("cHalo", 0, 0.6, 620, 1500, E.out),
-  T("trail", 0, 1, 700, 800, E.out),
-  T("trail", 1, 0, 1300, 1500, E.in),
+  T("oInput", 1, 0, 0, MELT_MS, E.in),
+  T("oGlow", 1, 0, 0, SQUASH_MS, E.out),
+  T("oAur", 1, 0, 0, SQUASH_MS, E.out),
+  T(
+    "w",
+    g.pw,
+    BALL_SMALL - SQUEEZE_OVER,
+    COLLAPSE_FROM_MS,
+    SQUASH_MS,
+    E.push,
+  ),
+  T(
+    "h",
+    PILL_H,
+    BALL_SMALL + SQUEEZE_TALL,
+    COLLAPSE_FROM_MS,
+    SQUASH_MS,
+    E.push,
+  ),
+  T("r", BOX_R, BALL_SMALL / 2, COLLAPSE_FROM_MS, SQUASH_MS, E.push),
+  T(
+    "w",
+    BALL_SMALL - SQUEEZE_OVER,
+    BALL_SMALL,
+    SQUASH_MS,
+    BALL_MS,
+    E.settle,
+  ),
+  T(
+    "h",
+    BALL_SMALL + SQUEEZE_TALL,
+    BALL_SMALL,
+    SQUASH_MS,
+    BALL_MS,
+    E.settle,
+  ),
+  T("oPill", 1, 0, BALL_MS, INK_MS, E.out),
+  T("oBall", 0, 1, BALL_MS, INK_MS, E.out),
+  T("u", 0, 1, INK_MS, INK_MS + 880, E.fly),
+  T("w", BALL_SMALL, FLY_D, INK_MS, INK_MS + 680, E.grow),
+  T("h", BALL_SMALL, FLY_D, INK_MS, INK_MS + 680, E.grow),
+  T("r", BALL_SMALL / 2, ORB_D / 2, INK_MS, INK_MS + 880, E.out),
+  T("w", FLY_D, ORB_D, INK_MS + 680, INK_MS + 880, E.out),
+  T("h", FLY_D, ORB_D, INK_MS + 680, INK_MS + 880, E.out),
+  T("cHalo", 0, 0.6, INK_MS, INK_MS + 880, E.out),
+  T("trail", 0, 1, INK_MS + 80, INK_MS + 180, E.out),
+  T("trail", 1, 0, INK_MS + 680, INK_MS + 880, E.in),
 ];
 
 /* Flight handoff: the clone already morphed card → ball, so the runtime
    joins at the ball (second half of launch, re-based to t=0) and grows
-   to the orb. Timings mirror launchTracks[620…1500]. */
+   to the orb. Timings mirror launchTracks from the ink beat on. */
 const launchBallTracks = (): Track[] => [
   T("u", 0, 1, 0, 880, E.fly),
   T("w", BALL_SMALL, FLY_D, 0, 680, E.grow),
@@ -1372,7 +1393,7 @@ function createRuntime(env: Env): Runtime {
       geo.H = homeDy();
       geo.dir = -geo.dir;
       orb.reset();
-      // Ball state: what launchTracks leaves behind at t=620.
+      // Ball state: what launchTracks leaves behind at the ink beat.
       setNow("w", BALL_SMALL);
       setNow("h", BALL_SMALL);
       setNow("r", BALL_SMALL / 2);

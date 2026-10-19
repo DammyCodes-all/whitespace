@@ -40,15 +40,21 @@ export function VerdictHeadline({
           : "Where the pitch lands."}
       </h1>
       <p className="mt-4 max-w-prose text-body text-ink-2">
-        {pitchText} Verdict {context} is {verdict.verdict}, margin{" "}
-        <span data-numeric className="tnum font-mono text-sm">
-          {verdict.marginTopVsSecond.toFixed(2)}
-        </span>{" "}
-        over second and{" "}
+        {pitchText} Verdict {context} is {verdict.verdict}:{" "}
+        {verdict.marginTopVsSecond === null ? (
+          "no runner-up measured"
+        ) : (
+          <>
+            <span data-numeric className="tnum font-mono text-sm">
+              {verdict.marginTopVsSecond.toFixed(2)}
+            </span>{" "}
+            ahead of the runner-up,
+          </>
+        )}{" "}
         <span data-numeric className="tnum font-mono text-sm">
           {verdict.marginTopVsControl.toFixed(2)}
         </span>{" "}
-        over control.
+        ahead of the strongest comparison.
       </p>
     </div>
   );
