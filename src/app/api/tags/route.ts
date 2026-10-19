@@ -58,11 +58,20 @@ export async function POST(request: Request) {
   resetQuota();
   const tagRes = await resolvePitchTags(proposal.words, proposal.workType);
   const tags: FlowTag[] = [
-    ...tagRes.tags.map((t) => ({
-      label: t.tag,
-      qlooId: t.qlooTagId,
-      status: "matched" as const,
-    })),
+    ...tagRes.tags.map((t) => {
+      const qlooName = tagRes.qlooNames[t.qlooTagId];
+      return {
+        label: t.tag,
+        qlooId: t.qlooTagId,
+        status: "matched" as const,
+        // Only when Qloo's name differs from the word: `lonely → Loneliness`.
+        // Case alone is not a difference (`heist` vs `Heist` stays quiet).
+        ...(qlooName === undefined ||
+        qlooName.toLowerCase() === t.tag.toLowerCase()
+          ? {}
+          : { qlooName }),
+      };
+    }),
     ...tagRes.notFoundWords.map((w) => ({
       label: w,
       status: "not_found" as const,
@@ -73,6 +82,8 @@ export async function POST(request: Request) {
     matched: tagRes.tags.length,
     suggested: proposal.words.length,
     workType: proposal.workType,
+    /** Words the semantic pass rescued on a plain-search miss. */
+    semanticWords: tagRes.semanticWords,
     /** Below this the run stops as Inconclusive (flow gate). */
     minMatched: MIN_MATCHED_TAGS,
   });

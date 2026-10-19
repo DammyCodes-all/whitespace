@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { categoryWord, namedAudienceLabel } from "@/lib/audience-words";
 import { listRuns, loadRun } from "@/lib/demo/store";
 import { isUnjudgeable } from "@/lib/scoring/fit";
 import type {
@@ -38,20 +39,25 @@ function audienceName(run: PipelineResult, id: string): string {
   return audienceById(run, id)?.name ?? id;
 }
 
-/** "Hypothesis (film)" — kind of the top audience plus the run's domain. */
+/**
+ * The user's own audience reads in plain words ("People who like the
+ * Movies you named"); Rival/Control keep the spec word for now — the
+ * user's call, revisit on request.
+ */
 function kindLabel(run: PipelineResult, id: string | null): string {
   const audience = audienceById(run, id);
   if (audience === undefined) return "no top audience";
+  if (audience.kind === "hypothesis") {
+    return namedAudienceLabel(run.input.workType);
+  }
   const kind =
-    audience.kind === "hypothesis"
-      ? "Hypothesis"
-      : audience.kind === "rival"
-        ? "Rival"
-        : audience.kind === "control"
-          ? "Control"
-          : "Exclusion";
+    audience.kind === "rival"
+      ? "Rival"
+      : audience.kind === "control"
+        ? "Control"
+        : "Exclusion";
   const workType: WorkType = run.input.workType;
-  return `${kind} (${workType})`;
+  return `${kind} (${categoryWord(workType)})`;
 }
 
 /** Verdict word color by meaning. Inconclusive abstains: quiet, no emphasis. */
@@ -123,7 +129,7 @@ export function SavedRunPanel() {
           Saved runs · {runs.length}
         </h2>
         <p className="font-mono text-xs text-ink-3">
-          Replayed locally — no Qloo calls.
+          Replayed from this browser — nothing ran again.
         </p>
       </div>
 

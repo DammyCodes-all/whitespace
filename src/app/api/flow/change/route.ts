@@ -1,21 +1,38 @@
 import { NextResponse } from "next/server";
-import { CONTROL_COUNT } from "@/lib/config";
+import { CONTROL_COUNT, MIN_RISE_SHARE } from "@/lib/config";
 import { proposeDeterministic } from "@/lib/demo/propose-stub";
 import { barRows, type FlowResult } from "@/lib/flow/contract";
 import type { ChangedRun } from "@/lib/pipeline/change";
-import { checkChange, MIN_RISE } from "@/lib/policy/change";
+import { type ChangeBar, checkChange, MIN_RISE } from "@/lib/policy/change";
 import { reportCoverage } from "@/lib/policy/grounding";
-import { CONTROL_MARGIN } from "@/lib/policy/verdict";
+import { testAgainstControls } from "@/lib/policy/verdict";
 import { loadControlTastes } from "@/lib/qloo/control-cache";
 import { resetQuota } from "@/lib/qloo/index";
 import { resolvePitchTags } from "@/lib/qloo/resolve-tags";
 import { WORK_TYPE_TO_ENTITY_TYPE } from "@/lib/qloo/rival-discovery";
 import { fetchAudienceTastes } from "@/lib/qloo/tastes";
-import { scoreAll } from "@/lib/scoring/fit";
+import { isUnjudgeable, scoreAll } from "@/lib/scoring/fit";
 import { findGaps, labelsForTastes } from "@/lib/scoring/gaps";
-import type { Audience, PitchTag, QlooCall, WorkType } from "@/lib/types";
+import type {
+  Audience,
+  FitScore,
+  PitchTag,
+  QlooCall,
+  WorkType,
+} from "@/lib/types";
 
 const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
+
+/**
+ * §6.9: the bar is fixed here, before any proposal runs, and carried on
+ * the response so the page judges by what was recorded. `minShare` is
+ * the scale-aware alternative to the absolute floor (see ChangeBar).
+ */
+const CHANGE_BAR: ChangeBar = {
+  minRise: MIN_RISE,
+  minShare: MIN_RISE_SHARE,
+  requireControl: true,
+};
 
 /**
  * A withheld change is a normal outcome (§10 #5): same shape every
@@ -43,7 +60,7 @@ function withheld({
       constraint,
       proposedPitch,
       usedGapLabels,
-      bar: { minRise: MIN_RISE, requireControl: true },
+      bar: CHANGE_BAR,
       check: {
         accepted: false,
         failedCondition: "rise",
@@ -62,8 +79,12 @@ function withheld({
  * `ChangedRun`. The bar is recorded before the proposal runs; the
  * deterministic stub proposes from the gaps (never the bar), new tags
  * resolve through Qloo, and the same scorer re-judges on the same
- * audience tastes. A withheld change is a normal outcome, not an
- * error — the page names the failed condition (§10 #5).
+ * audience tastes. The acceptance conditions are the run's own
+ * conditions since 2026-10-19 (fix 5): the same rank-based control test
+ * (`testAgainstControls`, judgeable comparisons only) plus a separation
+ * bar, so a rewrite that lifts everyone instead of the winner is
+ * withheld. A withheld change is a normal outcome, not an error — the
+ * page names the failed condition (§10 #5).
  */
 export async function POST(request: Request) {
   let body: unknown = null;
@@ -200,30 +221,46 @@ export async function POST(request: Request) {
 
   const controlCached = await loadControlTastes(workType, CONTROL_COUNT);
   calls.push(...controlCached.calls);
-  const controlScores = scoreAll(controlCached.tastes, afterTags);
-  const controlBest = controlScores.reduce(
-    (best, s) => Math.max(best, s.score),
-    0,
-  );
-  const clearsControl =
-    controlCached.controls.length === 0
-      ? false
-      : after.score - controlBest >= CONTROL_MARGIN;
+  // Same comparison field as the run, scored on both tag sets: judgeable
+  // controls only (a placeholder 0 is no-data, never a low score), and
+  // the winner's lead over the strongest of them before and after
+  // (fix 5). The strangers baseline is not re-fetched here — it is not
+  // part of the saved result, and re-deriving it would cost calls for a
+  // comparison the run already made.
+  const beforeControlScores = scoreAll(controlCached.tastes, matchedTags);
+  const afterControlScores = scoreAll(controlCached.tastes, afterTags);
+  const bestJudgeable = (scores: FitScore[]): number => {
+    let best = 0;
+    for (const fit of scores) {
+      if (isUnjudgeable(fit)) continue;
+      if (fit.score > best) best = fit.score;
+    }
+    return best;
+  };
+  const separation = {
+    before: before.score - bestJudgeable(beforeControlScores),
+    after: after.score - bestJudgeable(afterControlScores),
+  };
+  const field = testAgainstControls(after.score, afterControlScores, null, {
+    pooledTags: afterTags.length,
+  });
+  const clearsControl = field.clears;
 
   return NextResponse.json({
     changed: {
       constraint,
       proposedPitch,
       usedGapLabels,
-      bar: { minRise: MIN_RISE, requireControl: true },
+      bar: CHANGE_BAR,
       check: checkChange(
-        { minRise: MIN_RISE, requireControl: true },
+        CHANGE_BAR,
         before,
         after,
         coverageBefore,
         coverageAfter,
         isGrounded,
         clearsControl,
+        separation,
       ),
       after,
       coverageAfter,
