@@ -119,13 +119,16 @@ Every live run is a fixed pipeline, in this order. All calls are `GET`.
 
 | Endpoint | Used for | Key parameters |
 |---|---|---|
-| `/search` | Resolve a similar title to a Qloo entity; check titles on demand | `query`, `types`, `take` |
-| `/v2/tags` | Match pitch words to real Qloo tags (scoped per work type) | `query`, `filter.tag.types` |
-| `/v2/tags/search` | Semantic second pass for words the plain tag search misses | `query`, `filter.tag.types` |
+| `/search` | Resolve a similar title to a Qloo entity; check titles on demand | `query`, `types` (per work type), `take` |
+| `/v2/tags` | Match pitch words to real Qloo tags (scoped per work type). The same path is retried with `feature.semantic_search=true` for words the plain pass misses | `filter.query`, `filter.tag.types`, `take`, `feature.semantic_search` |
 | `/v2/insights` | Audience taste lists | `filter.type=urn:tag`, `signal.interests.entities`, `filter.tag.types`, `take` |
 | `/v2/insights` | Rival-audience discovery (own domain first, then cross-domain) | `filter.type`, `signal.interests.tags` or `signal.interests.entities`, `take` |
 | `/v2/insights` | Title suggestions seeded from the titles you typed | `filter.type`, `signal.interests.entities`, `take` |
 | `/v2/insights` | Reach items: people, podcasts, brands, places | `filter.type`, `signal.interests.entities`, `filter.exclude.entities`, `take` |
+
+Tag lookup is one `GET /v2/tags` per word; the tag path is overridable with
+`QLOO_TAGS_PATH` (the `/v2/tags/search` variant 404s in the hackathon
+environment, so `/v2/tags` is the default).
 
 Pipeline order: scope gate → cheap empty check → titles resolve (≥1) → named
 tastes + rivals → controls → tag pool + pool gate → hold-out rounds → scores →
