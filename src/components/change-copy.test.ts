@@ -13,6 +13,7 @@ import {
 describe("changeReason", () => {
   it("names each failed condition in plain words", () => {
     assert.match(changeReason("rise"), /improvement bar/);
+    assert.match(changeReason("separation"), /lifted the field more/);
     assert.match(changeReason("coverage"), /fewer of your words/);
     assert.match(changeReason("grounding"), /found in Qloo/);
     assert.match(changeReason("control"), /lost its lead/);
