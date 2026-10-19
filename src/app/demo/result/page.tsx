@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { ChangeView } from "@/components/change";
 import { FlowCompareView } from "@/components/flow-compare";
 import { FlowResultView } from "@/components/flow-result-view";
+import { IdeaCard } from "@/components/idea-card";
 import { ReachPlan } from "@/components/reach";
 import {
-  DEMO_CHANGE_ACCEPTED,
   DEMO_CHATBOT,
   DEMO_FLOW_RESULT,
   DEMO_GAPS,
@@ -35,39 +34,17 @@ export default function DemoResultPage() {
   return (
     <main id="main-content" className="flex-1">
       <div className="mx-auto w-full max-w-5xl px-6 py-10 sm:px-8 sm:py-14">
-        <section className="mt-10 rounded-[18px] border-2 border-outline bg-surface p-5 shadow-[4px_4px_0_var(--outline)] sm:p-7">
-          <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-3">
-            The idea
-          </p>
-          <p className="mt-3 max-w-3xl font-serif text-2xl leading-tight tracking-tight text-ink sm:text-3xl">
-            {DEMO_PITCH_TEXT}
-          </p>
-          <p className="mt-3 font-mono text-xs text-ink-3">
-            film · fixture run · 11 Qloo calls saved
-          </p>
-        </section>
+        <IdeaCard
+          className="mt-10"
+          pitch={DEMO_PITCH_TEXT}
+          meta="film · fixture run · 11 Qloo calls saved"
+        />
 
         <div className="mt-12">
           <FlowResultView result={DEMO_FLOW_RESULT} orangeVerdict />
         </div>
 
-        <ReachPlan
-          groups={REACH_GROUPS}
-          gapAside={
-            <div>
-              <h2 className="text-lg tracking-tight text-ink">
-                Change and re-check
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-ink-2">
-                A constraint can change the pitch, but the new version has to
-                score higher to land.
-              </p>
-              <div className="mt-4">
-                <ChangeView changed={DEMO_CHANGE_ACCEPTED} />
-              </div>
-            </div>
-          }
-        />
+        <ReachPlan groups={REACH_GROUPS} />
 
         <FlowCompareView
           result={DEMO_FLOW_RESULT}
