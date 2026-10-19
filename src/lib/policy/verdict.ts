@@ -30,7 +30,7 @@
  * - THE COMPARISON FIELD IS THE ~20 OTHER-GENRE CONTROLS (plus strangers
  *   when measured), and it must be measured: at least
  *   MIN_JUDGEABLE_CONTROLS judgeable controls and a strongest
- *   comparison that really holds pooled tags (MIN_CEILING_HITS).
+ *   comparison that really holds pooled tags (MIN_CEILING_SHARE).
  * - SUFFICIENCY IS THE POOL, NOT THE PITCH WORD RATE. The verdict gates
  *   on the pooled tag count (MIN_MATCHED_TAGS); the pitch-word coverage
  *   fraction is reported, never a gate — title gifts can carry a run
@@ -293,9 +293,7 @@ export function decideVerdict(
     pooledTags,
   });
   if (field.reason !== undefined) {
-    return inconclusive(scores, field.reason, top.audienceId, {
-      controlsBeaten: { beaten: field.beaten, total: field.total },
-    });
+    return inconclusive(scores, field.reason, top.audienceId);
   }
 
   const marginTopVsControl = top.score - (field.ceiling ?? 0);
