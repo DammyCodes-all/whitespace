@@ -369,7 +369,8 @@ What sets Whitespace apart is the rival audiences, the control test, honest "no 
 3. Whether exclusion, expansion, concept or pinning earn their way back onto the flow path.
 4. Final re-calibration of verdict margins once bridges are in the live mix.
 5. Whether any other sponsor technology or extra judging criteria on the Devpost page carry points. Check the page again before building.
-6. Repository license.
+6. ~~Repository license.~~ Decided 2026-10-19: MIT (`LICENSE` at the repo
+   root, so GitHub shows it in the repo About section).
 7. The deadline's time zone.
 8. Required Devpost fields complete, per the current rules on the page.
 
