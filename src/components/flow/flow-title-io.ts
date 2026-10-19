@@ -34,9 +34,16 @@ export async function fetchTitleTags(
     const data = (await res.json()) as {
       tags?: TitleGift[];
       note?: unknown;
+      quota?: unknown;
     };
     set.setPreviewNote(
-      res.ok && typeof data.note === "string" ? data.note : null,
+      res.ok && typeof data.note === "string"
+        ? data.note
+        : data.quota === "rate-limited" || data.quota === "exhausted"
+          ? data.quota
+          : res.ok
+            ? null
+            : "preview-failed",
     );
     const valid =
       res.ok && Array.isArray(data.tags)
@@ -113,13 +120,21 @@ export async function fetchTitleSuggestions(
     return;
   }
   set.setSuggestBusy(true);
+  let quotaBlocked = false;
   try {
     const res = await chipFetch("/api/titles/related", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ entityIds, excludeNames, workType: wt }),
     });
-    const data = (await res.json()) as { suggestions?: unknown };
+    const data = (await res.json()) as {
+      suggestions?: unknown;
+      quota?: unknown;
+    };
+    // A rate limit is not "nothing related": leave the section quiet
+    // rather than print the empty-list line over a quota failure.
+    quotaBlocked =
+      !res.ok && (data.quota === "rate-limited" || data.quota === "exhausted");
     set.setQlooSuggestions(
       res.ok && Array.isArray(data.suggestions)
         ? data.suggestions.filter(
@@ -131,6 +146,6 @@ export async function fetchTitleSuggestions(
     set.setQlooSuggestions([]);
   } finally {
     set.setSuggestBusy(false);
-    set.setSuggestDone(true);
+    set.setSuggestDone(!quotaBlocked);
   }
 }

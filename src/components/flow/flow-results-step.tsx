@@ -12,6 +12,7 @@ import { FlowCompareView } from "@/components/flow-compare";
 import { FlowResultView } from "@/components/flow-result-view";
 import { IdeaCard } from "@/components/idea-card";
 import LoadingState from "@/components/ui/loading-state";
+import { isMockRun } from "@/lib/flow/contract";
 
 /**
  * Done phase: idea card + verdict + compare + evidence.
@@ -41,6 +42,10 @@ export function FlowResultsStep({
       compareCalls.map((call) => [call.id, callToEvidence(call)]),
     ),
   };
+  const qlooDataCalls = result.qlooCalls.network + result.qlooCalls.cached;
+  const runMeta = isMockRun(result)
+    ? `${result.type} · mock run, no Qloo key, no Qloo data`
+    : `${result.type} · live run · ${qlooDataCalls} Qloo calls`;
   return (
     <section aria-labelledby="flow-results-heading">
       <h1 id="flow-results-heading" className="sr-only">
@@ -49,7 +54,7 @@ export function FlowResultsStep({
       <IdeaCard
         headingId="flow-idea-heading"
         pitch={result.pitch}
-        meta={`${result.type} · live run · ${result.qlooCalls.total} Qloo calls`}
+        meta={runMeta}
       />
 
       <div className="mt-8">

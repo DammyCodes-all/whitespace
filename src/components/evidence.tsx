@@ -13,6 +13,7 @@
  * (every claim opens its call).
  */
 
+import { evidenceCache } from "@/components/evidence-label";
 import type { QlooCall } from "@/lib/types";
 
 /**
@@ -42,8 +43,9 @@ function describeCall(call: QlooCall): string {
 }
 
 function statusLabel(call: QlooCall): string {
+  if (call.mock === true) return "mock, no key";
   if (call.status === 200) return "ok";
-  if (call.status === 0 && call.fromCache) return "mock";
+  if (call.status === 0) return "no response";
   return "not ok";
 }
 
@@ -62,7 +64,7 @@ function CallRow({
         <summary className="cursor-pointer list-none hover:text-ink">
           <span data-numeric>
             {describeCall(call)} · {call.status} · {call.durationMs}ms
-            {call.fromCache ? " · saved" : ""}
+            {evidenceCache(call)}
           </span>
         </summary>
         <div className="grid grid-rows-[0fr] group-open:grid-rows-[1fr] starting:grid-rows-[0fr] motion-safe:transition-[grid-template-rows] motion-safe:duration-200 motion-safe:ease-out">
@@ -108,7 +110,7 @@ function CallRow({
             <p data-numeric>
               {call.method} {call.endpoint} · {call.status} · {call.durationMs}
               ms
-              {call.fromCache ? " · saved" : ""}
+              {evidenceCache(call)}
             </p>
             <p className="mt-1 break-all">
               Asked:{" "}
