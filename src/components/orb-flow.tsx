@@ -147,6 +147,7 @@ export function OrbFlow({
 
       {run.leg === "tags" && uiVisible && (
         <TagsCtas
+          busy={run.working}
           onContinue={run.onContinueToTitles}
           onEditPitch={run.onEditPitch}
         />
@@ -173,6 +174,7 @@ export function OrbFlow({
         <TitlesCta
           checked={run.checkResult !== null}
           named={run.similar.length > 0}
+          busy={run.working}
           onReview={run.onReviewFullSet}
         />
       )}
@@ -181,6 +183,7 @@ export function OrbFlow({
         <ScoreCta
           canRun={run.canContinue}
           similarCount={run.similar.length}
+          busy={run.working}
           onRun={run.onRun}
         />
       )}
@@ -197,12 +200,6 @@ export function OrbFlow({
           chatbotError={run.chatbotError}
           compareLoaded={run.compareLoaded}
           compareCalls={run.compareCalls}
-          changed={run.changed}
-          changeBusy={run.changeBusy}
-          changeError={run.changeError}
-          constraint={run.constraint}
-          onConstraintChange={run.setConstraint}
-          onCheckChange={run.checkChange}
         />
       )}
     </div>

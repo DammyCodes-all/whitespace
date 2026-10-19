@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { attachReachProse } from "@/lib/agent/reach-prose";
 import type { FlowTagInput } from "@/lib/flow/run-flow";
 import { runFlowPitch } from "@/lib/flow/run-flow";
 import type { WorkType } from "@/lib/types";
@@ -68,8 +69,9 @@ export async function POST(request: Request) {
     tags: toTags(root.tags),
     pickedTagIds: toStrings(root.pickedTagIds),
   });
+  const result = await attachReachProse(out.result);
   return NextResponse.json({
-    result: out.result,
+    result,
     steps: out.steps,
     stopped: out.stopped,
   });

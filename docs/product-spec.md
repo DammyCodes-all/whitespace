@@ -63,9 +63,8 @@ Claims we will not make
 3. The user watches the circle report each step in one honest line beneath it while the run scores.
 4. The user sees the verdict, the ranked audiences with margins, and any "no data" flags.
 5. The user opens the reach plan for a winning audience.
-6. Optionally, the user adds a limit and sees an accepted change with a before-and-after score, or a withheld change naming the failed condition.
-7. The user compares the result with a plain chatbot's answer, whose titles are marked found / not found in Qloo.
-8. A static sample result is always available from the header with no login.
+6. The user compares the result with a plain chatbot's answer, whose titles are marked found / not found in Qloo.
+7. A static sample result is always available from the header with no login.
 
 ## 6. What it does
 
@@ -230,33 +229,27 @@ ran, whether the lead survived its own titles.
 Only when an audience clears control. Interests come from the
 already-fetched taste tags (zero new calls); people, podcasts,
 brands and places come from related fetches, minus titles the run
-already used. Winners render as a 3-step playbook (listen first,
-find them, fit in). Gaps — what the winner loves that the pitch
-lacks — come from taste display names. The city map is cut: the
-map UI stays unwired and location calls fail closed.
-
-### 6.9 Change and re-check
-
-The user can add a limit, such as a smaller budget. The proposal is
-built deterministically from the gap words (no LLM) and rescored
-identically. The bar is recorded before the proposal runs and is at
-least the tie margin: a change is accepted only if the fit rises by
-at least the bar (the absolute floor, or the recorded share of where
-the fit already stood), the winner's lead over the comparison field
-does not shrink, coverage holds, every new tag is grounded, and the
-audience still clears control by the run's own rule (§6.7). A rewrite
-that lifts everyone rather than the winner is withheld as
-"separation". Otherwise the app withholds the change and names the
-failed condition. A withheld change is a normal outcome.
+already used. Each winning audience renders as one vertical card:
+Interests, People, Podcasts, Brands, plus Places only when measured.
+Each heading carries a short prose paragraph, not a list or a rank
+row. The AI writes the prose from a fact sheet of measured names,
+ranks, Qloo's English descriptions and the precomputed gap labels;
+it may rephrase but may not add an entity, number or claim. A
+deterministic draft is built first and remains the fallback for any
+section the model cannot ground. Rank order lives in the prose.
+Gaps — what the winner loves that the pitch lacks — come from taste
+display names. The city map is cut: the map UI stays unwired and
+location calls fail closed.
 
 ### 6.10 Output pages
 
 The flow result page carries the verdict band, ranked bars with
-scores, the reach playbook, the gaps-plus-change card, and the
-chatbot comparison, followed by the evidence drawer. The header's
-sample result is a static showcase page rendering the same
-components over fixtures — it makes no Qloo calls. (The old
-printable audience-case page was removed with the v1 pipeline.)
+scores, the reach card (one vertical prose block per audience), and
+the chatbot comparison, followed by the evidence drawer. The
+header's sample result is a static showcase page rendering the same
+components over fixtures — it uses fixture reach prose and makes no
+Qloo or AI calls. (The old printable audience-case page was removed
+with the v1 pipeline.)
 
 ### 6.11 Chatbot comparison
 
@@ -282,25 +275,33 @@ only); docs record aggregates and conclusions.
 | Component | Responsibility |
 |---|---|
 | Qloo | Looking up titles and tags, audience tastes, related items, entity-seeded title suggestions, title tag labels. The source of every number, tag and title |
-| The AI | Reads the pitch into words and type; picks which similar-labels fit the pitch (filters, never invents scoring tags); points leftover words at fetched tastes when bridges are on; writes chatbot prose |
-| Our code | Gates, rival discovery assembly, scoring, the control ceiling, the verdict, the change check, and grounding |
+| The AI | Reads the pitch into words and type; picks which similar-labels fit the pitch (filters, never invents scoring tags); points leftover words at fetched tastes when bridges are on; writes chatbot prose; rewrites reach prose from the run's fact sheet |
+| Our code | Gates, rival discovery assembly, scoring, the control ceiling, the verdict, grounding, and the deterministic reach draft |
 
-The AI does not invent tags, titles, scores or audiences, and it does not rank anything. Bridge weights are fixed in code. Title suggestions come from Qloo entities you named, never from the model.
+The AI does not invent tags, titles, scores, audiences or reach
+entities, and it does not rank anything. Reach prose may only rephrase
+the supplied names, ranks, descriptions and gap labels; validation
+rejects unknown names, new numbers, rank drift and speculative
+relationships, and the section falls back to the deterministic draft.
+Bridge weights are fixed in code. Title suggestions come from Qloo
+entities you named, never from the model.
 
 ## 8. How the run behaves
 
 One fixed pipeline, same order every run: scope gate → cheap
 empty-check → titles resolve (≥1) → named tastes + rivals →
 controls → tag pool + pool gate → hold-out rounds → scores →
-verdict → reach plan only if control is cleared → optional change
-and comparison on their own routes. It stops early and says the
-cause when: the pitch is out of scope (tool/app, zero Qloo calls),
-nothing to judge, or the pooled tags run too thin. One miss never
-fails a batch: failures degrade to not-found / failed / no-data
-entries with their traces. The AI's only judgments are the words,
-the similar-label picking, and the chatbot prose (plus bridge
-pointing when bridges are on) — everything else is
-code and deterministic.
+verdict → reach plan only if control is cleared → reach prose (AI,
+bounded; deterministic draft fallback) → optional comparison on its
+own route. It stops early and says the cause when: the pitch is out
+of scope (tool/app, zero Qloo calls), nothing to judge, or the pooled
+tags run too thin. One miss never fails a batch: failures degrade to
+not-found / failed / no-data entries with their traces. The reach
+prose call has a per-provider timeout and never blocks the result on a
+failure: any section the model cannot ground ships as the draft. The
+AI's only judgments are the words, the similar-label picking, the
+chatbot prose and the reach prose rewriting (plus bridge pointing when
+bridges are on) — everything else is code and deterministic.
 
 ## 9. Demo plan
 
@@ -309,12 +310,12 @@ Length: about 90 seconds.
 1. State the problem in two sentences.
 2. Paste a real pitch, keep or fix the word chips, tap a suggested title.
 3. Show the live run, then the verdict. If a real pitch produced a surprise, lead with it. If none did, say so and show how the control test protects against false confidence.
-4. Open the reach playbook.
-5. Show one change that was accepted or withheld.
-6. Show the chatbot comparison with the found / not-found marks.
-7. End on the static sample for the no-network case.
+4. Open the reach card: one vertical prose block per audience, written
+   from the measured names, ranks, descriptions and gaps.
+5. Show the chatbot comparison with the found / not-found marks.
+6. End on the static sample for the no-network case.
 
-Prepare three or four real pitches in advance. One should be an inconclusive or withheld-change case, shown deliberately as a trust moment.
+Prepare three or four real pitches in advance. One should be an inconclusive case, shown deliberately as a trust moment.
 
 The demo domain is film first, music second (day-one coverage test). Book and game are on hold: book entities return no taste tags, game taste vectors are too diffuse to discriminate.
 
@@ -326,13 +327,13 @@ The demo domain is film first, music second (day-one coverage test). Book and ga
 | 2 | Nonsense pitch | Three deliberately meaningless pitches return Weak or Inconclusive |
 | 3 | Circularity gate | The named winner is rescored on the pitch-grounded tags alone (shared reduced set: every audience on the same list). If its full-set win collapses without its own title gifts, the verdict is Mixed "leans" or Inconclusive "self-fit" — never Strong |
 | 4 | No data | A pitch with unmatched words shows "no data" and never a low score standing in for it |
-| 5 | Change refusal | A change that fails the bar is withheld and the page names the failed condition |
 | 6 | Speed | A full run finishes in about 90 seconds |
 | 7 | Repeatability | Same words re-run give the same verdict |
 | 8 | Trace | Every run's evidence drawer opens its Qloo calls |
 | 9 | Access | The live demo loads with no login and the repository is public |
 | 10 | Bridge discrimination | Bridges widen the right gap (right audience rises, wrong ones stay) and never inflate every audience together |
 | 11 | Pitch-aware ceiling | A control sharing more than a third of titles with the named audience does not set the ceiling |
+| 12 | Reach prose grounding | Every name in the reach prose came from that run's reach items, every gap label from that run's gaps, and every rejected model section fell back to the deterministic draft |
 
 Test 3 is a decision gate, not a pass or fail on shipping. A tool that always agrees with the user's guess is not worth building.
 
@@ -341,13 +342,14 @@ Test 3 is a decision gate, not a pass or fail on shipping. A tool that always ag
 | Risk | Why it matters | Mitigation |
 |---|---|---|
 | Qloo quota or rate limits | A live demo could fail (429s observed on monthly quota) | Static sample page; cached controls; saved runs |
-| AI slowdowns or errors during the demo | Same | Groq/OpenRouter fallback; bridges fail silent; static sample |
+| AI slowdowns or errors during the demo | Same | Groq/OpenRouter fallback; reach prose falls back per section to the grounded draft; bounded provider timeouts; bridges fail silent; static sample |
+| Reach prose invents an entity or relationship | Fictional demo entities make world knowledge unreliable, and the product promises it does not make things up | Model writes only from the run's fact sheet; validation rejects unknown names, new numbers, rank drift and speculation; deterministic draft fallback |
 | Verdicts swing on wording near the margins | Re-runs read inconsistently | The user locks the word set before the run; close-call flag |
 | Book/game taste data is thin | Scores read 0.00 that may be missing data, not dislike | Both on hold; film first, music second |
 | Location data is thin for the chosen city | The city map would mislead | Cut. Fails closed with a reason |
 | Whether creators will pay is unverified | Judges ask who pays | Show the sample result to a few creators in the target group |
 | The name suggests gap finding | Judges may expect a market-gap tool | Explain the name in the pitch and make no unserved-market claims |
-| Close neighbors on the hackathon list | Entries like CultureFit Guard, SponsorScout, CulturePilot and TasteCritic overlap in part | Lead with rivals, the control test and the withheld change |
+| Close neighbors on the hackathon list | Entries like CultureFit Guard, SponsorScout, CulturePilot and TasteCritic overlap in part | Lead with rivals and the control test |
 
 ## 12. Ship status
 
@@ -355,9 +357,8 @@ Shipped (flow path): idea entry with detected type, tag chips with
 live match status and the pooled-tag gate, named audience plus
 Qloo-discovered rivals, cached controls scored as a comparison field,
 rank scoring with AI bridges, rank-based verdict with field and
-self-fit guards, reach playbook, change re-check with a separation
-bar, chatbot comparison with Qloo marks, evidence drawer, static
-sample page.
+self-fit guards, reach card with grounded AI prose, chatbot comparison with Qloo marks,
+evidence drawer, static sample page.
 
 Cut: city map, printable audience case, second-domain support
 (book/game on hold).
@@ -378,7 +379,7 @@ These descriptions come from the vendors' own materials and have not been indepe
 | Chartmetric, Viberate, Soundcharts | Artist audience data by city | These start from an artist. Whitespace starts from an idea |
 | Publisher Rocket | Amazon keyword and category research for authors | Amazon data only. No cross-domain taste |
 
-What sets Whitespace apart is the rival audiences, the control test, honest "no data" handling, a change it will withhold, and recorded Qloo calls behind every run.
+What sets Whitespace apart is the rival audiences, the control test, honest "no data" handling, and recorded Qloo calls behind every run.
 
 ## 14. Open decisions
 
