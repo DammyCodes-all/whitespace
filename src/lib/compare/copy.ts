@@ -78,7 +78,7 @@ function runnerSentence(runnerUp: CopyAudience): string {
     return `And a rival reads it too: ${cap(runnerUp.label)} at ${score}. Two crowds, both checked.`;
   }
   if (runnerUp.role === "named") {
-    return `Your comparables back it up: ${cap(runnerUp.label)} at ${score} on the same tastes.`;
+    return `The fans of the titles you named back it up: ${cap(runnerUp.label)} at ${score} on the same likes.`;
   }
   return `${cap(runnerUp.label)} sits at ${score} too.`;
 }
@@ -120,10 +120,10 @@ export function buildCopy(input: CopyInput): ResultCopy {
     input.controlScore !== null
       ? hedged
         ? `${cap(best.label)} leads at ${pct(best.score)}%, but not by much. Strangers sit at ${pct(input.controlScore)}%.`
-        : `${cap(best.label)} fits this idea best. Qloo tastes put them at ${pct(best.score)}%. Strangers land at only ${pct(input.controlScore)}%.`
+        : `${cap(best.label)} fits this idea best. What they like puts them at ${pct(best.score)}%. Strangers land at only ${pct(input.controlScore)}%.`
       : hedged
         ? `${cap(best.label)} leads at ${pct(best.score)}%, but not by much.`
-        : `${cap(best.label)} fits this idea best. Qloo tastes put them at ${pct(best.score)}%.`;
+        : `${cap(best.label)} fits this idea best. What they like puts them at ${pct(best.score)}%.`;
   const body = [opener];
   if (input.runnerUp !== null) {
     body.push(runnerSentence(input.runnerUp));

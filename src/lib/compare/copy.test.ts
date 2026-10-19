@@ -24,7 +24,7 @@ describe("buildCopy", () => {
     });
     assert.equal(copy.badge, "Strong fit");
     assert.deepEqual(copy.body, [
-      "Literary fiction about isolation fits this idea best. Qloo tastes put them at 72%. Strangers land at only 44%.",
+      "Literary fiction about isolation fits this idea best. What they like puts them at 72%. Strangers land at only 44%.",
       "Slow science-fiction sits at 61% too.",
       "What landed: isolation, grief, slow burn.",
     ]);
@@ -90,7 +90,7 @@ describe("buildCopy", () => {
     });
     assert.equal(
       copy.body[1],
-      "Your comparables back it up: Slow science-fiction at 61% on the same tastes.",
+      "The fans of the titles you named back it up: Slow science-fiction at 61% on the same likes.",
     );
   });
 
