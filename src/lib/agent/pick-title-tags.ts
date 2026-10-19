@@ -164,7 +164,11 @@ export async function pickTitleTags(
 
   let lastError: unknown = null;
   for (const attempt of attempts) {
-    if (attempt.key === null) continue;
+    if (attempt.key === null) {
+      console.info(`[titles/pick] ${attempt.provider} skipped: no key`);
+      continue;
+    }
+    const attemptStarted = Date.now();
     try {
       const content = await callChatCompletions(
         attempt.url,
@@ -177,8 +181,23 @@ export async function pickTitleTags(
           ...("options" in attempt ? attempt.options : {}),
         },
       );
-      return toPickResult(JSON.parse(extractJson(content)), candidateIds);
+      const keptIds = toPickResult(
+        JSON.parse(extractJson(content)),
+        candidateIds,
+      );
+      console.info(
+        `[titles/pick] ${attempt.provider} (${attempt.model}) ok in ${
+          Date.now() - attemptStarted
+        }ms: kept ${keptIds.length}/${candidateIds.length}`,
+      );
+      return keptIds;
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[titles/pick] ${attempt.provider} (${attempt.model}) failed in ${
+          Date.now() - attemptStarted
+        }ms: ${message}`,
+      );
       lastError = err;
     }
   }

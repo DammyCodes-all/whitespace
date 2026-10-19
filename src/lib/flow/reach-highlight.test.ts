@@ -27,13 +27,22 @@ describe("segmentReachProse", () => {
   });
 
   it("never lights up a name inside a longer word", () => {
-    const segments = segmentReachProse("A heat wave in the theater district.", [
+    const segments = segmentReachProse("The theater district heats up.", [
       "Heat",
     ]);
     assert.equal(
       segments.some((segment) => segment.strong),
       false,
     );
+  });
+
+  it("lights up the same name in any casing", () => {
+    const segments = segmentReachProse("Slow Burn Audio comes next.", [
+      "Slow Burn Audio",
+    ]);
+    assert.equal(segments[0]?.strong, true);
+    const lower = segmentReachProse("mara voss leads.", ["Mara Voss"]);
+    assert.equal(lower[0]?.strong, true);
   });
 
   it("lets the longest name win where two overlap", () => {
