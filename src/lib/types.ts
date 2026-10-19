@@ -109,38 +109,16 @@ export interface FitScore {
 /** §6.7 verdict table. */
 export type Verdict = "Strong" | "Mixed" | "Weak" | "Inconclusive";
 
-/**
- * §6.7 (fix 1, 2026-10-19): what happened when the winning audience was
- * rescored on the pitch-grounded tags alone, with its own title gifts
- * removed.
- * - `confirmed`: it still leads without them — the fit is real.
- * - `leans`: it stops leading (or a rival takes over), so the verdict
- *   cannot be Strong.
- * - `unverified`: too few pitch-grounded tags were left to judge, so
- *   the run abstains instead of guessing.
- */
-export type SelfFitStatus = "confirmed" | "leans" | "unverified";
-
 export interface VerdictResult {
   verdict: Verdict;
   topAudienceId: string | null;
-  /**
-   * Fit-score gap between first and second audience. Null when no other
-   * audience was measured — an unknown gap, never a fabricated 0.
-   */
-  marginTopVsSecond: number | null;
-  /** Fit-score gap between top audience and the strongest comparison. */
+  /** Fit-score gap between first and second audience. */
+  marginTopVsSecond: number;
+  /** Fit-score gap between top audience and best control. */
   marginTopVsControl: number;
   clearsControl: boolean;
   /** True when top is not the hypothesis and beats it clearly (§6.7). */
   surprise: boolean;
-  /**
-   * §6.7: judgeable comparison audiences the top beat, out of the
-   * measured field. Absent when the field was unusable.
-   */
-  controlsBeaten?: { beaten: number; total: number };
-  /** §6.7 self-fit gate, when it ran. Absent when it did not apply. */
-  selfFit?: SelfFitStatus;
   /**
    * Day 9 S: why an Inconclusive verdict was returned (case limits
    * section, §6.10). Absent on decisive verdicts. Additive optional
@@ -152,21 +130,15 @@ export interface VerdictResult {
    * matched any pitch tag, so the baseline is uninformative (a
    * degraded Qloo window reads exactly this way). Unfreeze noted in
    * docs/build-tracker.md.
-   * 2026-10-19 (fixes 1 and 7): "coverage" replaced by "pool-thin"
-   * (sufficiency is the pooled scoring set, not the pitch-word match
-   * rate) and "self-fit" added (the win needs the audience's own title
-   * gifts and could not be checked without them). Unfreezes noted in
-   * docs/build-tracker.md.
    */
   inconclusiveReason?:
-    | "pool-thin"
+    | "coverage"
     | "nodata"
     | "top-unjudgeable"
     | "empty"
     | "scope"
     | "no-control"
-    | "no-signal"
-    | "self-fit";
+    | "no-signal";
 }
 
 /** §8 grounding check: every title/tag in output came from Qloo. */

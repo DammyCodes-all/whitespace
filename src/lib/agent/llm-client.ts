@@ -24,8 +24,14 @@ export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
  */
 export const OPENROUTER_DEFAULT_MODEL = "openrouter/free";
 
-/** OpenRouter legs get a longer local deadline (slow free-tier models). */
-export const OPENROUTER_TIMEOUT_MS = 45000;
+/**
+ * OpenRouter legs get a longer local deadline (slow free-tier models).
+ * 60s, shared by every fallback caller: tag extraction, bridges,
+ * chatbot and the title-gift pick. Only the OpenRouter leg waits this
+ * long — Groq keeps the 20s default — and the pick is a filter, so a
+ * late answer still beats a fail-open one.
+ */
+export const OPENROUTER_TIMEOUT_MS = 60000;
 
 export class LlmError extends Error {
   readonly provider: string;

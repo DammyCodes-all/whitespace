@@ -8,7 +8,7 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { scoreAllWeighted } from "../scoring/fit.ts";
+import { scoreAllWeighted, type WeightedTag } from "../scoring/fit.ts";
 import { bridgesToWeightedTags } from "../scoring/semantic.ts";
 import {
   availableFromTastes,
@@ -20,6 +20,7 @@ import {
   namesById,
   proposeBridges,
   toBridgeResult,
+  usableBridges,
 } from "./bridge.ts";
 import { LlmError } from "./llm-client.ts";
 
@@ -287,5 +288,35 @@ describe("proposeBridges with a stubbed transport", () => {
     } finally {
       if (saved !== undefined) process.env.GROQ_API_KEY = saved;
     }
+  });
+});
+
+describe("usableBridges", () => {
+  const weighted = (qlooTagId: string, weight: number): WeightedTag => ({
+    tag: { tag: qlooTagId, qlooTagId, pinned: false },
+    weight,
+    label: qlooTagId,
+  });
+
+  it("keeps a bridge a contender holds", () => {
+    const kept = usableBridges(
+      [weighted("urn:tag:a", 0.75), weighted("urn:tag:b", 0.5)],
+      new Set(["urn:tag:a"]),
+    );
+    assert.deepEqual(
+      kept.map((w) => w.tag.qlooTagId),
+      ["urn:tag:a"],
+    );
+  });
+
+  it("drops a weighted bridge no contender holds — it only dilutes", () => {
+    const kept = usableBridges([weighted("urn:tag:b", 0.75)], new Set());
+    assert.deepEqual(kept, []);
+  });
+
+  it("keeps a distance bridge nobody holds: it scores nothing", () => {
+    const kept = usableBridges([weighted("urn:tag:b", 0)], new Set());
+    assert.equal(kept.length, 1);
+    assert.equal(kept[0]?.weight, 0);
   });
 });
