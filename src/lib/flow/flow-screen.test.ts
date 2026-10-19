@@ -27,8 +27,6 @@ function rowsFrom(scores: FlowAudienceScore[]): FlowResult {
     ceiling: null,
     verdict: "strong",
     surprise: false,
-    controlTest: null,
-    selfFit: null,
     reach: [],
     gaps: [],
     evidence: {},
