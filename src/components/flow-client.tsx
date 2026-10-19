@@ -6,15 +6,14 @@
  * State lives in useFlowState; markup lives in src/components/flow/*.
  * Heading/ID contracts: flow-input-heading, flow-tags-heading,
  * flow-titles-heading, flow-suggest-heading, flow-run-heading,
- * flow-results-heading, flow-idea-heading, flow-change-heading.
+ * flow-results-heading, flow-idea-heading.
  *
- * Spec: §6.1, §6.2, §6.5, §6.7–§6.9, §6.11, §6.12 (copy/behavior unchanged).
+ * Spec: §6.1, §6.2, §6.5, §6.7, §6.8, §6.11, §6.12 (copy/behavior unchanged).
  */
 
 import { FlowInputStep } from "@/components/flow/flow-input-step";
 import { FlowResultsStep } from "@/components/flow/flow-results-step";
 import {
-  checkChangeAction,
   extractTagsAction,
   runAnalysisAction,
 } from "@/components/flow/flow-run-actions";
@@ -155,8 +154,6 @@ export function FlowClient({
                 setChatbotError: s.setChatbotError,
                 setCompareCalls: s.setCompareCalls,
                 setCompareLoaded: s.setCompareLoaded,
-                setChanged: s.setChanged,
-                setChangeError: s.setChangeError,
               },
             )
           }
@@ -175,18 +172,6 @@ export function FlowClient({
           chatbotError={s.chatbotError}
           compareLoaded={s.compareLoaded}
           compareCalls={s.compareCalls}
-          changed={s.changed}
-          changeBusy={s.changeBusy}
-          changeError={s.changeError}
-          constraint={s.constraint}
-          onConstraintChange={s.setConstraint}
-          onCheckChange={() =>
-            void checkChangeAction(s.result, s.constraint, s.changeBusy, {
-              setChangeBusy: s.setChangeBusy,
-              setChangeError: s.setChangeError,
-              setChanged: s.setChanged,
-            })
-          }
         />
       )}
     </div>

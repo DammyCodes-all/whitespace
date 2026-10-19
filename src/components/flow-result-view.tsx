@@ -11,20 +11,13 @@
 import { REACH_SLOTS, VERDICT_WORDS } from "@/lib/flow/brief";
 import type { FlowBarRow, FlowResult } from "@/lib/flow/contract";
 import { barRows, isCloseCall } from "@/lib/flow/contract";
+import { resolveReachSections } from "@/lib/flow/reach-copy";
 
 const VERDICT_FILLS: Record<FlowResult["verdict"], string> = {
   strong: "bg-strong",
   mixed: "bg-split",
   weak: "bg-weak",
   inconclusive: "bg-paper",
-};
-
-const SLOT_FILLS: Record<string, string> = {
-  interests: "bg-strong",
-  people: "bg-split",
-  podcasts: "bg-weak",
-  brands: "bg-strong",
-  places: "bg-split",
 };
 
 /**
@@ -249,50 +242,45 @@ function ReachBlock({ result }: { result: FlowResult }) {
     <section aria-label="Where to find them" className="mt-8">
       <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
       <p className="mt-1 max-w-prose text-sm text-ink-3">
-        What these audiences already love.
+        Not a list. The places their taste already points.
       </p>
-      {reach.map((group) => (
-        <div key={group.audienceId} className="mt-5">
-          <p className="font-serif text-3xl leading-tight tracking-tight text-ink">
-            {group.audienceName}
-          </p>
-          <div className="mt-2 grid gap-4 sm:grid-cols-2">
-            {REACH_SLOTS.map(({ slot, label }) => {
-              const items = group[slot];
-              return (
-                <div
-                  key={String(slot)}
-                  className={`card p-4 ${SLOT_FILLS[slot] ?? "bg-paper"} ${slot === "places" ? "sm:col-span-2" : ""}`}
-                >
-                  <h4 className="text-base tracking-tight text-ink">{label}</h4>
-                  {items.length === 0 ? (
-                    <p className="nodata mt-3 px-2 py-2 font-mono text-xs text-ink-2">
-                      not measured
-                    </p>
-                  ) : (
-                    <ul className="mt-2 divide-y divide-rule">
-                      {items.map((item) => (
-                        <li
-                          key={`${slot}-${item.name}`}
-                          className="flex items-baseline justify-between gap-3 py-2"
-                        >
-                          <p className="text-[15px] text-ink">{item.name}</p>
-                          <p
-                            data-numeric
-                            className="tnum shrink-0 font-mono text-sm text-ink"
-                          >
-                            their #{item.rank}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      {reach.map((group) => {
+        const gapGroup =
+          result.gaps.find((gap) => gap.audienceId === group.audienceId) ??
+          null;
+        const sections = resolveReachSections(group, gapGroup);
+        const visibleSlots = REACH_SLOTS.filter(
+          ({ slot }) => slot !== "places" || group.places.length > 0,
+        );
+        return (
+          <article key={group.audienceId} className="card mt-5 p-5 sm:p-7">
+            <p className="font-serif text-3xl leading-tight tracking-tight text-ink">
+              {group.audienceName}
+            </p>
+            <div className="mt-6 space-y-7">
+              {visibleSlots.map(({ slot, label }) => {
+                const text = sections[slot];
+                return (
+                  <div key={slot}>
+                    <h4 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
+                      {label}
+                    </h4>
+                    {text === null || text.trim() === "" ? (
+                      <p className="nodata mt-2 inline-block px-2 py-1 font-mono text-xs text-ink-2">
+                        not measured
+                      </p>
+                    ) : (
+                      <p className="mt-2 max-w-prose text-[15px] leading-[1.65] text-ink-2">
+                        {text}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        );
+      })}
     </section>
   );
 }
