@@ -1,10 +1,13 @@
 /**
- * Day 7 gap display labels. Owned by Q, consumed by S (`gaps.ts`).
+ * Day 7 gap display labels, now consumed by tests only
+ * (`scoring/gaps.test.ts`, `qloo/related.test.ts`).
  *
- * LABELS-STUB: taste tag ids are URNs, not words, and no live key
- * exists to resolve them. This hand-written map pairs every URN in
- * `taste-lists.ts` with its display label. The live spike replaces this
- * map with names from real Insights responses — never the consumers.
+ * LABELS-STUB: taste tag ids are URNs, not words. The live spike
+ * arrived and resolved this: real names come from the Insights
+ * response itself (`tastes.tagNames`) via `labelsForTastes`
+ * (`gaps.ts`), and the live change route passes an empty fallback.
+ * Consumers never changed, per plan. The map survives as readable
+ * test fixture data over the `taste-lists.ts` URNs.
  *
  * Plain data only: must stay runnable under `node --test` type
  * stripping (no enums, no namespaces).

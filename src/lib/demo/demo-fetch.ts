@@ -152,6 +152,9 @@ export function demoResponseFor(
             )
             .filter((id): id is string => typeof id === "string" && id !== "")
         : [];
+      // Demo trains the live contract, tempering included: ids the
+      // model never offers read as un-fit, never as a pass failure,
+      // so a demo cut looks like a real one.
       return { status: 200, delayMs: 1000, json: { keptIds: ids } };
     }
     case "/api/titles/related": {
