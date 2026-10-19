@@ -10,6 +10,18 @@
  * live spike. Payload parsing is defensive against both `results.tags`
  * and bare-`results` array shapes.
  *
+ * Two passes per word (2026-10-17):
+ * 1. Plain substring search, exact-name gate — the original contract.
+ * 2. On a miss only, the SAME query with `feature.semantic_search=true`
+ *    (verified live 2026-10-17: `lonely` -> `Loneliness`,
+ *    `space` -> `Outer Space`; `filter.tag.types` scoping still holds
+ *    with the flag on). A semantic hit is the top-ranked result, and its
+ *    Qloo display name rides back beside the pitch word so the chip can
+ *    show `lonely -> Loneliness` when the two differ. The word stays the
+ *    label; Qloo's name is never substituted for it (§6.5).
+ *
+ * Disable pass 2 with `QLOO_SEMANTIC_TAGS=off` to A/B coverage.
+ *
  * Spec ref: §6.5 (unmatched words are no-data, coverage always shown),
  * §8 (one miss never fails the batch), §6.12 (every call traced),
  * §11 (caps guard quota).
@@ -23,11 +35,21 @@ import { TAG_SCOPES } from "./tag-scopes.ts";
 /** Grilled Day 2 decision: caps guard quota (§11). */
 export const MAX_TAG_WORDS = 20;
 
-const TAG_TAKE = "5";
+/**
+ * Candidates per word. Was 5: substring search on a common word filled
+ * all five with near-misses (`Space Opera`, `Living Space`) before the
+ * exact hit appeared, so 2026-10-17 raised it to the documented default.
+ * Same one call per word, so the raise is free.
+ */
+const TAG_TAKE = "20";
 
 export interface ResolveTagsResult {
   tags: PitchTag[];
   notFoundWords: string[];
+  /** Qloo display names keyed by tag id, for `word -> Name` chips. */
+  qlooNames: Record<string, string>;
+  /** Words that needed (and got) the semantic pass. */
+  semanticWords: string[];
   /** Share of suggested words that matched a real Qloo tag (§6.5). Empty input => 1. */
   coverage: number;
   calls: QlooCall[];
@@ -52,6 +74,18 @@ function tagsPath(): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
+/**
+ * Semantic pass switch, on by default (user call 2026-10-17: "make sure
+ * the semantic stuff is actually on"). Opt out for A/B runs with
+ * `QLOO_SEMANTIC_TAGS=off|false|0`.
+ */
+export function semanticTagsEnabled(): boolean {
+  const raw = process.env.QLOO_SEMANTIC_TAGS;
+  if (raw === undefined || raw.trim() === "") return true;
+  const value = raw.trim().toLowerCase();
+  return !(value === "off" || value === "false" || value === "0");
+}
+
 function extractTagEntries(data: unknown): TagEntry[] {
   if (typeof data !== "object" || data === null) return [];
   const root = data as Record<string, unknown>;
@@ -69,13 +103,20 @@ function tagEntryId(hit: TagEntry): string | null {
   return typeof rawId === "string" && rawId.trim() !== "" ? rawId : null;
 }
 
+function tagEntryName(hit: TagEntry): string | null {
+  return typeof hit.name === "string" && hit.name.trim() !== ""
+    ? hit.name.trim()
+    : null;
+}
+
 function pickTag(
   word: string,
   candidates: TagEntry[],
   preferredIds?: ReadonlySet<string>,
 ): TagEntry | null {
   // Grilled Day 2 decision: lowercased exact match only. No fuzzy matching
-  // in code: the AI proposes, Qloo disposes (§7).
+  // in code: the AI proposes, Qloo disposes (§7). Plurals fold to one key
+  // (`Vampires` matches `vampire`) inside `normalizeKey`.
   const want = normalizeKey(word);
   if (want === "") return null;
   const exact: TagEntry[] = [];
@@ -98,10 +139,96 @@ function pickTag(
   return exact[0] ?? null;
 }
 
+/**
+ * Semantic-pass pick: an exact name still wins when Qloo returns one;
+ * otherwise the top-ranked result is the match Qloo's meaning search
+ * chose. Returning null when the top entry carries no id keeps the
+ * "not found in Qloo" honesty (§6.5).
+ */
+function pickSemanticTag(
+  word: string,
+  candidates: TagEntry[],
+  preferredIds?: ReadonlySet<string>,
+): TagEntry | null {
+  const exact = pickTag(word, candidates, preferredIds);
+  if (exact !== null) return exact;
+  for (const candidate of candidates) {
+    if (tagEntryId(candidate) === null) continue;
+    if (tagEntryName(candidate) === null) continue;
+    return candidate;
+  }
+  return null;
+}
+
 function toPitchTag(word: string, hit: TagEntry): PitchTag | null {
   const rawId = tagEntryId(hit);
   if (rawId === null) return null;
   return { tag: word, qlooTagId: rawId, pinned: false };
+}
+
+function searchParams(
+  word: string,
+  workType: WorkType | undefined,
+  semantic: boolean,
+): Record<string, string> {
+  return {
+    "filter.query": word,
+    take: TAG_TAKE,
+    ...(workType === undefined
+      ? {}
+      : { "filter.tag.types": TAG_SCOPES[workType] }),
+    ...(semantic ? { "feature.semantic_search": "true" } : {}),
+  };
+}
+
+/** One word's two-pass lookup: plain, then semantic on a miss. */
+async function resolveWord(
+  word: string,
+  workType: WorkType | undefined,
+  preferredTasteIds: ReadonlySet<string> | undefined,
+  semanticAllowed: boolean,
+  calls: QlooCall[],
+): Promise<{ tag: PitchTag; name: string | null; semantic: boolean } | null> {
+  try {
+    const { data, trace } = await qlooFetch(
+      tagsPath(),
+      searchParams(word, workType, false),
+    );
+    calls.push(trace);
+    const hit = pickTag(word, extractTagEntries(data), preferredTasteIds);
+    if (hit !== null) {
+      const tag = toPitchTag(word, hit);
+      if (tag !== null) {
+        return { tag, name: tagEntryName(hit), semantic: false };
+      }
+    }
+  } catch (err) {
+    if (!(err instanceof QlooError)) throw err;
+    calls.push(err.trace);
+  }
+  if (!semanticAllowed) return null;
+  try {
+    const { data, trace } = await qlooFetch(
+      tagsPath(),
+      searchParams(word, workType, true),
+    );
+    calls.push(trace);
+    const hit = pickSemanticTag(
+      word,
+      extractTagEntries(data),
+      preferredTasteIds,
+    );
+    if (hit === null) return null;
+    const tag = toPitchTag(word, hit);
+    if (tag === null) return null;
+    return { tag, name: tagEntryName(hit), semantic: true };
+  } catch (err) {
+    if (err instanceof QlooError) {
+      calls.push(err.trace);
+      return null;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -129,42 +256,45 @@ export async function resolvePitchTags(
   const cleaned = cleanQueries(words, MAX_TAG_WORDS);
   if (cleaned.length === 0) {
     // Grilled Day 2 decision: empty input is vacuous coverage, not failure.
-    return { tags: [], notFoundWords: [], coverage: 1, calls: [] };
+    return {
+      tags: [],
+      notFoundWords: [],
+      qlooNames: {},
+      semanticWords: [],
+      coverage: 1,
+      calls: [],
+    };
   }
   const tags: PitchTag[] = [];
   const notFoundWords: string[] = [];
+  const qlooNames: Record<string, string> = {};
+  const semanticWords: string[] = [];
   const calls: QlooCall[] = [];
+  const semanticAllowed = semanticTagsEnabled();
 
   for (const word of cleaned) {
-    try {
-      const { data, trace } = await qlooFetch(tagsPath(), {
-        "filter.query": word,
-        take: TAG_TAKE,
-        ...(workType === undefined
-          ? {}
-          : { "filter.tag.types": TAG_SCOPES[workType] }),
-      });
-      calls.push(trace);
-      const hit = pickTag(word, extractTagEntries(data), preferredTasteIds);
-      const tag = hit === null ? null : toPitchTag(word, hit);
-      if (tag === null) {
-        notFoundWords.push(word);
-      } else {
-        tags.push(tag);
-      }
-    } catch (err) {
-      if (err instanceof QlooError) {
-        calls.push(err.trace);
-        notFoundWords.push(word);
-      } else {
-        throw err;
-      }
+    const resolved = await resolveWord(
+      word,
+      workType,
+      preferredTasteIds,
+      semanticAllowed,
+      calls,
+    );
+    if (resolved === null) {
+      notFoundWords.push(word);
+      continue;
     }
+    tags.push(resolved.tag);
+    if (resolved.name !== null)
+      qlooNames[resolved.tag.qlooTagId] = resolved.name;
+    if (resolved.semantic) semanticWords.push(word);
   }
 
   return {
     tags,
     notFoundWords,
+    qlooNames,
+    semanticWords,
     coverage: tags.length / cleaned.length,
     calls,
   };
