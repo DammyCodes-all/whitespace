@@ -215,15 +215,15 @@ describe("runFlowPitch", () => {
     }
   });
 
-  it("strangers join the comparison field alongside the controls", async (t) => {
+  it("strangers set the line even when a control scores higher", async (t) => {
     // Synthetic keys only; the stubbed transport answers every Qloo
     // call in-process, and LLM keys are cleared so no model call can
     // fire. The pool is the top 12 of Moon's tastes (alpha, beta,
     // gamma, f1..f9 — each held by at most 1 of 20 controls, so the
     // generic cut keeps all 12). Scores on the 12-pool: hyp 0.89, a
-    // close rival second at 0.89 (Mixed), far strangers at 0.1, one
-    // control at ~0.21 (measured honestly) — and since 2026-10-19 the
-    // stronger of the two sets the ink line.
+    // close rival second at 0.89 (Mixed), far strangers at 0.1 (the
+    // line), one control at ~0.21 (measured honestly, never the
+    // line).
     const savedKey = process.env.QLOO_API_KEY;
     const savedGroq = process.env.GROQ_API_KEY;
     const savedRouter = process.env.OPENROUTER_API_KEY;
@@ -347,28 +347,24 @@ describe("runFlowPitch", () => {
         ],
       });
       assert.equal(out.stopped, false);
-      // Top 0.89 clears every comparison; the 0.89 second also clears
-      // and sits on top, so the split branch reads Mixed. A control-set
-      // line at ~0.21 would have read Strong without the tie check.
+      // Top 0.89 clears strangers 0.1; the 0.89 second also clears and
+      // sits on top, so the existing split branch reads Mixed. A
+      // control-set line at ~0.21 would have read Weak.
       assert.equal(out.result.verdict, "mixed");
       const controlsStep = out.steps.find((s) => s.id === "controls");
-      assert.match(
-        controlsStep?.detail ?? "",
-        /strangers measured, other-genre controls join the field/,
-      );
-      // The ink line is the STRONGEST comparison, here the control at
-      // ~0.21 — not the strangers baseline at 0.1.
+      assert.match(controlsStep?.detail ?? "", /line from strangers baseline/);
       assert.ok(
         out.result.ceiling !== null &&
-          Math.abs(out.result.ceiling - 2.5 / 12) < 1e-9,
+          Math.abs(out.result.ceiling - 0.1) < 1e-9,
       );
+      // The higher control is still measured honestly — just not the line.
       const high = out.result.audiences.find(
         (a) => a.name === "Blockbuster action",
       );
       assert.ok(
         high !== undefined &&
           high.score !== null &&
-          Math.abs(high.score - (out.result.ceiling ?? 0)) < 1e-9,
+          high.score > (out.result.ceiling ?? 0),
       );
       // Hold-out: the whole pool came from Moon, so one round drops
       // all 12 gifts and the named fit falls to zero — recorded as a
@@ -390,15 +386,15 @@ describe("runFlowPitch", () => {
     }
   });
 
-  it("unmeasured strangers fall back to the other-genre field", async (t) => {
+  it("unmeasured strangers fall back to the other-genre ceiling", async (t) => {
     // Same hermetic setup, but the strangers' tastes come back empty
     // (unjudgeable) and the first control resolves onto the named
     // title (excluded by the untouched title rule). The pool is the
-    // top 12 of Moon's tastes; the 19 eligible controls each hold two
-    // rotating pool tags at ranks 25-26 (every pool tag stays under
-    // half the lists, so the generic cut keeps all 12) and score
-    // (0.52 + 0.50)/12 — the line must be that eligible best, named
-    // as the fallback, and never the excluded 0.89.
+    // top 12 of Moon's tastes; the 19 eligible controls each hold a
+    // rotating pool tag at rank 25 (every pool tag stays under half
+    // the lists, so the generic cut keeps all 12) and score a small
+    // nonzero 0.52/12 — the line must be that eligible best, named as
+    // the fallback, and never the excluded 0.89.
     const savedKey = process.env.QLOO_API_KEY;
     const savedGroq = process.env.GROQ_API_KEY;
     const savedRouter = process.env.OPENROUTER_API_KEY;
@@ -426,14 +422,12 @@ describe("runFlowPitch", () => {
       ];
       let controlVariants = 0;
       const rotatingTags = (): string[] => {
-        const first = pool12[controlVariants % pool12.length] as string;
-        const second = pool12[(controlVariants + 5) % pool12.length] as string;
+        const held = pool12[controlVariants % pool12.length] as string;
         const v = controlVariants++;
         return [
           ...Array.from({ length: 24 }, (_, i) => `urn:tag:r${v}a${i}`),
-          first,
-          second,
-          ...Array.from({ length: 24 }, (_, i) => `urn:tag:r${v}b${i}`),
+          held,
+          ...Array.from({ length: 25 }, (_, i) => `urn:tag:r${v}b${i}`),
         ];
       };
       // Own-domain tail (see the first test): e6 lead, e5 member.
@@ -516,21 +510,17 @@ describe("runFlowPitch", () => {
         ],
       });
       assert.equal(out.stopped, false);
-      // Hypothesis 0.89 clears the eligible controls ((0.52 + 0.50)/12
-      // each); the title-excluded control at 0.89 must not set the line.
+      // Hypothesis 0.89 clears the eligible controls (0.52/12 each);
+      // the title-excluded control at 0.89 must not set the line.
       assert.equal(out.result.verdict, "strong");
-      // The self-fit gate ran: the named audience also leads on the
-      // three pitch-supplied tags alone, so its Strong survives.
-      assert.equal(out.result.selfFit, "confirmed");
-      assert.deepEqual(out.result.controlTest, { beaten: 19, total: 19 });
       const controlsStep = out.steps.find((s) => s.id === "controls");
       assert.match(
         controlsStep?.detail ?? "",
-        /strangers unmeasured, other-genre controls set the field/,
+        /strangers unmeasured, other-genre ceiling/,
       );
       assert.ok(
         out.result.ceiling !== null &&
-          Math.abs(out.result.ceiling - (0.52 + 0.5) / 12) < 1e-9,
+          Math.abs(out.result.ceiling - 0.52 / 12) < 1e-9,
       );
       // Hold-out: one round for Moon's 12 gifts, verdict untouched.
       const holdout = out.steps.find((s) => s.id === "holdout-1");

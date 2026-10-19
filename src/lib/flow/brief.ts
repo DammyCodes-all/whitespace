@@ -58,18 +58,6 @@ export function buildTargetingBrief(result: FlowResult): string {
     `Strongest other-genre comparison: ${
       result.ceiling === null ? "not measured" : result.ceiling.toFixed(2)
     }`,
-    ...(result.controlTest === null || result.controlTest.total === 0
-      ? []
-      : [
-          `Beat ${result.controlTest.beaten} of ${result.controlTest.total} measured comparison audiences`,
-        ]),
-    ...(result.selfFit === "leans"
-      ? [
-          "Self-fit: unconfirmed — the lead needs the tags from the titles named",
-        ]
-      : result.selfFit === "confirmed"
-        ? ["Self-fit: confirmed — the lead holds without the titles' own tags"]
-        : []),
     ...(isCloseCall(result)
       ? [
           "Close call: near the other-genre line — a re-run may read differently.",
