@@ -30,21 +30,21 @@ const SLOT_FILLS: Record<string, string> = {
 /**
  * §6.6 in one sentence, rivals-first: the winning audience leads, and
  * the named titles sit behind it as the benchmark — a rival winner
- * "matches them too", a named winner means "your comparables agree".
- * The surprise headline logic above is untouched. Show the numbers,
- * never the gap.
+ * "matches the titles you named too", a named winner means the fans of
+ * those titles agree. The surprise headline logic above is untouched.
+ * Show the numbers, never the gap.
  */
 function scoreLine(result: FlowResult, top: FlowBarRow): string {
   const percent = Math.round(top.score * 100);
   if (result.surprise)
-    return `A rival matches them too: ${top.name} matches your idea ${percent}%.`;
+    return `${top.name} matches your idea ${percent}% — and matches the titles you named too.`;
   if (result.verdict === "weak") {
     return `The closest, ${top.name}, matches your idea ${percent}%.`;
   }
   if (top.role === "named") {
-    return `Your comparables agree: their taste matches your idea ${percent}%.`;
+    return `The fans of the titles you named match your idea ${percent}%.`;
   }
-  return `Their taste matches your idea ${percent}%.`;
+  return `What they like matches your idea ${percent}%.`;
 }
 
 function barFill(index: number): string {
@@ -86,17 +86,55 @@ function VerdictHeadline({
       )}
       {isCloseCall(result) && (
         <p className="mt-2 max-w-prose text-body text-ink">
-          Close call — this one sits only just above strangers to this idea. A
+          Close call — this one sits only just above the other-genre line. A
           re-run may read differently. Adjust the words and run again.
         </p>
       )}
       <p className="mt-2 max-w-prose text-body text-ink">
         {result.ceiling === null
-          ? "Strangers to this idea were not measured, so there is nothing to compare this against."
-          : `Strangers to this idea match it ${Math.round(result.ceiling * 100)}%.`}
+          ? "No other-genre audience could be measured, so there is nothing to compare this against."
+          : `The strongest other-genre comparison matches it ${Math.round(result.ceiling * 100)}%.`}
       </p>
+      {controlTestLine(result) !== null && (
+        <p className="mt-2 max-w-prose text-body text-ink">
+          {controlTestLine(result)}
+        </p>
+      )}
+      {selfFitLine(result) !== null && (
+        <p className="mt-2 max-w-prose text-body text-ink">
+          {selfFitLine(result)}
+        </p>
+      )}
     </div>
   );
+}
+
+/**
+ * §6.7 (fix 2): say the field result in words — how many measured
+ * comparison audiences the winner beat. Silent when the field was
+ * unusable, because then nothing was beaten.
+ */
+function controlTestLine(result: FlowResult): string | null {
+  const test = result.controlTest;
+  if (test === null || test.total === 0) return null;
+  const noun = test.total === 1 ? "audience" : "audiences";
+  return `It beats ${test.beaten} of the ${test.total} other-genre ${noun} measured.`;
+}
+
+/**
+ * §6.7 (fix 1): the winner's lead re-checked with the tags that came
+ * from its own titles removed. `leans` means the fit is unconfirmed;
+ * `confirmed` means it held up without them. Never shown when the check
+ * did not apply (a rival won, or no Strong was on the table).
+ */
+function selfFitLine(result: FlowResult): string | null {
+  if (result.selfFit === "leans") {
+    return "This audience leans on the titles you named: without their own tags it stops leading. Treat the fit as unconfirmed — add a few descriptive words and run again.";
+  }
+  if (result.selfFit === "confirmed") {
+    return "It also leads without the tags from your own titles, so the fit is not just your titles agreeing with themselves.";
+  }
+  return null;
 }
 
 function verdictSentence(result: FlowResult): string {
@@ -121,8 +159,8 @@ function Bars({ result }: { result: FlowResult }) {
       <p className="mt-1 max-w-prose text-sm text-ink-2">
         One bar per audience, best first.{" "}
         {ceiling === null
-          ? "Strangers to this idea were not measured, so there is no line to compare against."
-          : `The ink line marks strangers to this idea: ${Math.round(ceiling * 100)}%.`}
+          ? "No other-genre audience could be measured, so there is no line to compare against."
+          : `The ink line marks the strongest other-genre comparison: ${Math.round(ceiling * 100)}%.`}
       </p>
       <div className="mt-4">
         {rows.length === 0 ? (
@@ -169,7 +207,7 @@ function Bars({ result }: { result: FlowResult }) {
               style={{ left: `${ceiling * 100}%` }}
             >
               <span className="control-pill">
-                strangers {Math.round((ceiling ?? 0) * 100)}%
+                other-genre line {Math.round((ceiling ?? 0) * 100)}%
               </span>
             </div>
           </div>
@@ -188,8 +226,8 @@ function ReachBlock({ result }: { result: FlowResult }) {
           Where to find them
         </h3>
         <p className="mt-2 text-body text-ink-2">
-          No audience scored above strangers to this idea, so there is no list
-          of where to find them. The app says so instead of inventing one.
+          No audience scored above the other-genre comparison, so there is no
+          list of where to find them. The app says so instead of inventing one.
         </p>
       </section>
     );
@@ -201,8 +239,8 @@ function ReachBlock({ result }: { result: FlowResult }) {
           Where to find them
         </h3>
         <p className="mt-2 text-body text-ink-2">
-          This audience scored above strangers to this idea, but nothing they
-          love was measured.
+          This audience scored above the other-genre comparison, but nothing
+          they love was measured.
         </p>
       </section>
     );

@@ -1,39 +1,55 @@
 import type { FlightRect } from "@/components/entry-box";
+import {
+  BALL_D,
+  BALL_MS,
+  CARD_R,
+  COLLAPSE_FROM_MS,
+  EASE_PUSH,
+  EASE_SETTLE,
+  INK_MS,
+  MELT_MS,
+  SQUASH_MS,
+  SQUEEZE_OVER,
+  SQUEEZE_TALL,
+} from "@/components/orb/morph-geometry";
 
 /**
- * The handoff's move: one in-place condense on real geometry. The run
- * page renders the landing box's twin centred on the ball spot, and the
- * twin shrinks its own width/height/radius — never scale — so the 2px
- * border and the hard shadow stay crisp to the last frame (a scale
- * squash distorts strokes at different rates per axis; a geometry
- * squeeze keeps them true). Three beats in 420ms:
+ * The handoff's move: one shape, never cut (beats and the motion
+ * language live in morph-geometry). The landing box's twin morphs its
+ * own size, radius and colour through two states — real geometry in
+ * px, never scale, so the 2px border and the hard shadow stay crisp to
+ * the last frame:
  *
- *   melt      0–170ms  the pitch text fades, blurs and drops out while
- *                      the box barely moves — content leaves before the
- *                      shape travels, never two motions fighting
- *   gather    0–126ms  the card nips 16px narrower — a breath before the
- *                      squeeze, so the condense reads as intentional
- *   condense  126–357ms the empty card collapses to a 54px circle; the
- *                      30px radius clamps to a true circle as it lands
- *   settle    357–420ms 54 → 60px, surface → ink, shadow fades — the
- *                      flip to ink holds until this closing beat: the
- *                      card keeps its identity while it is big, and a
- *                      mid-squeeze darkening only reads as a blink
+ *   card     0ms      the input as typed (landing rect, 16px corners)
+ *   melt     0–170    the pitch blurs and drops out while the card
+ *                     barely moves — the content is out of the way
+ *                     before the shape takes the eye
+ *   collapse 80–340   the empty card falls straight into the circle,
+ *                     well past it: 16px narrower, 7px taller — the
+ *                     egg (no state in between: the squash IS the
+ *                     arrival, and the corners clamp to a stadium on
+ *                     the way, so the last of the card rounds off for
+ *                     free)
+ *           340–480   the egg springs back out to the ball, overshooting
+ *                     it by a few px before resting
+ *   ink      480–590  surface → ink once the shape has landed
  *
- * The swap: the clone's last frame IS the runtime's first ball frame
- * (60px flat ink, same centre, same fill), so a crossfade would
- * double-expose two inks — instead the runtime joins at the ball and
- * the clone clears a frame later (see the data-handoff rule in
- * globals.css). Both halves of the motion pause on the ball, so the
- * cut lands on a still frame and reads as one continuous gesture:
- * squeeze in, spring out into the orb.
+ * The last frame IS the runtime's first ball frame (same centre, size,
+ * radius, fill — the join contract), so the runtime joins at the ball
+ * and the clone clears a frame later (see the data-handoff rule in
+ * globals.css) — a still-frame cut that reads as one gesture.
  *
- * The clone is portaled to <body>: a fixed child of a transformed
- * ancestor (the .page-enter rise) would ride along with it.
+ * The clone is portaled to <body> (see OrbFlightClone): a fixed child
+ * of a transformed ancestor (the .page-enter rise) would ride along.
  *
  * Reduced motion never reaches here — use-orb-flight drops the stored
  * rect and the runtime plays its crossfade path instead.
  */
+
+/** The ink turn is a fill, not a move: a plain ease-out, no bounce. */
+const EASE_INK = "cubic-bezier(0.23, 1, 0.32, 1)";
+
+const at = (ms: number) => ms / INK_MS;
 
 export function morphClone({
   shape,
@@ -53,8 +69,7 @@ export function morphClone({
   onJoin: () => void;
   /** A frame after the join: safe to unmount the clone. */
   onDone: () => void;
-  /** Orb pace multiplier (1 = live), shared with the runtime so the
-   *  squeeze keeps the same rhythm as the slower journey around it. */
+  /** Orb pace multiplier (1 = live), shared with the runtime. */
   speed?: number;
 }): Animation {
   const pace = Math.max(0.2, speed);
@@ -77,63 +92,75 @@ export function morphClone({
   const morph = shape.animate(
     [
       {
+        /* card: still the input */
         width: `${fw}px`,
         height: `${fh}px`,
-        borderRadius: "16px",
+        borderRadius: `${CARD_R}px`,
         backgroundColor: surface,
         boxShadow: `4px 4px 0 ${outline}`,
         offset: 0,
-        easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+        easing: "linear",
       },
       {
-        width: `${fw - 16}px`,
+        /* the same card a beat later, when the collapse takes over:
+           the melt gets its head start (identical values, so nothing
+           moves before COLLAPSE_FROM_MS) */
+        width: `${fw}px`,
         height: `${fh}px`,
-        borderRadius: "16px",
+        borderRadius: `${CARD_R}px`,
         backgroundColor: surface,
         boxShadow: `4px 4px 0 ${outline}`,
-        offset: 0.3,
-        easing: "cubic-bezier(0.77, 0, 0.175, 1)",
+        offset: at(COLLAPSE_FROM_MS),
+        easing: EASE_PUSH,
       },
       {
-        width: "54px",
-        height: "54px",
-        borderRadius: "30px",
+        /* the collapse's squash point: narrower and taller than the
+           ball (the egg) */
+        width: `${BALL_D - SQUEEZE_OVER}px`,
+        height: `${BALL_D + SQUEEZE_TALL}px`,
+        borderRadius: `${BALL_D / 2}px`,
         backgroundColor: surface,
         boxShadow: `2px 2px 0 ${outline}`,
-        offset: 0.85,
-        easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+        offset: at(SQUASH_MS),
+        easing: EASE_SETTLE,
       },
       {
-        width: "60px",
-        height: "60px",
-        borderRadius: "30px",
+        /* the ball, still surface — the ink turn waits for the settle */
+        width: `${BALL_D}px`,
+        height: `${BALL_D}px`,
+        borderRadius: `${BALL_D / 2}px`,
+        backgroundColor: surface,
+        boxShadow: `2px 2px 0 ${outline}`,
+        offset: at(BALL_MS),
+        easing: EASE_INK,
+      },
+      {
+        /* ink: the closing beat only */
+        width: `${BALL_D}px`,
+        height: `${BALL_D}px`,
+        borderRadius: `${BALL_D / 2}px`,
         backgroundColor: ink,
         boxShadow: "0px 0px 0 rgba(23, 21, 31, 0)",
         offset: 1,
       },
     ],
-    { duration: Math.round(420 / pace), fill: "forwards" },
+    { duration: Math.round(INK_MS / pace), fill: "forwards" },
   );
   morph.onfinish = () => {
     onJoin();
     window.requestAnimationFrame(onDone);
   };
 
-  // Input melt: blur + a real drop this time (the old melt only blurred
-  // despite its comment saying otherwise), fast and early so the text is
-  // gone before the condense takes over the eye.
+  // Input melt: blur + a real drop, fast and early so the text is gone
+  // before the collapse takes over the eye.
   text?.animate(
     [
       { opacity: "1", filter: "blur(0px)", transform: "translateY(0px)" },
-      {
-        opacity: "0",
-        filter: "blur(10px)",
-        transform: "translateY(10px)",
-      },
+      { opacity: "0", filter: "blur(10px)", transform: "translateY(10px)" },
     ],
     {
-      duration: Math.round(170 / pace),
-      easing: "cubic-bezier(0.23, 1, 0.32, 1)",
+      duration: Math.round(MELT_MS / pace),
+      easing: EASE_INK,
       fill: "forwards",
     },
   );

@@ -94,6 +94,13 @@ export function TagChips({
               }
             >
               <span>{tag.label}</span>
+              {tag.qlooName !== undefined && (
+                <span className="text-ink-2">
+                  <span aria-hidden="true"> → </span>
+                  <span className="sr-only">, matched in Qloo as </span>
+                  {tag.qlooName}
+                </span>
+              )}
               <span className="font-mono text-[10px] text-ink-3">[pitch]</span>
               {isMatched ? null : (
                 <span className="font-mono text-xs">not found in Qloo</span>
