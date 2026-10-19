@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { TAG_WORDS } from "../config.ts";
-import { toTagProposal } from "./extract-tags.ts";
+import {
+  EXTRACT_TEMPERATURE,
+  systemPrompt,
+  toTagProposal,
+} from "./extract-tags.ts";
 
 const FIVE = [
   " Science-Fiction ",
@@ -83,5 +87,48 @@ describe("toTagProposal", () => {
     ]);
     assert.equal(out.workType, "film");
     assert.ok(!("similarTitles" in out));
+  });
+
+  it("accepts a short-but-usable reply instead of failing the route", () => {
+    // Four words: below TAG_WORDS.min but the flow gate (3 matched) can
+    // still judge it, so the chips should render rather than a 502.
+    const out = toTagProposal({
+      tags: ["heist", "crew", "betrayal", "undercover"],
+      workType: "film",
+    });
+    assert.equal(out.words.length, 4);
+    assert.throws(() =>
+      toTagProposal({ tags: ["one", "two"], workType: "film" }),
+    );
+  });
+});
+
+describe("systemPrompt", () => {
+  const prompt = systemPrompt();
+
+  it("asks for one fixed count, not a range", () => {
+    assert.ok(prompt.includes(`exactly ${TAG_WORDS.max - 1} tags`));
+    assert.ok(!prompt.includes(`${TAG_WORDS.min} and ${TAG_WORDS.max}`));
+  });
+
+  it("states word form, the plural rule and the plain-name rule", () => {
+    assert.ok(prompt.includes("singular"));
+    assert.ok(prompt.includes("no plurals"));
+    assert.ok(prompt.includes("small town"));
+  });
+
+  it("keeps specific genre words and demotes broad buckets", () => {
+    assert.ok(prompt.includes("cyberpunk"));
+    assert.ok(prompt.includes("never broad buckets like thriller or drama"));
+  });
+
+  it("keeps the honesty fences (§7, §8)", () => {
+    assert.ok(prompt.includes("Never name something the pitch is not about"));
+    assert.ok(prompt.includes("No titles, no ids, no numbers"));
+    assert.ok(prompt.includes("No claims about audiences"));
+  });
+
+  it("pins extraction to a deterministic temperature", () => {
+    assert.equal(EXTRACT_TEMPERATURE, 0);
   });
 });
