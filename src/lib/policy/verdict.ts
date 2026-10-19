@@ -6,69 +6,74 @@
  * (§7). Deterministic, so the same scores always give the same verdict
  * (§10 #7).
  *
- * §6.7 in full, because each row of the table is a branch below:
+ * §6.7, in full, because each row of the table is a branch below:
  * - Strong: the top audience clears control and is clearly ahead of
- *   the second.
- * - Mixed: the top two both clear control and are close together.
+ *   the measured runner-up.
+ * - Mixed: the top clears control but is not clearly ahead of the
+ *   runner-up, or its lead only holds thanks to its own title gifts.
  * - Weak: no audience clears control.
- * - Inconclusive: too few pitch words matched Qloo tags (coverage
- *   floor), or too many audiences had no data.
+ * - Inconclusive: the pooled scoring set is too thin, too many
+ *   audiences had no data, the comparison field was unmeasured, or the
+ *   top's lead could not be confirmed without its own title gifts.
  * - Surprise headline: the top audience is not the hypothesis and beats
  *   it clearly.
  *
- * All cutoffs live in one tunable place: `src/lib/config.ts`. §6.7 says
- * the exact margins get set in week one by testing on real pitches;
- * Margins v1 are recorded in docs/qloo-coverage.md (2026-10-09).
+ * Three rules changed on 2026-10-19 (fixes 1, 2, 4 and 7 in
+ * docs/build-tracker.md); the old rules are kept in the notes because
+ * they explain the new ones:
  *
- * Spec ref: §6.7 (verdict), §6.6 (scores in, ranks only), §6.5
- * (coverage in), §10 #4 (no-data never reads as a low score: an
- * unjudgeable top can never be Strong or Mixed), §7 (our code ranks).
+ * - CONTROLLED BY RANK, NOT BY A FIXED GAP. Scores are a weighted mean
+ *   over K pooled tags, so one relationship measured 0.180 at K=12,
+ *   0.108 at K=20 and 0.036 at K=60. A fixed 0.05 margin therefore
+ *   flipped Strong/Weak on pool size alone. "Clears control" now means
+ *   beating every judgeable comparison audience, by any clear margin.
+ * - THE COMPARISON FIELD IS THE ~20 OTHER-GENRE CONTROLS (plus strangers
+ *   when measured), and it must be measured: at least
+ *   MIN_JUDGEABLE_CONTROLS judgeable controls and a strongest
+ *   comparison that really holds pooled tags (MIN_CEILING_HITS).
+ * - SUFFICIENCY IS THE POOL, NOT THE PITCH WORD RATE. The verdict gates
+ *   on the pooled tag count (MIN_MATCHED_TAGS); the pitch-word coverage
+ *   fraction is reported, never a gate — title gifts can carry a run
+ *   whose wording matches Qloo poorly.
+ * - SELF-FIT GATES STRONG. The pool is built from the titles the user
+ *   named, so a named-audience win is circular until it survives a
+ *   rescore on the pitch-grounded tags alone (the caller passes
+ *   `selfFit`; the rounds themselves live in run-flow).
+ *
+ * All cutoffs live in one tunable place: `src/lib/config.ts`. Margins v1
+ * evidence is recorded in docs/qloo-coverage.md (2026-10-09).
+ *
+ * Spec ref: §6.7 (verdict), §6.6 (scores in, ranks only), §6.5 (pool
+ * gate in), §6.4 (comparison field), §10 #4 (no-data never reads as a
+ * low score: an unjudgeable top can never be Strong or Mixed), §7 (our
+ * code ranks), §10 #3 (self-fit gate).
  */
 
 import {
-  CONTROL_MARGIN,
-  COVERAGE_FLOOR,
   MAX_UNJUDGEABLE_SHARE,
-  SPLIT_MARGIN,
-  SURPRISE_MARGIN,
+  MIN_CEILING_SHARE,
+  MIN_JUDGEABLE_CONTROLS,
+  MIN_MATCHED_TAGS,
+  SPLIT_SHARE,
+  SURPRISE_SHARE,
 } from "../config.ts";
 import { isUnjudgeable } from "../scoring/fit.ts";
-import type { FitScore, VerdictResult } from "../types.ts";
+import type { FitScore, SelfFitStatus, VerdictResult } from "../types.ts";
 
 export {
-  CONTROL_MARGIN,
   COVERAGE_FLOOR,
-  SPLIT_MARGIN,
-  SURPRISE_MARGIN,
+  MIN_CEILING_SHARE,
+  MIN_JUDGEABLE_CONTROLS,
+  SPLIT_SHARE,
+  SURPRISE_SHARE,
 } from "../config.ts";
 
 /**
- * Margins v1, set 2026-10-09 from live runs (was: provisional stubs).
- * Evidence (hackathon Qloo, film domain):
- * - Genuine signal: space pitch, mid-specificity words
- *   (alien/survival/dystopia/scientist) -> hyp 0.744, best control
- *   (Sci-fi epic) 0.644, gap 0.0999…
- * - Noise ceiling: broad genre words -> best gap 0.028 (rival-amb tie
- *   with Horror control); mood-word pitches -> all zeros, gap 0.
- * - Nonsense stays out via the coverage floor, not the margin.
- * CONTROL_MARGIN 0.05 sits between observed noise (<=0.03) and observed
- * signal (0.10). SPLIT/SURPRISE stay stubbed: no live Mixed or surprise
- * case observed yet — do not tune them until one is.
- * Change them here and nothing else in the codebase moves.
- *
- * Re-calibration protocol: run the Day 8 pack through the flow
- * (`runFlowPitch`) with QLOO_API_KEY set and print fresh margin
- * distributions. Note the pack's hardcoded words are
- * mood-level (margins 0 on every entry as of 2026-10-09); re-calibrate
- * against sharp-worded inputs when the pack is updated, and record the
- * run in docs/qloo-coverage.md (§6.7: margins are findings, not defaults).
- *
- * Invariant: MIN_RISE (policy/change.ts) must stay >= SPLIT_MARGIN —
- * otherwise the change bar would accept a move smaller than the verdict
- * policy calls a tie. The Day 8 pack fixture note tracks this.
+ * Float hygiene: a 0.0999… gap from rank fractions must read as a clear
+ * difference, not as a tie. A tie against a comparison audience is NOT a
+ * win: an audience that only matches the strongest comparison is not
+ * clearly ahead of it.
  */
-
-/** Float hygiene: a 0.0999… gap from rank fractions must read as 0.1. */
 const MARGIN_EPSILON = 1e-9;
 
 export interface VerdictInput {
@@ -76,57 +81,157 @@ export interface VerdictInput {
   hypothesisId: string;
   /** Contender scores: hypothesis plus rivals. */
   scores: FitScore[];
-  /** Control scores: the ceiling is their best. */
+  /**
+   * Control scores: the comparison field is every judgeable entry here
+   * plus the strangers baseline below.
+   */
   controlScores: FitScore[];
-  /** Share of suggested words that matched a real Qloo tag (§6.5). */
-  coverage: number;
+  /** Judgeable strangers-baseline score when measured, else null. */
+  strangerScore?: FitScore | null;
+  /**
+   * §6.5: pooled tags the run actually scored on (title gifts plus pitch
+   * tags). Fewer than MIN_MATCHED_TAGS is Inconclusive — the pooled set
+   * is what sufficiency means now, not the pitch-word match rate.
+   */
+  pooledTags: number;
+  /**
+   * §6.7 self-fit gate: outcome of rescoring the field on the
+   * pitch-grounded tags alone. Omitted when the check does not apply (a
+   * rival won, or no Strong was on the table).
+   */
+  selfFit?: SelfFitStatus;
 }
 
 export interface VerdictOptions {
-  controlMargin?: number;
-  splitMargin?: number;
-  surpriseMargin?: number;
-  coverageFloor?: number;
+  splitShare?: number;
+  surpriseShare?: number;
   maxUnjudgeableShare?: number;
+  minJudgeableControls?: number;
+  minCeilingHits?: number;
 }
 
-function sortedByScore(scores: FitScore[]): FitScore[] {
+/** Why a comparison field could not be used at all. */
+export type ControlFieldReason = "no-control" | "no-signal";
+
+/**
+ * One audience against the measured comparison field: how many
+ * comparison audiences it beats, out of how many, and whether the
+ * field itself is usable. Exported so the change re-check (§6.9) can
+ * grade a proposed rewrite by exactly the same rule as the run.
+ */
+export interface ControlTest {
+  /** True only when every judgeable comparison audience is beaten. */
+  clears: boolean;
+  beaten: number;
+  total: number;
+  /** Strongest judgeable comparison score; null when none was measured. */
+  ceiling: number | null;
+  reason?: ControlFieldReason;
+}
+
+export interface ControlTestOptions {
+  minJudgeableControls?: number;
+  /** Pool size, for the scaled ceiling-support floor. */
+  pooledTags?: number;
+  /** Overrides the scaled floor (tests pin it). */
+  minCeilingHits?: number;
+}
+
+function sortedByScore(scores: readonly FitScore[]): FitScore[] {
   return [...scores].sort((a, b) => b.score - a.score);
 }
 
-function bestScore(scores: FitScore[]): number {
-  let best = 0;
-  for (const s of scores) {
-    if (s.score > best) best = s.score;
+/**
+ * §6.7 (fix 2): the rank-based control test. An audience clears control
+ * when it beats EVERY judgeable comparison audience — no fixed gap, so
+ * the answer does not move when the pooled tag count moves. The field
+ * must be real before it can gate anything:
+ * - fewer than MIN_JUDGEABLE_CONTROLS judgeable controls → no-control
+ *   (placeholder zeros never count, §10 #4);
+ * - a strongest comparison holding too little of the pool → no-signal.
+ *   The floor is a share (MIN_CEILING_SHARE), never fewer than one tag:
+ *   one hit is a third of a 3-tag pitch-only set and a lucky draw on a
+ *   60-tag pool.
+ */
+export function testAgainstControls(
+  score: number,
+  controlScores: readonly FitScore[],
+  strangerScore?: FitScore | null,
+  options: ControlTestOptions = {},
+): ControlTest {
+  const minJudgeable = options.minJudgeableControls ?? MIN_JUDGEABLE_CONTROLS;
+  const minCeilingHits =
+    options.minCeilingHits ??
+    Math.max(1, Math.ceil((options.pooledTags ?? 0) * MIN_CEILING_SHARE));
+
+  const judgeableControls = controlScores.filter((s) => !isUnjudgeable(s));
+  const stranger =
+    strangerScore !== undefined &&
+    strangerScore !== null &&
+    !isUnjudgeable(strangerScore)
+      ? strangerScore
+      : null;
+  const field = [
+    ...judgeableControls,
+    ...(stranger === null ? [] : [stranger]),
+  ];
+
+  if (judgeableControls.length < minJudgeable) {
+    return {
+      clears: false,
+      beaten: 0,
+      total: field.length,
+      ceiling: null,
+      reason: "no-control",
+    };
   }
-  return best;
+
+  const strongest = sortedByScore(field)[0];
+  if (
+    strongest === undefined ||
+    strongest.matchedTags.length < minCeilingHits
+  ) {
+    return {
+      clears: false,
+      beaten: 0,
+      total: field.length,
+      ceiling: strongest?.score ?? null,
+      reason: "no-signal",
+    };
+  }
+
+  const beaten = field.filter((c) => c.score + MARGIN_EPSILON < score).length;
+  return {
+    clears: beaten === field.length,
+    beaten,
+    total: field.length,
+    ceiling: strongest.score,
+  };
 }
 
 function inconclusive(
-  scores: FitScore[],
-  reason:
-    | "coverage"
-    | "nodata"
-    | "top-unjudgeable"
-    | "empty"
-    | "no-control"
-    | "no-signal",
+  scores: readonly FitScore[],
+  reason: VerdictResult["inconclusiveReason"],
+  topAudienceId?: string | null,
+  extra: Partial<VerdictResult> = {},
 ): VerdictResult {
-  const ranked = sortedByScore(scores);
-  const top = ranked[0] ?? null;
+  const top = topAudienceId ?? sortedByScore(scores)[0]?.audienceId ?? null;
   return {
     verdict: "Inconclusive",
-    topAudienceId: top?.audienceId ?? null,
-    marginTopVsSecond: 0,
+    topAudienceId: top,
+    // No measured runner-up: the gap is unknown, so it is null, never a
+    // fabricated 0 (§6.7 display honesty, fix 4).
+    marginTopVsSecond: null,
     marginTopVsControl: 0,
     clearsControl: false,
     surprise: false,
     inconclusiveReason: reason,
+    ...extra,
   };
 }
 
 /**
- * §6.7: rank the contenders against the control ceiling and return the
+ * §6.7: rank the contenders against the comparison field and return the
  * frozen `VerdictResult`. Never throws on empty or all-no-data input:
  * those are Inconclusive, not errors.
  */
@@ -134,22 +239,29 @@ export function decideVerdict(
   input: VerdictInput,
   options: VerdictOptions = {},
 ): VerdictResult {
-  const controlMargin = options.controlMargin ?? CONTROL_MARGIN;
-  const splitMargin = options.splitMargin ?? SPLIT_MARGIN;
-  const surpriseMargin = options.surpriseMargin ?? SURPRISE_MARGIN;
-  const coverageFloor = options.coverageFloor ?? COVERAGE_FLOOR;
+  const splitShare = options.splitShare ?? SPLIT_SHARE;
+  const surpriseShare = options.surpriseShare ?? SURPRISE_SHARE;
   const maxUnjudgeableShare =
     options.maxUnjudgeableShare ?? MAX_UNJUDGEABLE_SHARE;
 
-  const { hypothesisId, scores, controlScores, coverage } = input;
+  const {
+    hypothesisId,
+    scores,
+    controlScores,
+    strangerScore,
+    pooledTags,
+    selfFit,
+  } = input;
   if (scores.length === 0) {
     return inconclusive(scores, "empty");
   }
 
-  // §6.7 Inconclusive first: coverage floor, then no-data share. Either
-  // means the app cannot say anything reliable, so no other branch runs.
-  if (coverage < coverageFloor) {
-    return inconclusive(scores, "coverage");
+  // §6.7 Inconclusive first: the pooled scoring set, then the no-data
+  // share. Either means the app cannot say anything reliable, so no
+  // other branch runs. The pitch-word coverage fraction is NOT here
+  // (fix 7): it describes the wording, not the set we scored.
+  if (pooledTags < MIN_MATCHED_TAGS) {
+    return inconclusive(scores, "pool-thin");
   }
   const unjudgeable = scores.filter((s) => isUnjudgeable(s)).length;
   if (unjudgeable / scores.length > maxUnjudgeableShare) {
@@ -165,15 +277,7 @@ export function decideVerdict(
   // §10 #4: an unjudgeable top carries a placeholder 0. It must never
   // clear control or win a margin, so it cannot be Strong or Mixed.
   if (isUnjudgeable(top)) {
-    return {
-      verdict: "Inconclusive",
-      topAudienceId: top.audienceId,
-      marginTopVsSecond: 0,
-      marginTopVsControl: 0,
-      clearsControl: false,
-      surprise: false,
-      inconclusiveReason: "top-unjudgeable",
-    };
+    return inconclusive(scores, "top-unjudgeable", top.audienceId);
   }
 
   // Margins measure against real contenders only: unjudgeable
@@ -183,59 +287,69 @@ export function decideVerdict(
   const measured = ranked.filter((s) => !isUnjudgeable(s));
   const second = measured[1] ?? null;
 
-  // Control ceiling (§6.7). Only JUDGEABLE controls set the ceiling: a
-  // placeholder 0 from an unjudgeable control is not a measured low, so
-  // it must never act as a floor the top audience can beat. A control
-  // batch with nothing judgeable in it has NO ceiling, which is
-  // Inconclusive — a real Strong needs a real baseline. Untested
-  // book/game scopes land here first (docs/qloo-coverage.md).
-  const judgeableControls = controlScores.filter((s) => !isUnjudgeable(s));
-  const hasControls = controlScores.length > 0;
-  const hasCeiling = judgeableControls.length > 0;
-  const controlBest = hasCeiling ? bestScore(judgeableControls) : 0;
-  // A judgeable ceiling of exactly 0 means no control audience matched
-  // any pitch tag: the baseline is uninformative, and a degraded Qloo
-  // window reads exactly this way (repeat probe 2026-10-12: a Strong
-  // won against 0.000 and never recurred). A real Strong needs a real
-  // baseline, so this is Inconclusive — never Strong, never Weak.
-  if (hasCeiling && controlBest === 0) {
-    return inconclusive(scores, "no-signal");
+  const field = testAgainstControls(top.score, controlScores, strangerScore, {
+    minJudgeableControls: options.minJudgeableControls,
+    minCeilingHits: options.minCeilingHits,
+    pooledTags,
+  });
+  if (field.reason !== undefined) {
+    return inconclusive(scores, field.reason, top.audienceId, {
+      controlsBeaten: { beaten: field.beaten, total: field.total },
+    });
   }
-  const marginTopVsControl = hasCeiling ? top.score - controlBest : 0;
-  const clearsControl =
-    hasCeiling && marginTopVsControl + MARGIN_EPSILON >= controlMargin;
-  if (!clearsControl) {
-    // Controls exist but none could be judged: the baseline itself was
-    // not measured, so this is Inconclusive, never Weak ("measured and
-    // low") and never Strong (nothing was beaten).
-    if (hasControls && !hasCeiling) {
-      return inconclusive(scores, "no-control");
-    }
+
+  const marginTopVsControl = top.score - (field.ceiling ?? 0);
+  const controlsBeaten = { beaten: field.beaten, total: field.total };
+  const marginTopVsSecond = second === null ? null : top.score - second.score;
+
+  if (!field.clears) {
+    // Measured field, measured loss: Weak is the honest word. (An
+    // unusable field never reaches here — it returned no-control or
+    // no-signal above.)
     return {
       verdict: "Weak",
       topAudienceId: top.audienceId,
-      marginTopVsSecond: second === null ? top.score : top.score - second.score,
+      marginTopVsSecond,
       marginTopVsControl,
       clearsControl: false,
       surprise: false,
+      controlsBeaten,
     };
   }
 
-  const marginTopVsSecond =
-    second === null ? top.score : top.score - second.score;
-  const secondClears =
+  // §6.7 self-fit gate: a lead that only exists because of the audience's
+  // own title gifts is not a fit we can confirm. "Unverified" (nothing
+  // left to judge without those gifts) abstains; "leans" keeps the
+  // result visible as Mixed rather than claiming a Strong.
+  if (selfFit === "unverified") {
+    return inconclusive(scores, "self-fit", top.audienceId, {
+      controlsBeaten,
+      selfFit,
+    });
+  }
+
+  const cleared = {
+    topAudienceId: top.audienceId,
+    marginTopVsSecond,
+    marginTopVsControl,
+    clearsControl: true,
+    controlsBeaten,
+    surprise: false,
+    ...(selfFit === undefined ? {} : { selfFit }),
+  } satisfies Omit<VerdictResult, "verdict">;
+
+  if (selfFit === "leans") {
+    return { verdict: "Mixed", ...cleared };
+  }
+  // Strong means clearly ahead: a photo-finish with the runner-up is
+  // Mixed, whichever of the two is stronger. "Clearly" is a share of
+  // the winner's own score, so a flat field on a large pool is judged
+  // the same way a sharp one on a small pool (SPLIT_SHARE).
+  if (
     second !== null &&
-    !isUnjudgeable(second) &&
-    second.score - controlBest + MARGIN_EPSILON >= controlMargin;
-  if (secondClears && marginTopVsSecond + MARGIN_EPSILON < splitMargin) {
-    return {
-      verdict: "Mixed",
-      topAudienceId: top.audienceId,
-      marginTopVsSecond,
-      marginTopVsControl,
-      clearsControl: true,
-      surprise: false,
-    };
+    top.score - second.score + MARGIN_EPSILON < splitShare * top.score
+  ) {
+    return { verdict: "Mixed", ...cleared };
   }
 
   const hypothesis = scores.find((s) => s.audienceId === hypothesisId) ?? null;
@@ -243,14 +357,7 @@ export function decideVerdict(
     hypothesis !== null &&
     top.audienceId !== hypothesisId &&
     !isUnjudgeable(hypothesis) &&
-    top.score - hypothesis.score + MARGIN_EPSILON >= surpriseMargin;
+    top.score - hypothesis.score + MARGIN_EPSILON >= surpriseShare * top.score;
 
-  return {
-    verdict: "Strong",
-    topAudienceId: top.audienceId,
-    marginTopVsSecond,
-    marginTopVsControl,
-    clearsControl: true,
-    surprise,
-  };
+  return { verdict: "Strong", ...cleared, surprise };
 }
