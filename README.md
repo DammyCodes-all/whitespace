@@ -87,7 +87,7 @@ travels in the `X-Api-Key` header and never reaches the browser.
 
 | Variable | Default | What it does |
 |---|---|---|
-| `QLOO_API_KEY` | — | Qloo hackathon API key. Without it the app returns deterministic mock traces, so the UI still runs offline |
+| `QLOO_API_KEY` | — | Qloo hackathon API key. Without it no request runs: each attempted call records a `mock` trace (status 0) and the run reports no-data, never fake data |
 | `QLOO_BASE_URL` | `https://hackathon.api.qloo.com` | Qloo API base |
 | `QLOO_TIMEOUT_MS` | `10000` | Per-request timeout |
 | `QLOO_MAX_RETRIES` | `2` | Retries on 429/5xx and network errors |
@@ -105,8 +105,10 @@ scores on exact Qloo matches.
 
 ### Offline / keyless mode
 
-- No `QLOO_API_KEY` → every Qloo call returns a deterministic mock trace
-  (`fromCache: true`), so the UI and the build work with no network.
+- No `QLOO_API_KEY` → no request runs. Each attempted call records a
+  `mock` trace (status 0, `fromCache: false`), the evidence drawer labels it
+  **mock · no key**, and the result header says **mock run, no Qloo data**.
+  Nothing is invented to fill the gap: the run reads no-data or Inconclusive.
 - No LLM key → tag extraction and the chatbot comparison degrade to their
   honest empty states; the scored run still works on exact matches.
 - [`/demo/result`](http://localhost:3000/demo/result) is a **static** sample
@@ -147,22 +149,31 @@ run:
 
 1. **Open the evidence drawer** on the result page. Every Qloo call of the run
    is listed with its endpoint, parameters, status, duration, whether it came
-   from cache, and a response summary.
+   from cache, and a response summary. Keyless traces are labelled
+   **mock · no key**, never "saved".
 2. **Every title came from `/search`.** Titles you typed are resolved live;
    a title that does not resolve is shown as *not found* and is never scored.
 3. **Every tag came from `/v2/tags`.** Matched chips show the Qloo tag name
    next to your word (`lonely → Loneliness`). Unmatched words appear as
    *not found* chips and never enter scoring.
-4. **Scoring is code, not the model.** The model may only read the pitch into
+4. **The run checks itself.** After assembly, `checkGrounding`
+   (`src/lib/flow/grounding-run.ts`) compares every displayed title/entity id
+   and every scoring tag id against the ids Qloo returned this run: resolved
+   titles, rival/control/stranger/reach entities, every taste list, and the
+   confirmed chip matches. Anything ungrounded is stripped before scoring or
+   display, and the run-steps ledger names what was removed. The result's
+   `grounding` field records the outcome — this is acceptance test #1 enforced
+   at runtime, not asserted in a literal.
+5. **Scoring is code, not the model.** The model may only read the pitch into
    words, filter which title labels fit, point a leftover word at an
    already-fetched taste id, write the chatbot answer, and rephrase the reach
    prose. It never invents a tag, title, score, audience or reach entity, and
    it never ranks anything.
-5. **Reach prose is validated.** The model may only rephrase names, ranks and
+6. **Reach prose is validated.** The model may only rephrase names, ranks and
    gap labels that were measured in that run. Validation rejects unknown
    names, new numbers, rank drift and speculative relationships, and the
    section falls back to a deterministic draft built from the same facts.
-6. **Missing data reads as missing.** Qloo's empty answers appear as "no
+7. **Missing data reads as missing.** Qloo's empty answers appear as "no
    data" and are excluded from the score — they never stand in for a low
    score.
 

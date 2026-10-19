@@ -114,8 +114,10 @@ About 20 fixed same-domain audiences (genre-spread seeds for film
 and music; 6 fallbacks each for book and game) are resolved once and
 their tag sets cached for 30 minutes; every pitch is scored fresh
 against the cached sets. Seeds that resolve to nothing are dropped
-and reported, never kept. They render as other-genre groups:
-context bars, not the line. The verdict ceiling is the strangers
+and reported, never kept. A batch with no resolved controls (and a
+set where every taste fetch failed) is not cached, so a failed seed
+run cannot freeze the baseline for the TTL. They render as other-genre
+groups: context bars, not the line. The verdict ceiling is the strangers
 baseline: the bottom-unused entities of the same live discovery
 ranking rivals come from (weakest overlap with the pitch, own
 domain first), measured with one extra taste fetch and scored
@@ -276,8 +278,17 @@ verdict → reach plan only if control is cleared → reach prose (AI,
 bounded; deterministic draft fallback) → optional comparison on its
 own route. It stops early and says the cause when: the pitch is out
 of scope (tool/app, zero Qloo calls), nothing to judge, or the pooled
-tags run too thin. One miss never fails a batch: failures degrade to
-not-found / failed / no-data entries with their traces. The reach
+tags run too thin. After assembly the run checks every title, reach
+name and scoring tag about to be displayed against the ids Qloo
+returned in that run — resolved titles, rival, stranger and reach
+entities, every taste list, plus the chip-step tag matches. Anything
+ungrounded is stripped before scoring or display and named in the run
+steps; the result records the check, so it can never ship an
+ungrounded id (§8, §10 #1). One miss never fails a batch: failures degrade to
+not-found / failed / no-data entries with their traces. A provider
+rate limit or a call-budget breach is not a miss: the API answers 429
+with a `quota` state (`rate-limited` | `exhausted`) instead of
+reporting a title as not found or a preview as empty. The reach
 prose call has a per-provider timeout and never blocks the result on a
 failure: any section the model cannot ground ships as the draft. The
 AI's only judgments are the words, the similar-label picking, the
