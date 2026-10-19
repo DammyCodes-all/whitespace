@@ -270,6 +270,7 @@ describe("toFlowResult", () => {
                 entityId: "p1",
                 name: "Somebody",
                 kind: "person",
+                description: "A person from Qloo.",
                 affinityRank: 1,
                 callId: "c9",
               },
@@ -288,6 +289,7 @@ describe("toFlowResult", () => {
       ["T1", "T2"],
     );
     assert.equal(out.reach[0]?.people[0]?.evidenceId, "c9");
+    assert.equal(out.reach[0]?.people[0]?.description, "A person from Qloo.");
     assert.ok(out.evidence.c9 !== undefined);
   });
 });
