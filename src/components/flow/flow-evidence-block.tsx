@@ -1,10 +1,11 @@
 "use client";
 
+import { evidenceCache, evidenceStatus } from "@/components/evidence-label";
 import type { FlowEvidence } from "@/lib/flow/contract";
 
 /**
  * Evidence drawer block. Small enough to stay its own module.
- * Spec: §6.12 (structure unchanged).
+ * Spec: §6.12 (structure unchanged; mock rows never read as cache hits).
  */
 export function FlowEvidenceBlock({
   steps,
@@ -15,11 +16,15 @@ export function FlowEvidenceBlock({
   evidence: Record<string, FlowEvidence>;
   totalCalls: number;
 }) {
+  const rows = Object.values(evidence);
+  const mockOnly = rows.length > 0 && rows.every((line) => line.mock === true);
   return (
     <div className="mt-10">
       <details>
         <summary className="cursor-pointer text-base tracking-tight text-ink">
-          Evidence · {totalCalls} calls
+          {mockOnly
+            ? `Evidence · ${rows.length} mock traces, no Qloo key`
+            : `Evidence · ${totalCalls} calls`}
         </summary>
         {steps.length > 0 && (
           <details className="mt-3">
@@ -43,8 +48,8 @@ export function FlowEvidenceBlock({
             <li key={id} id={id} className="py-3">
               <details>
                 <summary className="cursor-pointer font-mono text-xs text-ink-2">
-                  {line.request.endpoint} · status {line.status}
-                  {line.fromCache ? " · saved" : ""}
+                  {line.request.endpoint} · {evidenceStatus(line)}
+                  {evidenceCache(line)}
                   {line.truncated ? " · truncated" : ""}
                 </summary>
                 <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-all bg-paper p-3 font-mono text-xs text-ink-2">

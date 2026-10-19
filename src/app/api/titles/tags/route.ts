@@ -5,6 +5,7 @@ import {
   loadControlTastes,
   resetQuota,
 } from "../../../../lib/qloo/index.ts";
+import { quotaFailure } from "../../../../lib/qloo/quota-state.ts";
 import { resolveTitles } from "../../../../lib/qloo/resolve-titles.ts";
 import {
   buildTitleTagPool,
@@ -65,7 +66,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "titles is required." }, { status: 400 });
   }
 
-  resetQuota();
   const started = Date.now();
   const log = (note: string, gifts: number, detail = "") => {
     console.info(
@@ -73,6 +73,7 @@ export async function POST(request: Request) {
     );
   };
   try {
+    resetQuota();
     const resolveStarted = Date.now();
     const titleRes = await resolveTitles(titles, workType as WorkType);
     console.info(
@@ -82,7 +83,11 @@ export async function POST(request: Request) {
     );
     if (titleRes.resolved.length === 0) {
       log("unresolved", 0, ` from ${titles.length} typed`);
-      return NextResponse.json({ tags: [], note: "unresolved" });
+      return NextResponse.json({
+        tags: [],
+        note: "unresolved",
+        quota: "ok",
+      });
     }
     const tastesStarted = Date.now();
     const targets = namedTasteAudiences(titleRes.resolved);
@@ -122,7 +127,7 @@ export async function POST(request: Request) {
       )
     ) {
       log("no-tastes", 0, ` (${titleRes.resolved.length} resolved)`);
-      return NextResponse.json({ tags: [], note: "no-tastes" });
+      return NextResponse.json({ tags: [], note: "no-tastes", quota: "ok" });
     }
     const pool = buildTitleTagPool({
       namedTastes: withTastes,
@@ -132,7 +137,7 @@ export async function POST(request: Request) {
     });
     if (pool.length === 0) {
       log("all-generic", 0, ` (${titleRes.resolved.length} resolved)`);
-      return NextResponse.json({ tags: [], note: "all-generic" });
+      return NextResponse.json({ tags: [], note: "all-generic", quota: "ok" });
     }
     log("ok", pool.length, ` (${titleRes.resolved.length} resolved)`);
     return NextResponse.json({
@@ -144,12 +149,21 @@ export async function POST(request: Request) {
         sourceTitleName: candidate.sourceTitleName ?? null,
       })),
       note: "ok",
+      quota: "ok",
     });
   } catch (err) {
+    const failure = quotaFailure(err);
+    if (failure !== null) {
+      log(failure.body.quota, 0, ` from ${titles.length} typed`);
+      return NextResponse.json(failure.body, {
+        status: failure.status,
+        headers: failure.headers,
+      });
+    }
     log(
       `preview-failed — ${err instanceof Error ? err.message : String(err)}`,
       0,
     );
-    return NextResponse.json({ tags: [], note: "preview-failed" });
+    return NextResponse.json({ tags: [], note: "preview-failed", quota: "ok" });
   }
 }
