@@ -3,7 +3,6 @@
  * Mocks only: synthetic env, stubbed transport — no request ever
  * leaves the process and no real key is read.
  */
-
 import assert from "node:assert/strict";
 import type { TestContext } from "node:test";
 import { describe, it } from "node:test";
@@ -90,9 +89,9 @@ describe("POST /api/titles/pick", () => {
     }
   });
 
-  it("returns the model's kept subset, dropping invented ids", async (t) => {
+  it("returns the model's kept subset, dropping the ones it never lists", async (t) => {
     let seenMessages: unknown = null;
-    stubChat(t, '{"kept":["id1","nope"]}', (body) => {
+    stubChat(t, '{"kept":["id1"]}', (body) => {
       seenMessages = (body as { messages?: unknown }).messages;
     });
     const res = await POST(
@@ -100,8 +99,24 @@ describe("POST /api/titles/pick", () => {
     );
     assert.equal(res.status, 200);
     const data = (await res.json()) as { keptIds?: string[] };
+    // A candidate the model never lists is a judgment (cut), shown in
+    // the cut-gifts row with everything restoreable — not a failure.
     assert.deepEqual(data.keptIds, ["id1"]);
     assert.ok(Array.isArray(seenMessages));
+  });
+
+  it("fails OPEN on an id the model was not offered (typo restores intent)", async (t) => {
+    stubChat(t, '{"kept":["id1","nope"]}');
+    const res = await POST(
+      post({ pitchText: "a school story", candidates: CANDIDATES }),
+    );
+    assert.equal(res.status, 200);
+    const data = (await res.json()) as { keptIds?: string[] };
+    // The model's full intent ("id1" kept) survives its own typo: the
+    // not-offered id aborts the pass, so both candidates stay.
+    const kept = new Set(data.keptIds ?? []);
+    assert.ok(kept.has("id1"));
+    assert.ok(kept.has("id2"));
   });
 
   it("fails open with every candidate when no LLM key is set", async (t) => {

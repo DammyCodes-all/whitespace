@@ -11,6 +11,8 @@ import type { FailedCondition } from "../lib/policy/change.ts";
 
 const REASONS: Record<FailedCondition, string> = {
   rise: "The rewrite didn't clear the improvement bar.",
+  separation:
+    "The rewrite lifted the field more than the winner, so the fit didn't stand out more.",
   coverage: "The rewrite speaks to fewer of your words.",
   grounding: "New words weren't found in Qloo.",
   control: "The rewrite lost its lead over other-genre groups.",

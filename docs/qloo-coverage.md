@@ -321,3 +321,33 @@ in code, so the AI points and our code scores — determinism (§10 #7)
 and grounding (§8, §6.12) survive. Acceptance bar: bridges must widen
 gaps (right audience rises, wrong ones stay), never inflate everyone
 together — re-check on the 6-pitch table.
+
+## Scale-free verdict bars (2026-10-19, no live calls)
+
+The absolute bars retired here were Margins v1 findings, measured when
+pools were pitch-only and roughly 12 tags. The title-grounded pool
+(2026-10-15) changed K, and a mean over K tags shrinks every difference
+as K grows: the same pair of audiences measured 0.180 apart on a
+12-tag pool, 0.108 on 20, 0.072 on 30 and 0.036 on 60. One fixed 0.05
+control margin therefore flipped Strong/Weak on pool size alone.
+
+Replaced, all rank- or share-based:
+- Control test: beat every judgeable comparison audience (no gap), with
+  at least 8 judgeable controls and a strongest comparison holding at
+  least 2% of the pool (never fewer than one tag).
+- Tie (Strong vs Mixed): lead at least 5% of the winner's own score.
+- Surprise: a rival leads the named audience by at least 10% of the
+  top's own score.
+- Change rise: absolute 0.05 OR at least 10% of the starting fit; plus
+  the winner's lead over the field must not shrink (separation).
+- Coverage: the pitch-word match rate is display-only; the pooled-tag
+  count (at least 3) is the sufficiency gate.
+- Self-fit: a named winner is rescored on the pitch-grounded tags
+  alone; a collapse is Mixed ("leans"), too little left to judge is
+  Inconclusive ("self-fit"), a surviving lead is confirmed.
+
+Each threshold is provisional until the 6-pitch table is re-run live
+(§14 #4). The point of the change is that re-tuning is now a share,
+not a pool-size-specific number. Bridge discrimination remains
+unverified against live runs (§10 #10): this change only removes
+double-counted pool targets and bridges held by no contender.
