@@ -9,9 +9,22 @@
  */
 
 import { REACH_SLOTS, VERDICT_WORDS } from "@/lib/flow/brief";
-import type { FlowBarRow, FlowResult } from "@/lib/flow/contract";
+import type { FlowBarRow, FlowResult, ReachSlot } from "@/lib/flow/contract";
 import { barRows, isCloseCall } from "@/lib/flow/contract";
 import { resolveReachSections } from "@/lib/flow/reach-copy";
+import { segmentReachProse } from "@/lib/flow/reach-highlight";
+
+/**
+ * What a slot's items are called, singular and plural — the count on
+ * the heading row is measured, so it says what was counted.
+ */
+const SLOT_NOUN: Record<ReachSlot, [string, string]> = {
+  interests: ["taste", "tastes"],
+  people: ["name", "names"],
+  podcasts: ["show", "shows"],
+  brands: ["brand", "brands"],
+  places: ["place", "places"],
+};
 
 const VERDICT_FILLS: Record<FlowResult["verdict"], string> = {
   strong: "bg-strong",
@@ -44,6 +57,28 @@ function barFill(index: number): string {
   if (index === 0) return "bg-strong";
   if (index === 1) return "bg-split";
   return "bg-weak";
+}
+
+/**
+ * The reach prose with the measured names inside it picked out. The
+ * names are the run's own items — Qloo's entities, in Qloo's order —
+ * so the emphasis can never introduce a fact the run did not measure
+ * (§6.8, §7). It stays prose, not a list.
+ */
+function ReachProse({ text, names }: { text: string; names: string[] }) {
+  return (
+    <>
+      {segmentReachProse(text, names).map((segment) =>
+        segment.strong ? (
+          <strong key={segment.id} className="font-medium text-ink">
+            {segment.text}
+          </strong>
+        ) : (
+          <span key={segment.id}>{segment.text}</span>
+        ),
+      )}
+    </>
+  );
 }
 
 function VerdictHeadline({
@@ -88,46 +123,8 @@ function VerdictHeadline({
           ? "No other-genre audience could be measured, so there is nothing to compare this against."
           : `The strongest other-genre comparison matches it ${Math.round(result.ceiling * 100)}%.`}
       </p>
-      {controlTestLine(result) !== null && (
-        <p className="mt-2 max-w-prose text-body text-ink">
-          {controlTestLine(result)}
-        </p>
-      )}
-      {selfFitLine(result) !== null && (
-        <p className="mt-2 max-w-prose text-body text-ink">
-          {selfFitLine(result)}
-        </p>
-      )}
     </div>
   );
-}
-
-/**
- * §6.7 (fix 2): say the field result in words — how many measured
- * comparison audiences the winner beat. Silent when the field was
- * unusable, because then nothing was beaten.
- */
-function controlTestLine(result: FlowResult): string | null {
-  const test = result.controlTest;
-  if (test === null || test.total === 0) return null;
-  const noun = test.total === 1 ? "audience" : "audiences";
-  return `It beats ${test.beaten} of the ${test.total} other-genre ${noun} measured.`;
-}
-
-/**
- * §6.7 (fix 1): the winner's lead re-checked with the tags that came
- * from its own titles removed. `leans` means the fit is unconfirmed;
- * `confirmed` means it held up without them. Never shown when the check
- * did not apply (a rival won, or no Strong was on the table).
- */
-function selfFitLine(result: FlowResult): string | null {
-  if (result.selfFit === "leans") {
-    return "This audience leans on the titles you named: without their own tags it stops leading. Treat the fit as unconfirmed — add a few descriptive words and run again.";
-  }
-  if (result.selfFit === "confirmed") {
-    return "It also leads without the tags from your own titles, so the fit is not just your titles agreeing with themselves.";
-  }
-  return null;
 }
 
 function verdictSentence(result: FlowResult): string {
@@ -257,24 +254,47 @@ function ReachBlock({ result }: { result: FlowResult }) {
             <p className="font-serif text-3xl leading-tight tracking-tight text-ink">
               {group.audienceName}
             </p>
-            <div className="mt-6 space-y-7">
+            {/* Balanced columns, not a grid of pairs: a fixed two-column
+                grid leaves a hole under the shortest section, and the
+                hole is what makes the card read as a half-filled form.
+                Multi-column balances the two sides, and a magazine
+                column is read top-to-bottom then across — the same
+                order the DOM is in. */}
+            <div className="mt-6 columns-1 gap-10 lg:columns-2">
               {visibleSlots.map(({ slot, label }) => {
                 const text = sections[slot];
+                const items = group[slot];
+                const count = items.length;
                 return (
-                  <div key={slot}>
-                    <h4 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">
-                      {label}
-                    </h4>
+                  <section
+                    key={slot}
+                    className="mb-7 break-inside-avoid border-t border-rule pt-3"
+                  >
+                    <div className="flex items-baseline justify-between gap-4">
+                      <h4 className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-ink-2">
+                        {label}
+                      </h4>
+                      {count > 0 ? (
+                        <span className="shrink-0 font-mono text-[11px] text-ink-3">
+                          {count === 1
+                            ? `${count} ${SLOT_NOUN[slot][0]}`
+                            : `${count} ${SLOT_NOUN[slot][1]}`}
+                        </span>
+                      ) : null}
+                    </div>
                     {text === null || text.trim() === "" ? (
-                      <p className="nodata mt-2 inline-block px-2 py-1 font-mono text-xs text-ink-2">
+                      <p className="nodata mt-3 inline-block px-2 py-1 font-mono text-xs text-ink-2">
                         not measured
                       </p>
                     ) : (
-                      <p className="mt-2 max-w-prose text-[15px] leading-[1.65] text-ink-2">
-                        {text}
+                      <p className="mt-2.5 text-[15px] leading-[1.65] text-ink-2">
+                        <ReachProse
+                          text={text}
+                          names={items.map((item) => item.name)}
+                        />
                       </p>
                     )}
-                  </div>
+                  </section>
                 );
               })}
             </div>
