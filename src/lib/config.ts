@@ -7,23 +7,19 @@
  * without a second source of truth.
  *
  * Per the brief: tune after test runs, not to make a table look good.
- * The tie and surprise bars below are live-calibrated values from
- * `docs/qloo-coverage.md` (Margins v1, 2026-10-09), re-expressed as
- * SHARES on 2026-10-19 so they hold at any pool size. The flow gates
- * (MIN_MATCHED_TAGS, CANDIDATES) are the brief's stated values and are
- * NOT yet calibrated on real pitches.
+ * The verdict margins and coverage floor below are the live-calibrated
+ * values from `docs/qloo-coverage.md` (Margins v1, 2026-10-09), carried
+ * over unchanged. The flow gates (MIN_MATCHED_TAGS, CANDIDATES) are the
+ * brief's stated values and are NOT yet calibrated on real pitches —
+ * that is the 5-pitch run's job.
  *
- * Recalibration note (2026-10-19): every absolute margin is gone. Fit
- * scores are a weighted mean over K pooled tags, so the SAME
- * relationship moved 0.180 (K=12) → 0.108 (K=20) → 0.036 (K=60) as the
- * pool grew — fixed numbers flipped Strong/Weak on pool size alone. The
- * control test is now rank-based (beat the measured field, no fixed
- * gap), and the tie, surprise and rise bars are shares of the score
- * they judge.
- *
- * Spec ref: §6.7 (verdict table and margins), §6.5 (pool gate), §6.4
+ * Spec ref: §6.7 (verdict table and margins), §6.5 (tag gate), §6.4
  * (control count), §6.3 (candidate count), §11 (caps guard quota).
  */
+
+/** §6.7: a top audience clears control only by this margin. */
+export const MARGIN = 0.05;
+export const CONTROL_MARGIN = MARGIN;
 
 /**
  * §6.7, display-only: a judged Strong/Weak verdict this close to the
@@ -34,51 +30,22 @@
  */
 export const CLOSE_CALL_GAP = 0.06;
 
-/**
- * §6.7: "clearly ahead" is a SHARE of the winner's own score, not an
- * absolute gap. Same scale problem as the control margin, one branch
- * up: at K=60 a real 0.18 lead at K=12 reads as 0.036, so an absolute
- * 0.05 tie-margin would make every large pool Mixed forever. At the
- * calibrated K=12 magnitudes (0.89 vs 0.87) the share reproduces the old
- * absolute rule exactly, and it holds at every pool size.
- */
-export const SPLIT_SHARE = 0.05;
+/** §6.7: the top two both clear control and sit within this of each other. */
+export const SPLIT_MARGIN = 0.05;
 
-/**
- * §6.7: a rival beats the named audience by this share of its own score
- * = surprise. Share, not absolute gap, for the same reason.
- */
-export const SURPRISE_SHARE = 0.1;
+/** §6.7: a rival beats the named audience by this much = surprise. */
+export const SURPRISE_MARGIN = 0.1;
 
 /** §6.7: more than this share unjudgeable means Inconclusive, not Weak. */
 export const MAX_UNJUDGEABLE_SHARE = 0.5;
 
-/**
- * §6.7: a comparison field needs this many judgeable control audiences
- * before any verdict may be Strong. Below it the run abstains: "beats
- * 3 of 4" is not evidence. Placeholder zeros never count toward it
- * (§10 #4), so a degraded Qloo window abstains instead of guessing.
- */
-export const MIN_JUDGEABLE_CONTROLS = 8;
-
-/**
- * §6.7: the strongest comparison audience must hold at least this share
- * of the pooled tags, and never fewer than one. On a 3-tag pitch-only
- * set one hit is a third of the pool — a real bar; on a 60-tag pool one
- * hit is 1.7% — a lucky draw. A share, not a fixed count, for the same
- * reason everything else here is scale-free.
- */
-export const MIN_CEILING_SHARE = 0.02;
-
-/** §6.5: share of suggested words that matched Qloo. DISPLAY-ONLY now. */
+/** §6.5: share of suggested words that must match before scoring. */
 export const COVERAGE_FLOOR = 0.34;
 
 /**
- * §6.5, pool gate: fewer pooled tags than this and the run stops as
- * Inconclusive without scoring. This is now the ONLY sufficiency gate —
- * the pitch-word coverage floor is display-only (2026-10-19), because
- * scoring runs on the pooled set (title gifts plus pitch tags), not on
- * the pitch words alone. Judge the meal, not the garnish.
+ * Flow gate (brief step 2): fewer matched tags than this and the run
+ * stops as Inconclusive without scoring. Kept beside the coverage floor:
+ * the floor guards shares, this guards absolute coverage.
  */
 export const MIN_MATCHED_TAGS = 3;
 

@@ -51,7 +51,7 @@ export function FlowInputStep({
         rows={10}
         aria-describedby="flow-input-lede"
         placeholder="Frankie drove getaway cars for twenty years and never lost a crew. Now her old crew is back with one last job. Gritty but tender, slow-burn. About loyalty and aging out of a life, set in a present-day port town that lives off smuggling crews. A heist movie with family drama at its core."
-        className="mt-4 min-h-40 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-5 py-4 text-left text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3 transition-colors focus:outline-none focus:ring-2 focus:ring-measured/30"
+        className="mt-6 min-h-40 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-5 py-4 text-left text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3 transition-colors focus:outline-none focus:ring-2 focus:ring-measured/30"
       />
       <div className="mt-4">
         <div>
@@ -67,7 +67,7 @@ export function FlowInputStep({
             value={similarTitles}
             onChange={(e) => onSimilarChange(e.target.value)}
             placeholder="Moon, Arrival"
-            className="mt-1 w-64 border-2 border-outline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-3"
+            className="mt-2 w-64 border-2 border-outline bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-3"
           />
         </div>
       </div>
