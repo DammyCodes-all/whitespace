@@ -22,9 +22,8 @@ import {
 import {
   CLEAR_FINALE_MS,
   CLEAR_FINALE_REDUCED_MS,
-  type OrbHandle,
-  type OrbPhase,
-} from "@/components/ui/ai-thinking-orb-and-input";
+} from "@/components/ui/orb/timeline";
+import type { OrbHandle, OrbPhase } from "@/components/ui/orb/types";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowResult, FlowTag } from "@/lib/flow/contract";
 import {

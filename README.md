@@ -182,6 +182,7 @@ run:
 ```
 src/app/            routes: entry (/), run (/flow), static sample (/demo/result), API routes
 src/components/     UI: entry, flow steps, result, reach card, chatbot comparison, evidence drawer
+src/components/ui/orb/  the vendored orb widget, split by concern: the React shell (morph-orb), the runtime state machine, the timeline, the canvas renderer, the trail, the channel map
 src/lib/qloo/       Qloo boundary: client (auth/retry/cache/quota), titles, tags, tastes, rivals, controls, related
 src/lib/agent/      LLM seam: tag extraction, title-label pick, bridges, chatbot answer, reach prose
 src/lib/flow/       the run pipeline, contracts and view models

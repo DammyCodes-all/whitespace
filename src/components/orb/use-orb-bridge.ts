@@ -19,7 +19,7 @@ import type {
   OrbEnd,
   OrbHandle,
   OrbPhase,
-} from "@/components/ui/ai-thinking-orb-and-input";
+} from "@/components/ui/orb/types";
 import { legPrompt } from "@/lib/orb/orb-status";
 
 /** Phases where the orb is visibly working — a primary action waits. */

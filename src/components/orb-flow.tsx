@@ -26,9 +26,8 @@ import { OrbFlightClone } from "@/components/orb/orb-flight-clone";
 import { useOrbFlight } from "@/components/orb/use-orb-flight";
 import { useOrbRun } from "@/components/orb/use-orb-run";
 import { returnWaitMs, useStageGlide } from "@/components/orb/use-stage-glide";
-import MorphOrb, {
-  type OrbHandle,
-} from "@/components/ui/ai-thinking-orb-and-input";
+import MorphOrb from "@/components/ui/orb/morph-orb";
+import type { OrbHandle } from "@/components/ui/orb/types";
 
 export function OrbFlow({
   homeHref = "/",

@@ -31,7 +31,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/components/ui/ai-thinking-orb-and-input.tsx"],
+      "includes": ["src/components/ui/orb/**"],
       "linter": {
         "rules": {
           "a11y": {

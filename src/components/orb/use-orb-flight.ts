@@ -26,7 +26,7 @@ import {
 } from "@/components/entry-box";
 import { morphClone } from "@/components/orb/flight-animation";
 import type { OrbFlightState } from "@/components/orb/types";
-import type { OrbHandle } from "@/components/ui/ai-thinking-orb-and-input";
+import type { OrbHandle } from "@/components/ui/orb/types";
 
 export interface OrbFlight {
   /** The clone to render, or null when there is nothing in flight. */
