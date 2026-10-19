@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import {
   ButtonsSection,
-  ChangeSection,
   ColorSection,
   CompareSection,
   EvidenceSection,
@@ -45,7 +44,6 @@ const NAV = [
   { id: "verdicts", label: "Verdicts" },
   { id: "result", label: "Result" },
   { id: "reach", label: "Reach" },
-  { id: "change", label: "Change" },
   { id: "compare", label: "Compare" },
   { id: "screens", label: "Screens" },
 ];
@@ -117,7 +115,6 @@ export default function DemoPage() {
           <VerdictsSection />
           <ResultViewSection />
           <ReachSection />
-          <ChangeSection />
           <CompareSection />
           <ScreensSection />
         </div>

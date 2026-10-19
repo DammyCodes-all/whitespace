@@ -1,6 +1,5 @@
 import type { ChatbotView } from "@/components/chatbot-preview";
 import type {
-  ChangeResponseBody,
   FlowPhase,
   FlowResult,
   RunResponseBody,
@@ -9,7 +8,6 @@ import type {
 } from "@/components/flow/flow-types";
 import { parseSimilarTitles } from "@/lib/flow/similar-titles";
 import type { FlowStepRow } from "@/lib/flow/view-types";
-import type { ChangedRun } from "@/lib/pipeline/change";
 import type { QlooCall, WorkType } from "@/lib/types";
 
 export async function extractTagsAction(
@@ -75,8 +73,6 @@ export async function runAnalysisAction(
     setChatbotError: Setter<string | null>;
     setCompareCalls: Setter<QlooCall[]>;
     setCompareLoaded: Setter<boolean>;
-    setChanged: Setter<ChangedRun | null>;
-    setChangeError: Setter<string | null>;
   },
 ) {
   set.setBusy(true);
@@ -107,48 +103,11 @@ export async function runAnalysisAction(
     set.setChatbotError(null);
     set.setCompareCalls([]);
     set.setCompareLoaded(false);
-    set.setChanged(null);
-    set.setChangeError(null);
     set.setPhase("done");
   } catch {
     set.setError("The run failed. The page is unaffected.");
     set.setPhase("tags");
   } finally {
     set.setBusy(false);
-  }
-}
-
-export async function checkChangeAction(
-  result: FlowResult | null,
-  constraint: string,
-  changeBusy: boolean,
-  set: {
-    setChangeBusy: Setter<boolean>;
-    setChangeError: Setter<string | null>;
-    setChanged: Setter<ChangedRun | null>;
-  },
-) {
-  if (result === null || constraint.trim() === "" || changeBusy) return;
-  set.setChangeBusy(true);
-  set.setChangeError(null);
-  try {
-    const res = await fetch("/api/flow/change", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        result: { ...result, evidence: {} },
-        constraint: constraint.trim(),
-      }),
-    });
-    const data = (await res.json()) as ChangeResponseBody;
-    if (!res.ok || data.changed === undefined) {
-      set.setChangeError(data.error ?? "The recheck failed.");
-      return;
-    }
-    set.setChanged(data.changed);
-  } catch {
-    set.setChangeError("The recheck failed. The run above is unaffected.");
-  } finally {
-    set.setChangeBusy(false);
   }
 }
