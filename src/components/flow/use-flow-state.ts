@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { ChatbotView } from "@/components/chatbot-preview";
 import type {
-  ChangedRun,
   CheckResult,
   FlowPhase,
   FlowResult,
@@ -38,10 +37,6 @@ export function useFlowState(initialPitch: string) {
   const [chatbotError, setChatbotError] = useState<string | null>(null);
   const [compareCalls, setCompareCalls] = useState<QlooCall[]>([]);
   const [compareLoaded, setCompareLoaded] = useState(false);
-  const [constraint, setConstraint] = useState("");
-  const [changed, setChanged] = useState<ChangedRun | null>(null);
-  const [changeBusy, setChangeBusy] = useState(false);
-  const [changeError, setChangeError] = useState<string | null>(null);
   const [checkBusy, setCheckBusy] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
@@ -94,14 +89,6 @@ export function useFlowState(initialPitch: string) {
     setCompareCalls,
     compareLoaded,
     setCompareLoaded,
-    constraint,
-    setConstraint,
-    changed,
-    setChanged,
-    changeBusy,
-    setChangeBusy,
-    changeError,
-    setChangeError,
     checkBusy,
     setCheckBusy,
     checkError,

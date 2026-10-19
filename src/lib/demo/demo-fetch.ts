@@ -13,7 +13,6 @@
 
 import { namedAudienceLabel } from "../audience-words.ts";
 import {
-  DEMO_CHANGE_ACCEPTED,
   DEMO_CHATBOT,
   DEMO_FLOW_RESULT,
   DEMO_FLOW_TAGS,
@@ -199,12 +198,6 @@ export function demoResponseFor(
         status: 200,
         delayMs: 1600,
         json: { chatbot: DEMO_CHATBOT, error: null, calls: [] },
-      };
-    case "/api/flow/change":
-      return {
-        status: 200,
-        delayMs: 1400,
-        json: { changed: DEMO_CHANGE_ACCEPTED },
       };
     default:
       return null;

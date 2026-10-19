@@ -1,15 +1,14 @@
 "use client";
 
 /**
- * The results sidecars: the plain-chatbot comparison (fetched once per
- * result) and the change-and-recheck. Both spend their own calls and
- * never touch the scored run above them.
+ * The results sidecar: the plain-chatbot comparison, fetched once per
+ * result. It spends its own calls and never touches the scored run
+ * above it.
  */
 
 import { useEffect, useRef, useState } from "react";
 import type { ChatbotView } from "@/components/chatbot-preview";
 import type { FlowResult } from "@/lib/flow/contract";
-import type { ChangedRun } from "@/lib/pipeline/change";
 import type { QlooCall } from "@/lib/types";
 
 export interface ResultSidecars {
@@ -17,12 +16,6 @@ export interface ResultSidecars {
   chatbotError: string | null;
   compareCalls: QlooCall[];
   compareLoaded: boolean;
-  changed: ChangedRun | null;
-  constraint: string;
-  changeBusy: boolean;
-  changeError: string | null;
-  setConstraint: (value: string) => void;
-  checkChange: () => void;
   /** Drop everything the last result fetched — a new run replaces it. */
   reset: () => void;
 }
@@ -38,10 +31,6 @@ export function useResultSidecars({
   const [chatbotError, setChatbotError] = useState<string | null>(null);
   const [compareCalls, setCompareCalls] = useState<QlooCall[]>([]);
   const [compareLoaded, setCompareLoaded] = useState(false);
-  const [constraint, setConstraint] = useState("");
-  const [changed, setChanged] = useState<ChangedRun | null>(null);
-  const [changeBusy, setChangeBusy] = useState(false);
-  const [changeError, setChangeError] = useState<string | null>(null);
 
   const compareForResult = useRef<FlowResult | null>(null);
   useEffect(() => {
@@ -79,42 +68,11 @@ export function useResultSidecars({
     })();
   }, [leg, result]);
 
-  async function checkChange() {
-    if (result === null || constraint.trim() === "" || changeBusy) return;
-    setChangeBusy(true);
-    setChangeError(null);
-    try {
-      const res = await fetch("/api/flow/change", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          result: { ...result, evidence: {} },
-          constraint: constraint.trim(),
-        }),
-      });
-      const data = (await res.json()) as {
-        changed?: ChangedRun;
-        error?: string;
-      };
-      if (!res.ok || data.changed === undefined) {
-        setChangeError(data.error ?? "The recheck failed.");
-        return;
-      }
-      setChanged(data.changed);
-    } catch {
-      setChangeError("The recheck failed. The run above is unaffected.");
-    } finally {
-      setChangeBusy(false);
-    }
-  }
-
   function reset() {
     setChatbot(null);
     setChatbotError(null);
     setCompareCalls([]);
     setCompareLoaded(false);
-    setChanged(null);
-    setChangeError(null);
   }
 
   return {
@@ -122,14 +80,6 @@ export function useResultSidecars({
     chatbotError,
     compareCalls,
     compareLoaded,
-    changed,
-    constraint,
-    changeBusy,
-    changeError,
-    setConstraint,
-    checkChange: () => {
-      void checkChange();
-    },
     reset,
   };
 }
