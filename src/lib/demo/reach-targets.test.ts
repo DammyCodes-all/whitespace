@@ -80,24 +80,6 @@ describe("selectReachTargets", () => {
     );
   });
 
-  it("returns only the top when a Mixed verdict leans on its own titles", () => {
-    // Mixed because the lead stops holding without the named titles'
-    // tags: there is no close pair, so no second reach plan (2026-10-19).
-    const leaned: VerdictResult = {
-      ...verdict("Mixed", "a"),
-      selfFit: "leans",
-    };
-    const targets = selectReachTargets(
-      leaned,
-      [judged("a", 0.8), judged("b", 0.4)],
-      AUDIENCES,
-    );
-    assert.deepEqual(
-      targets.map((t) => t.id),
-      ["a"],
-    );
-  });
-
   it("skips an unjudgeable second for a real third on Mixed", () => {
     const targets = selectReachTargets(
       verdict("Mixed", "a"),

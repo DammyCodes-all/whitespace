@@ -181,8 +181,6 @@ const mockVerdict: VerdictResult = {
   marginTopVsControl: 0.28,
   clearsControl: true,
   surprise: true,
-  controlsBeaten: { beaten: 19, total: 20 },
-  selfFit: "confirmed",
 };
 
 const mockCalls: QlooCall[] = [
@@ -537,18 +535,6 @@ export const DEMO_VERDICTS: {
     },
   },
   {
-    // 2026-10-19: Mixed because the lead leans on the titles the user
-    // named, so the self-fit line renders on this variant.
-    label: "Mixed · leans on own titles",
-    verdict: {
-      ...baseVerdict,
-      verdict: "Mixed",
-      marginTopVsSecond: 0.04,
-      selfFit: "leans",
-      surprise: false,
-    },
-  },
-  {
     label: "Weak · misses the field",
     verdict: {
       ...baseVerdict,
@@ -556,7 +542,6 @@ export const DEMO_VERDICTS: {
       marginTopVsSecond: 0.09,
       marginTopVsControl: -0.12,
       clearsControl: false,
-      controlsBeaten: { beaten: 12, total: 20 },
       surprise: false,
     },
   },
@@ -566,12 +551,10 @@ export const DEMO_VERDICTS: {
       ...baseVerdict,
       verdict: "Inconclusive",
       topAudienceId: null,
-      marginTopVsSecond: null,
+      marginTopVsSecond: 0,
       marginTopVsControl: 0,
       clearsControl: false,
       surprise: false,
-      controlsBeaten: undefined,
-      selfFit: undefined,
       inconclusiveReason: "nodata",
     },
   },
@@ -655,8 +638,6 @@ export const DEMO_FLOW_RESULT: FlowResult = {
   ceiling: 0.33,
   verdict: "strong",
   surprise: true,
-  controlTest: { beaten: 19, total: 20 },
-  selfFit: "confirmed",
   reach: [
     {
       audienceId: "rival-lit",

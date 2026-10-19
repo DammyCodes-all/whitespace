@@ -22,8 +22,6 @@ function fixture(overrides: Partial<FlowResult> = {}): FlowResult {
     ceiling: 0.33,
     verdict: "strong",
     surprise: false,
-    controlTest: { beaten: 19, total: 20 },
-    selfFit: "confirmed",
     reach: [
       {
         audienceId: "hyp",
@@ -55,8 +53,6 @@ test("names the verdict word, the pitch and the call counts", () => {
     /- Slow science-fiction \(named\): 0\.61 \[evidence: call-tastes-1\]/,
   );
   assert.match(brief, /Strongest other-genre comparison: 0\.33/);
-  assert.match(brief, /Beat 19 of 20 measured comparison audiences/);
-  assert.match(brief, /Self-fit: confirmed/);
   assert.match(brief, /Qloo data calls: 2 live, 9 from cache/);
 });
 
