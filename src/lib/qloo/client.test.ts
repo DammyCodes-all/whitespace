@@ -5,6 +5,7 @@ import {
   MAX_CALLS_PER_RUN,
   QlooError,
   QlooQuotaError,
+  QlooRateLimitError,
   qlooFetch,
   resetQuota,
 } from "./client.ts";
@@ -83,14 +84,21 @@ describe("qlooFetch legacy compatibility", () => {
     resetQuota();
   });
 
-  it("retains no-key mock responses without an HTTP request", async () => {
+  it("marks no-key responses as mock, never as a cache hit", async () => {
     delete process.env.QLOO_API_KEY;
     globalThis.fetch = (async () => {
-      throw new Error("Legacy mock mode must not fetch.");
+      throw new Error("Keyless mode must not fetch.");
     }) as typeof fetch;
     const out = await qlooFetch("/search", { query: "Offline" });
-    assert.deepEqual(out.data, { success: true, mock: true, results: [] });
-    assert.equal(out.trace.fromCache, true);
+    assert.deepEqual(out.data, {
+      success: false,
+      mock: true,
+      results: [],
+      error: "QLOO_API_KEY is not set; no request was made.",
+    });
+    assert.equal(out.trace.mock, true);
+    assert.equal(out.trace.fromCache, false);
+    assert.equal(out.trace.status, 0);
     assert.deepEqual(getQuotaUsage(), { calls: 0, cached: 0 });
   });
 
@@ -161,9 +169,7 @@ describe("qlooFetch evidence capture", () => {
       query: "echo secret-key-123 here",
     });
     assert.ok(!JSON.stringify(out.trace.params).includes("secret-key-123"));
-    assert.ok(
-      JSON.stringify(out.trace.params).includes("[REDACTED]"),
-    );
+    assert.ok(JSON.stringify(out.trace.params).includes("[REDACTED]"));
   });
 
   it("captures the error body and status on failure", async () => {
@@ -171,12 +177,15 @@ describe("qlooFetch evidence capture", () => {
     process.env.QLOO_MAX_RETRIES = "0";
     globalThis.fetch = (async () =>
       new Response('{"error":"bad"}', { status: 400 })) as typeof fetch;
-    await assert.rejects(() => qlooFetch("/search", { query: "bad" }), (err) => {
-      assert.ok(err instanceof QlooError);
-      assert.equal(err.trace.status, 400);
-      assert.equal(err.trace.responseBody, '{"error":"bad"}');
-      return true;
-    });
+    await assert.rejects(
+      () => qlooFetch("/search", { query: "bad" }),
+      (err) => {
+        assert.ok(err instanceof QlooError);
+        assert.equal(err.trace.status, 400);
+        assert.equal(err.trace.responseBody, '{"error":"bad"}');
+        return true;
+      },
+    );
   });
 });
 
@@ -188,8 +197,34 @@ describe("qlooFetch quota", () => {
   afterEach(() => {
     if (SAVED_KEY === undefined) delete process.env.QLOO_API_KEY;
     else process.env.QLOO_API_KEY = SAVED_KEY;
+    if (SAVED_RETRIES === undefined) delete process.env.QLOO_MAX_RETRIES;
+    else process.env.QLOO_MAX_RETRIES = SAVED_RETRIES;
     globalThis.fetch = SAVED_FETCH;
     resetQuota();
+  });
+
+  it("throws a non-QlooError rate-limit error on a final 429", async () => {
+    process.env.QLOO_API_KEY = "test-key";
+    process.env.QLOO_MAX_RETRIES = "0";
+    globalThis.fetch = (async () =>
+      new Response('{"error":"slow down"}', {
+        status: 429,
+        headers: { "Retry-After": "30" },
+      })) as typeof fetch;
+
+    await assert.rejects(
+      () => qlooFetch("/search", { query: "hot" }),
+      (err) => {
+        assert.ok(err instanceof QlooRateLimitError);
+        // Critical: never a QlooError, so resolveTitles cannot turn a
+        // rate limit into a fake not-found.
+        assert.ok(!(err instanceof QlooError));
+        assert.equal(err.trace.status, 429);
+        assert.equal(err.trace.responseBody, '{"error":"slow down"}');
+        assert.equal(err.retryAfterMs, 30_000);
+        return true;
+      },
+    );
   });
 
   it("throws a non-QlooError breach past the cap, never a fake not-found", async () => {

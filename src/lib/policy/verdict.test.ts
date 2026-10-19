@@ -47,14 +47,19 @@ describe("decideVerdict control ceiling honesty", () => {
     assert.equal(result.inconclusiveReason, "no-control");
   });
 
-  it("still returns Weak when no control exists at all", () => {
+  it("returns Inconclusive/no-control when no control exists at all", () => {
+    // An empty control batch is an unmeasured baseline, not a measured
+    // low. Reading it as Weak would say "we measured and it is low".
     const result = decideVerdict({
       hypothesisId: "a",
       scores: [judged("a", 0.9)],
       controlScores: [],
       coverage: 0.9,
     });
-    assert.equal(result.verdict, "Weak");
+    assert.equal(result.verdict, "Inconclusive");
+    assert.equal(result.inconclusiveReason, "no-control");
+    assert.equal(result.clearsControl, false);
+    assert.equal(result.topAudienceId, "a");
   });
 
   it("uses the best JUDGEABLE control, ignoring placeholder 0s", () => {
@@ -110,15 +115,18 @@ describe("decideVerdict margins", () => {
     assert.ok(Math.abs(result.marginTopVsSecond - 0.02) < 1e-9);
   });
 
-  it("returns Weak when there are no control scores", () => {
-    const result = decideVerdict({
-      hypothesisId: "a",
-      scores: [judged("a", 0.9)],
-      controlScores: [],
-      coverage: 0.9,
-    });
-    assert.equal(result.verdict, "Weak");
-    assert.equal(result.clearsControl, false);
+  it("never reads a missing baseline as Weak, empty or all-unjudgeable", () => {
+    for (const controlScores of [[], [unjudged("control-1")]]) {
+      const result = decideVerdict({
+        hypothesisId: "a",
+        scores: [judged("a", 0.9)],
+        controlScores,
+        coverage: 0.9,
+      });
+      assert.equal(result.verdict, "Inconclusive");
+      assert.equal(result.inconclusiveReason, "no-control");
+      assert.equal(result.clearsControl, false);
+    }
   });
 
   it("still returns Strong when the top clearly beats a real second", () => {

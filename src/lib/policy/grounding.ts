@@ -12,8 +12,11 @@
  *    plus how many tags were left out of scoring per audience (§6.6).
  *    Unmatched words are no-data and never enter scoring.
  *
- * The pipeline threads the known-good id sets through from Day 2
- * `resolveTitles` / `resolvePitchTags`; this file only compares.
+ * The flow threads the known-good id sets through: the step-2 confirmed
+ * chip tags (resolved by `/v2/tags`), `resolveTitles`, rival/control/reach
+ * entities, and every fetched taste list. `run-flow.ts` calls
+ * `checkGrounding` before scoring and again after output assembly, then
+ * strips whatever this comparison rejects. This file only compares.
  *
  * Spec ref: §8 (grounding check), §6.5 (coverage), §6.6 (left-out
  * counts), §10 #1 (20-run grounding gate), §10 #4 (no-data honesty).
