@@ -242,7 +242,7 @@ function ReachBlock({ result }: { result: FlowResult }) {
     <section aria-label="Where to find them" className="mt-8">
       <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
       <p className="mt-1 max-w-prose text-sm text-ink-3">
-        Not a list. The places their taste already points.
+        Not a list. The places their taste already points to.
       </p>
       {reach.map((group) => {
         const gapGroup =

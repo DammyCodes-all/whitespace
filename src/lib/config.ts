@@ -70,14 +70,6 @@ export const MIN_JUDGEABLE_CONTROLS = 8;
  */
 export const MIN_CEILING_SHARE = 0.02;
 
-/**
- * §6.9: a rewrite counts as a rise when it moves the fit by this share
- * of where the fit already stood, as well as by the absolute floor in
- * `policy/change.ts`. Same scale reason as the verdict bars: a rise is
- * worth ~0.02 on a 60-tag pool and ~0.09 on a 12-tag pool.
- */
-export const MIN_RISE_SHARE = 0.1;
-
 /** §6.5: share of suggested words that matched Qloo. DISPLAY-ONLY now. */
 export const COVERAGE_FLOOR = 0.34;
 

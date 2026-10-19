@@ -22,18 +22,32 @@ import type {
 } from "@/components/ui/ai-thinking-orb-and-input";
 import { legPrompt } from "@/lib/orb/orb-status";
 
+/** Phases where the orb is visibly working — a primary action waits. */
+const WORKING_PHASES: ReadonlySet<OrbPhase> = new Set([
+  "launch",
+  "assemble",
+  "think",
+  "resolve",
+  "condense",
+  "unfold",
+]);
+
 export interface OrbBridge {
   status: string;
   error: string | null;
   interrupted: boolean;
   /** Honest line for the orb's think phase — the work in flight. */
   workLabel: string | null;
+  /** True while the orb is visibly working (launch through unfold).
+   *  The leg's primary action waits for the waiting pose — no press
+   *  can land mid-cycle, including a quiet pulse's tail. */
+  working: boolean;
   /** Override the orb's work line (e.g. a between-leg beat). */
   setWorkLabel: (line: string | null) => void;
   setStatus: (line: string) => void;
   setError: (line: string | null) => void;
   /** Arm a leg: clear the last outcome, show the work line. */
-  beginLeg: (working: string) => void;
+  beginLeg: (line: string) => void;
   askLeg: (opts: {
     text: string;
     working: string;
@@ -69,6 +83,9 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
   const [error, setError] = useState<string | null>(null);
   const [interrupted, setInterrupted] = useState(false);
   const [workLabel, setWorkLabel] = useState<string | null>(null);
+  /** Latest phase the orb reported — the host's busy truth. */
+  const [phase, setPhase] = useState<OrbPhase>("idle");
+  const working = WORKING_PHASES.has(phase);
 
   /** True while a leg's request is in flight (receipt not yet landed). */
   const pendingRef = useRef(false);
@@ -76,14 +93,14 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
   const legOkRef = useRef(false);
   const retryRef = useRef<() => void>(() => {});
 
-  function beginLeg(working: string) {
+  function beginLeg(line: string) {
     pendingRef.current = true;
     askAtRef.current = Date.now();
     legOkRef.current = false;
     setError(null);
     setInterrupted(false);
-    setStatus(working);
-    setWorkLabel(working);
+    setStatus(line);
+    setWorkLabel(line);
   }
 
   function askLeg(opts: {
@@ -162,6 +179,7 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
    *  through idle/reset inside 800ms of our own ask, so only a later
    *  idle/reset counts as an interruption. */
   function handlePhase(p: OrbPhase) {
+    setPhase(p);
     if (
       (p === "idle" || p === "reset") &&
       pendingRef.current &&
@@ -183,6 +201,7 @@ export function useOrbBridge(orbRef: RefObject<OrbHandle | null>): OrbBridge {
     error,
     interrupted,
     workLabel,
+    working,
     setWorkLabel,
     setStatus,
     setError,
