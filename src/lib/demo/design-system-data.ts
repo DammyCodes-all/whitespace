@@ -27,6 +27,7 @@ import type {
   VerdictResult,
   WorkType,
 } from "@/lib/types";
+import { namedAudienceLabel } from "../audience-words.ts";
 
 /** Inlined from the deleted `src/components/pitch-form-utils.ts`. */
 export interface Suggestion {
@@ -57,7 +58,7 @@ const mockInput: PitchInput = {
 const mockSteps: RunStep[] = [
   {
     id: "hypothesis",
-    label: "Hypothesis audience",
+    label: namedAudienceLabel("film"),
     status: "done",
     detail: "4 checked, 3 found, 1 not found",
     callId: "call-search-1",
@@ -71,27 +72,27 @@ const mockSteps: RunStep[] = [
   },
   {
     id: "controls",
-    label: "Control audiences",
+    label: "Strangers to this idea",
     status: "done",
     detail: "20 other-genre groups",
     callId: "call-insights-1",
   },
   {
     id: "tags",
-    label: "Pitch tags",
+    label: "Words from your description",
     status: "done",
     detail: "coverage 4 of 6",
     callId: "call-search-3",
   },
   {
     id: "score",
-    label: "Fit scores",
+    label: "Scoring every audience",
     status: "done",
     detail: "rank-normalized 0 to 1",
   },
   {
     id: "verdict",
-    label: "Control test and verdict",
+    label: "The verdict",
     status: "done",
     detail: "Strong, top rival-lit",
   },
@@ -181,6 +182,8 @@ const mockVerdict: VerdictResult = {
   marginTopVsControl: 0.28,
   clearsControl: true,
   surprise: true,
+  controlsBeaten: { beaten: 19, total: 20 },
+  selfFit: "confirmed",
 };
 
 const mockCalls: QlooCall[] = [
@@ -353,7 +356,7 @@ function mockChanged(
     proposedPitch:
       "A quiet science-fiction film, within lower budget: solitude.",
     usedGapLabels: ["solitude"],
-    bar: { minRise: 0.05, requireControl: true },
+    bar: { minRise: 0.05, minShare: 0.1, requireControl: true },
     check:
       failedCondition === undefined
         ? { accepted: true, before: 0.61, after }
@@ -573,13 +576,26 @@ export const DEMO_VERDICTS: {
     },
   },
   {
-    label: "Weak · misses control",
+    // 2026-10-19: Mixed because the lead leans on the titles the user
+    // named, so the self-fit line renders on this variant.
+    label: "Mixed · leans on own titles",
+    verdict: {
+      ...baseVerdict,
+      verdict: "Mixed",
+      marginTopVsSecond: 0.04,
+      selfFit: "leans",
+      surprise: false,
+    },
+  },
+  {
+    label: "Weak · misses the field",
     verdict: {
       ...baseVerdict,
       verdict: "Weak",
       marginTopVsSecond: 0.09,
       marginTopVsControl: -0.12,
       clearsControl: false,
+      controlsBeaten: { beaten: 12, total: 20 },
       surprise: false,
     },
   },
@@ -589,10 +605,12 @@ export const DEMO_VERDICTS: {
       ...baseVerdict,
       verdict: "Inconclusive",
       topAudienceId: null,
-      marginTopVsSecond: 0,
+      marginTopVsSecond: null,
       marginTopVsControl: 0,
       clearsControl: false,
       surprise: false,
+      controlsBeaten: undefined,
+      selfFit: undefined,
       inconclusiveReason: "nodata",
     },
   },
@@ -656,7 +674,7 @@ export const DEMO_FLOW_RESULT: FlowResult = {
     },
     {
       id: "control-1",
-      name: "Control · fast franchise action",
+      name: "Strangers · fast franchise action",
       role: "control",
       score: null,
       tagHits: [],
@@ -665,7 +683,7 @@ export const DEMO_FLOW_RESULT: FlowResult = {
     },
     {
       id: "control-2",
-      name: "Control · reality TV",
+      name: "Strangers · reality TV",
       role: "control",
       score: 0.33,
       tagHits: [],
@@ -676,6 +694,8 @@ export const DEMO_FLOW_RESULT: FlowResult = {
   ceiling: 0.33,
   verdict: "strong",
   surprise: true,
+  controlTest: { beaten: 19, total: 20 },
+  selfFit: "confirmed",
   reach: [
     {
       audienceId: "rival-lit",

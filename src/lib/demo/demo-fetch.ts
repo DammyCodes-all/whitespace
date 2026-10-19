@@ -11,6 +11,7 @@
  * mapper; the window shim lives behind installDemoFetch.
  */
 
+import { namedAudienceLabel } from "../audience-words.ts";
 import {
   DEMO_CHANGE_ACCEPTED,
   DEMO_CHATBOT,
@@ -66,13 +67,13 @@ const SUGGESTION_POOL = ["Moon", "Arrival", "Blade Runner 2049"];
 const RUN_STEPS = [
   {
     id: "tags",
-    label: "Title-grounded tags",
+    label: "Your words, plus tags from your titles",
     status: "done",
     detail: "4 pooled (3 from pitch, 1 gift)",
   },
   {
     id: "audiences",
-    label: "Named audience",
+    label: namedAudienceLabel("film"),
     status: "done",
     detail: "1 checked, 1 found, 0 not found",
   },
@@ -84,7 +85,7 @@ const RUN_STEPS = [
   },
   {
     id: "verdict",
-    label: "Control test and verdict",
+    label: "The verdict",
     status: "done",
     detail: "Strong, clears strangers by 39 points",
   },
