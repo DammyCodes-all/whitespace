@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server.js";
 import {
+  type PickOutcome,
+  pickLogLine,
+} from "../../../../lib/agent/pick-log.ts";
+import {
   LlmError,
   pickTitleTags,
 } from "../../../../lib/agent/pick-title-tags.ts";
@@ -62,16 +66,58 @@ export async function POST(request: Request) {
     );
   }
 
+  const started = Date.now();
   try {
     const keptIds = await pickTitleTags({ pitchText, candidates });
+    const keep = new Set(keptIds);
+    const cutLabels = candidates
+      .filter((c) => !keep.has(c.qlooId))
+      .map((c) => c.label);
+    const outcome: PickOutcome =
+      keptIds.length === 0
+        ? { kind: "cut-all" }
+        : keptIds.length < candidates.length
+          ? { kind: "cut", labels: cutLabels }
+          : { kind: "kept-all" };
+    console.info(
+      pickLogLine({
+        candidateCount: candidates.length,
+        keptCount: keptIds.length,
+        ms: Date.now() - started,
+        outcome,
+      }),
+    );
     return NextResponse.json({ keptIds });
   } catch (err) {
     // Fail open: the user confirms every chip, so unfiltered beats none.
     if (err instanceof LlmError) {
+      const reason =
+        err.configured === false
+          ? `not configured (${err.message})`
+          : `${err.provider}: ${err.message}`;
+      console.warn(
+        pickLogLine({
+          candidateCount: candidates.length,
+          keptCount: candidates.length,
+          ms: Date.now() - started,
+          outcome: { kind: "fail-open", reason },
+        }),
+      );
       return NextResponse.json({
         keptIds: candidates.map((c) => c.qlooId),
       });
     }
+    console.error(
+      pickLogLine({
+        candidateCount: candidates.length,
+        keptCount: 0,
+        ms: Date.now() - started,
+        outcome: {
+          kind: "error",
+          reason: err instanceof Error ? err.message : String(err),
+        },
+      }),
+    );
     throw err;
   }
 }
