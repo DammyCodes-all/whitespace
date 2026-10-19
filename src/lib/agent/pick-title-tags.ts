@@ -5,10 +5,14 @@
  *
  * The model never invents a scoring tag: it receives the title-gift
  * candidates (Qloo taste labels off the user's own checked titles)
- * and returns only which of THEIR ids fit the pitch. Anything it
- * invents is dropped by validation; anything it drops is cut. An
- * LLM failure keeps every candidate (fail open — the user still
- * confirms each chip), so the pick is a filter, never a gate.
+ * and returns only which of THEIR ids fit the pitch. An id it was
+ * not given is an output failure, never a judgment: the pass aborts
+ * and the caller fails open, so a model slip can never take a chip
+ * away behind the user's back. Only an omission is a judgment — a
+ * candidate the model never lists is cut, and the cut-gifts row
+ * offers it back. An LLM failure keeps every candidate (fail open —
+ * the user still confirms each chip), so the pick is a filter,
+ * never a gate.
  *
  * JSON only, validated against the candidate set. Server-only: keys
  * stay server-side.
@@ -58,8 +62,12 @@ export function systemPrompt(): string {
 /**
  * Validated kept-ids: subset of the candidate set, deduped, order
  * preserved. A valid empty list is respected (the model judged
- * nothing fitting); unparseable output throws `LlmError` so the
- * caller can fail open. Pure, no I/O — exported for unit tests.
+ * nothing fitting). An id OUTSIDE the candidate set is an output
+ * failure, not a judgment: it throws `LlmError` with the exact intent
+ * as it left the model, so the caller's fail-open path restores
+ * everything the model listed — a typo can never silently subtract a
+ * chip. Unparseable output throws `LlmError` for the same reason.
+ * Pure, no I/O — exported for unit tests.
  */
 export function toPickResult(data: unknown, candidateIds: string[]): string[] {
   if (typeof data !== "object" || data === null) {
@@ -75,8 +83,18 @@ export function toPickResult(data: unknown, candidateIds: string[]): string[] {
   for (const value of raw) {
     if (typeof value !== "string") continue;
     const id = value.trim();
-    if (id === "" || !allowed.has(id) || seen.has(id)) continue;
+    if (id === "" || seen.has(id)) continue;
     seen.add(id);
+    if (!allowed.has(id)) {
+      // An un-offered id is an output failure, not a judgment: abort
+      // so the route's fail-open path restores everything the model
+      // listed. A dropped id is the judgment; a typo'd id is a slip.
+      throw new LlmError(
+        `LLM kept an id it was not offered: "${id}".`,
+        "parse",
+        true,
+      );
+    }
     kept.push(id);
   }
   return kept;
