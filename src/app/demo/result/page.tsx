@@ -2,15 +2,10 @@ import type { Metadata } from "next";
 import { FlowCompareView } from "@/components/flow-compare";
 import { FlowResultView } from "@/components/flow-result-view";
 import { IdeaCard } from "@/components/idea-card";
-import { ReachPlan } from "@/components/reach";
 import {
   DEMO_CHATBOT,
   DEMO_FLOW_RESULT,
-  DEMO_GAPS,
   DEMO_PITCH_TEXT,
-  DEMO_REACH_AUDIENCE,
-  DEMO_RELATED,
-  DEMO_UNLABELED_COUNT,
 } from "@/lib/demo/design-system-data";
 
 export const metadata: Metadata = {
@@ -18,17 +13,6 @@ export const metadata: Metadata = {
   description:
     "A static result-page mock for refining the Whitespace experience.",
 };
-
-const REACH_GROUPS = [
-  {
-    audience: DEMO_REACH_AUDIENCE,
-    headline: "Best fit",
-    related: DEMO_RELATED,
-    gaps: DEMO_GAPS,
-    unlabeledCount: DEMO_UNLABELED_COUNT,
-    tastesCallId: "ds-call-tastes-2",
-  },
-];
 
 export default function DemoResultPage() {
   return (
@@ -43,8 +27,6 @@ export default function DemoResultPage() {
         <div className="mt-12">
           <FlowResultView result={DEMO_FLOW_RESULT} orangeVerdict />
         </div>
-
-        <ReachPlan groups={REACH_GROUPS} />
 
         <FlowCompareView
           result={DEMO_FLOW_RESULT}

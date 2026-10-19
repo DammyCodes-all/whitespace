@@ -38,6 +38,12 @@ export interface RelatedItem {
   entityId: string;
   name: string;
   kind: RelatedKind;
+  /**
+   * Qloo's English short description, flattened to plain text. Null when
+   * the response carries none: callers show no description rather than a
+   * guessed one. Optional so older fixtures and saved results still type.
+   */
+  description?: string | null;
   /** 1-based position in Qloo's order. Ranks only, never scores (§11). */
   affinityRank: number;
   /** §6.12 trace ref for the call this item came from. */
@@ -76,6 +82,70 @@ interface RelatedEntity {
   entity_id?: unknown;
   id?: unknown;
   name?: unknown;
+  properties?: unknown;
+}
+
+/** Keeps one description paragraph-sized; the copy layer trims further. */
+const DESCRIPTION_MAX = 320;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/** Flatten Qloo's occasional HTML into one clean line. */
+function plainText(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * English description from an Insights entity's `properties` block.
+ * Prefers the single `short_description`, then the English entry in
+ * `short_descriptions` (which uses `language` or `languages` depending
+ * on entity type), then the long `description`. Never invents text.
+ */
+function englishDescription(properties: unknown): string | null {
+  const props = asRecord(properties);
+  if (props === null) return null;
+
+  if (typeof props.short_description === "string") {
+    const short = plainText(props.short_description);
+    if (short !== "") return short.slice(0, DESCRIPTION_MAX);
+  }
+
+  if (Array.isArray(props.short_descriptions)) {
+    for (const raw of props.short_descriptions) {
+      const entry = asRecord(raw);
+      if (entry === null || typeof entry.value !== "string") continue;
+      const languages = [
+        ...(Array.isArray(entry.languages) ? entry.languages : []),
+        ...(typeof entry.language === "string" ? [entry.language] : []),
+      ].filter((value): value is string => typeof value === "string");
+      if (!languages.some((lang) => lang.toLowerCase().startsWith("en"))) {
+        continue;
+      }
+      const text = plainText(entry.value);
+      if (text !== "") return text.slice(0, DESCRIPTION_MAX);
+    }
+  }
+
+  if (typeof props.description === "string") {
+    const long = plainText(props.description);
+    if (long !== "") return long.slice(0, DESCRIPTION_MAX);
+  }
+
+  return null;
 }
 
 /**
@@ -113,6 +183,7 @@ export function extractRelated(
       entityId: rawId,
       name: rawName,
       kind,
+      description: englishDescription(entry.properties),
       affinityRank: items.length + 1,
       callId,
     });

@@ -3,10 +3,9 @@
  *
  * Implements the brief's flow and nothing else. Deliberately NOT
  * wired here: exclusion (`nothingLike`), the expansion retry, the concept
- * audience, change re-check, chatbot comparison and the city map. They
- * are not described in the new flow, so this path makes no Qloo calls
- * for them — change re-check and the chatbot comparison live in their
- * own routes (`/api/flow/change`, `/api/compare`).
+ * audience, chatbot comparison and the city map. They are not described
+ * in the new flow, so this path makes no Qloo calls for them — the
+ * chatbot comparison lives in its own route (`/api/compare`).
  *
  * Scoring uses the existing scorer (`scoreAllWeighted`, equal weights
  * when bridgeless, no pinning) — one scorer in the shipped path, per the brief. The brief
