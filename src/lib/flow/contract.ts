@@ -20,6 +20,10 @@
  * - `qlooCalls` usage totals (Package A4) ride along for the run header.
  * - `interests` derive from already-fetched taste tags (zero extra
  *   calls); other slots map from `RelatedResult`s passed in.
+ * - 2026-10-19: `controlTest` (how many measured comparison audiences
+ *   the winner beat) and `selfFit` (its lead re-checked without its own
+ *   title gifts) come off the verdict so the page can state the two
+ *   claims in words instead of implying them.
  *
  * Spec ref: §6.5 (matched vs not-found tags), §6.6/§10 #4 (not-measured
  * is a state, never zero), §6.7 (verdict + ceiling), §6.8 (reach only
@@ -39,6 +43,7 @@ import type {
   FitScore,
   PipelineResult,
   QlooCall,
+  SelfFitStatus,
   WorkType,
 } from "../types.ts";
 
@@ -135,10 +140,23 @@ export interface FlowResult {
   type: WorkType;
   tags: FlowTag[];
   audiences: FlowAudienceScore[];
-  /** Best judgeable control score. Null when no control was judgeable. */
+  /**
+   * Strongest judgeable comparison audience (other-genre field plus
+   * strangers). Null when no comparison could be judged.
+   */
   ceiling: number | null;
   verdict: FlowVerdict;
   surprise: boolean;
+  /**
+   * §6.7: how many measured comparison audiences the winner beat, out of
+   * the field. Null when the field was unusable (the verdict abstains).
+   */
+  controlTest: { beaten: number; total: number } | null;
+  /**
+   * §6.7 self-fit gate: the winner's lead re-checked with its own title
+   * gifts removed. Null when the check did not apply.
+   */
+  selfFit: SelfFitStatus | null;
   reach: FlowReach[] | null;
   /** Gap groups for the reach targets; [] when nothing beat the ceiling. */
   gaps: FlowGapGroup[];
@@ -307,9 +325,10 @@ export function toFlowResult(
   ];
 
   let ceiling: number | null = null;
-  // The line the verdict beat: the strangers baseline when measured,
-  // else the title-eligible controls. Absent on older saved runs, which
-  // read as all controls (the legacy behavior).
+  // The ink line: the strongest judgeable member of the field the
+  // verdict compared against (strangers plus title-eligible controls).
+  // Absent on older saved runs, which read as all controls (the legacy
+  // behavior).
   const ceilingIds =
     pipeline.ceilingControlIds === undefined
       ? null
@@ -430,6 +449,8 @@ export function toFlowResult(
     ceiling,
     verdict: verdictFor(pipeline.verdict.verdict),
     surprise: pipeline.verdict.surprise,
+    controlTest: pipeline.verdict.controlsBeaten ?? null,
+    selfFit: pipeline.verdict.selfFit ?? null,
     reach,
     gaps,
     evidence,

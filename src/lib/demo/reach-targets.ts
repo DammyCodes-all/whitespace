@@ -26,7 +26,10 @@ export function selectReachTargets(
   if (verdict.verdict === "Inconclusive") return [];
   const top = audiences.find((a) => a.id === verdict.topAudienceId);
   if (!top) return [];
-  if (verdict.verdict !== "Mixed") return [top];
+  // A close pair gets two plans; a Mixed verdict that is only Mixed
+  // because the lead leans on the named titles (2026-10-19) has no
+  // close runner-up to serve, so it gets the winner's plan alone.
+  if (verdict.verdict !== "Mixed" || verdict.selfFit === "leans") return [top];
   const byId = new Map(scores.map((s) => [s.audienceId, s]));
   let runnerUp: Audience | null = null;
   let best = -Infinity;

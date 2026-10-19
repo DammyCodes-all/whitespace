@@ -22,6 +22,8 @@ function fixture(overrides: Partial<FlowResult> = {}): FlowResult {
     ceiling: 0.33,
     verdict: "strong",
     surprise: false,
+    controlTest: { beaten: 19, total: 20 },
+    selfFit: "confirmed",
     reach: [
       {
         audienceId: "hyp",
@@ -52,8 +54,10 @@ test("names the verdict word, the pitch and the call counts", () => {
     brief,
     /- Slow science-fiction \(named\): 0\.61 \[evidence: call-tastes-1\]/,
   );
-  assert.match(brief, /Control ceiling: 0\.33/);
-  assert.match(brief, /Qloo calls: 2 network, 9 cached/);
+  assert.match(brief, /Strongest other-genre comparison: 0\.33/);
+  assert.match(brief, /Beat 19 of 20 measured comparison audiences/);
+  assert.match(brief, /Self-fit: confirmed/);
+  assert.match(brief, /Qloo data calls: 2 live, 9 from cache/);
 });
 
 test("keeps the footer on every brief", () => {
@@ -74,15 +78,15 @@ test("writes not measured instead of a zero for absent reach slots", () => {
 
 test("says the ceiling is not measured when no control was judgeable", () => {
   const brief = buildTargetingBrief(fixture({ ceiling: null }));
-  assert.match(brief, /Control ceiling: not measured/);
-  assert.ok(!brief.includes("Control ceiling: 0.00"));
+  assert.match(brief, /Strongest other-genre comparison: not measured/);
+  assert.ok(!brief.includes("comparison: 0.00"));
 });
 
 test("writes no reach plan when nothing beat the ceiling", () => {
   const brief = buildTargetingBrief(fixture({ reach: null }));
   assert.match(
     brief,
-    /## Reach plan\nNone: nothing beat the control ceiling\./,
+    /## Where to find them\nNone: nothing beat the comparison line\./,
   );
 });
 
@@ -103,7 +107,7 @@ test("warns on a close call, because a re-run may read differently", () => {
   });
   assert.match(
     buildTargetingBrief(close),
-    /Close call: near the control line — a re-run may read differently\./,
+    /Close call: near the other-genre line — a re-run may read differently\./,
   );
   assert.ok(!buildTargetingBrief(fixture()).includes("Close call"));
 });
