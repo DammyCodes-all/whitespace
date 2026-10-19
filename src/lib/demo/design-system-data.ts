@@ -15,7 +15,6 @@
 import type { ChatbotView } from "@/components/chatbot-preview";
 import type { EvidenceLine } from "@/components/evidence";
 import type { FlowEvidence, FlowResult, FlowTag } from "@/lib/flow/contract";
-import type { ChangedRun } from "@/lib/pipeline/change";
 import type { RelatedResult } from "@/lib/qloo/related";
 import type { GapItem } from "@/lib/scoring/gaps";
 import type {
@@ -347,44 +346,6 @@ const mockGaps: GapItem[] = [
 
 const mockUnlabeledCount = 2;
 
-function mockChanged(
-  failedCondition: ChangedRun["check"]["failedCondition"],
-  after: number,
-): ChangedRun {
-  return {
-    constraint: "Lower budget",
-    proposedPitch:
-      "A quiet science-fiction film, within lower budget: solitude.",
-    usedGapLabels: ["solitude"],
-    bar: { minRise: 0.05, minShare: 0.1, requireControl: true },
-    check:
-      failedCondition === undefined
-        ? { accepted: true, before: 0.61, after }
-        : { accepted: false, failedCondition, before: 0.61, after },
-    after:
-      failedCondition === undefined
-        ? {
-            audienceId: "rival-lit",
-            score: after,
-            matchedTags: ["solitude", "slow-burn"],
-            zeroTags: [],
-            noDataTags: [],
-          }
-        : null,
-    coverageAfter: 0.8,
-    calls: [mockCalls[2]],
-  };
-}
-
-const mockChangedAccepted: ChangedRun = mockChanged(undefined, 0.72);
-
-const mockChangedWithheld: Record<string, ChangedRun> = {
-  rise: mockChanged("rise", 0.62),
-  coverage: mockChanged("coverage", 0.7),
-  grounding: mockChanged("grounding", 0.7),
-  control: mockChanged("control", 0.7),
-};
-
 /* ─────────────────────────────────────────────────────────
  * Tokens, restated for the swatch grid.
  * Values are copied from src/app/globals.css :root. If a token
@@ -706,17 +667,58 @@ export const DEMO_FLOW_RESULT: FlowResult = {
         { name: "grief", rank: 3, evidenceId: "ds-call-tastes-2" },
       ],
       people: [
-        { name: "Mara Voss", rank: 1, evidenceId: "ds-call-related-1" },
-        { name: "Jonas Feld", rank: 2, evidenceId: "ds-call-related-1" },
+        {
+          name: "Mara Voss",
+          description:
+            "A novelist of quiet, interior fiction about grief and the places people retreat to.",
+          rank: 1,
+          evidenceId: "ds-call-related-1",
+        },
+        {
+          name: "Jonas Feld",
+          description:
+            "A short-story writer whose work circles solitude, weather and unfinished conversations.",
+          rank: 2,
+          evidenceId: "ds-call-related-1",
+        },
       ],
       podcasts: [
-        { name: "Deep Dive Podcast", rank: 1, evidenceId: "ds-call-related-2" },
-        { name: "Slow Burn Audio", rank: 2, evidenceId: "ds-call-related-2" },
+        {
+          name: "Deep Dive Podcast",
+          description:
+            "Long-form interviews with writers and filmmakers about how their work gets made.",
+          rank: 1,
+          evidenceId: "ds-call-related-2",
+        },
+        {
+          name: "Slow Burn Audio",
+          description:
+            "Quiet audio essays about memory, place and the things people leave behind.",
+          rank: 2,
+          evidenceId: "ds-call-related-2",
+        },
       ],
       brands: [
-        { name: "Field Notes", rank: 1, evidenceId: "ds-call-related-3" },
+        {
+          name: "Field Notes",
+          description:
+            "Pocket notebooks and stationery for people who still write things down.",
+          rank: 1,
+          evidenceId: "ds-call-related-3",
+        },
       ],
       places: [],
+      prose: {
+        interests:
+          "Solitude comes first, then quiet and grief. Quiet and grief are the parts your pitch doesn't reach yet.",
+        people:
+          "Mara Voss leads: a novelist of quiet, interior fiction about grief and the places people retreat to. Jonas Feld follows, a short-story writer whose work circles solitude, weather and unfinished conversations.",
+        podcasts:
+          "Deep Dive Podcast is the first listen — long-form interviews with writers and filmmakers about how their work gets made. Slow Burn Audio comes next, with quiet audio essays about memory, place and the things people leave behind.",
+        brands:
+          "Field Notes is the only brand that surfaced: pocket notebooks and stationery for people who still write things down.",
+        places: null,
+      },
     },
   ],
   evidence: {},
@@ -981,28 +983,6 @@ export const DEMO_PITCH_TEXT = mockInput.pitchText;
 export const DEMO_MOCK_AUDIENCES = mockAudiences;
 export const DEMO_MOCK_SCORES = mockScores;
 export const DEMO_MOCK_VERDICT = mockVerdict;
-
-/** The recheck's citation, rebuilt against the calls on this page. */
-export const DEMO_CHANGE_ACCEPTED: ChangedRun = {
-  ...mockChangedAccepted,
-  calls: [DEMO_CALLS.find((c) => c.id === "ds-call-tastes-2") ?? DEMO_CALLS[0]],
-};
-
-export const DEMO_CHANGE_WITHHELD: {
-  label: string;
-  changed: (typeof mockChangedWithheld)[string];
-}[] = [
-  { label: "rise — not enough improvement", changed: mockChangedWithheld.rise },
-  {
-    label: "coverage — speaks to fewer words",
-    changed: mockChangedWithheld.coverage,
-  },
-  {
-    label: "grounding — words not in Qloo",
-    changed: mockChangedWithheld.grounding,
-  },
-  { label: "control — lost the lead", changed: mockChangedWithheld.control },
-];
 
 /* Saved-run store entry: SavedRunPanel renders nothing until one exists. */
 export const DEMO_SAVED_PITCH = DEMO_PITCH_TEXT;

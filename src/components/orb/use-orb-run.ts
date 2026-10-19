@@ -57,6 +57,9 @@ export interface OrbRun extends ResultSidecars {
   pitchText: string;
   /** Honest line for the orb's think phase — the work in flight. */
   workLabel: string | null;
+  /** True while the orb is visibly working (launch through unfold).
+   *  Every primary action waits for the waiting pose. */
+  working: boolean;
 
   tags: FlowTag[];
   similarTitles: string;
@@ -133,6 +136,7 @@ export function useOrbRun({
     error,
     interrupted,
     workLabel,
+    working,
     setWorkLabel,
     setStatus,
     setError,
@@ -653,10 +657,13 @@ export function useOrbRun({
 
   /** Park an input-leg advance: the old UI unmounts at once, the orb
    *  glides back to centre, and the host settles the parked leg once
-   *  it lands. Status updates on settle, not before; the orb holds its
-   *  thinking pose through the whole glide (beatWork), so the window
-   *  between legs never reads as the waiting colour. */
+   *  it lands. Refused while the orb is still working — a press never
+   *  parks an advance mid-cycle. Status updates on settle, not before;
+   *  the orb holds its thinking pose through the whole glide
+   *  (beatWork), so the window between legs never reads as the
+   *  waiting colour. */
   function requestAdvance(next: Leg) {
+    if (working) return;
     pendingLeg.current = next;
     setReturning(true);
     setWorkLabel(SETUP_LINE);
@@ -693,6 +700,7 @@ export function useOrbRun({
   }
 
   function reviewFullSet() {
+    if (checkBusy) return;
     if (checkResult === null || parsedSimilar.length === 0) return;
     requestAdvance("aggregate");
   }
@@ -713,6 +721,7 @@ export function useOrbRun({
     interrupted,
     pitchText,
     workLabel,
+    working,
     tags,
     similarTitles,
     similar: parsedSimilar,

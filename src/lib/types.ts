@@ -19,8 +19,6 @@ export interface PitchInput {
   workType: WorkType;
   /** §6.1: up to five "nothing like" titles, optional. */
   nothingLike: string[];
-  /** §6.9: optional limit such as a smaller budget. Day 8 only. */
-  constraint?: string;
 }
 
 /**
