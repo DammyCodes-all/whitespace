@@ -26,10 +26,7 @@ import {
 import type { OrbHandle, OrbPhase } from "@/components/ui/orb/types";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowResult, FlowTag } from "@/lib/flow/contract";
-import {
-  parseSimilarTitles,
-  titleVerdictKey,
-} from "@/lib/flow/similar-titles";
+import { parseSimilarTitles, titleVerdictKey } from "@/lib/flow/similar-titles";
 import type { FlowStepRow } from "@/lib/flow/view-types";
 import {
   CHECK_TAIL_LINE,
@@ -255,9 +252,16 @@ export function useOrbRun({
       const data = (await res.json()) as {
         tags?: TitleGift[];
         note?: unknown;
+        quota?: unknown;
       };
       setPreviewNote(
-        res.ok && typeof data.note === "string" ? data.note : null,
+        res.ok && typeof data.note === "string"
+          ? data.note
+          : data.quota === "rate-limited" || data.quota === "exhausted"
+            ? data.quota
+            : res.ok
+              ? null
+              : "preview-failed",
       );
       const gifts = (
         res.ok && Array.isArray(data.tags) ? data.tags : []
@@ -328,13 +332,22 @@ export function useOrbRun({
       return;
     }
     setSuggestBusy(true);
+    let quotaBlocked = false;
     try {
       const res = await chipFetch("/api/titles/related", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ entityIds, excludeNames, workType: wt }),
       });
-      const data = (await res.json()) as { suggestions?: unknown };
+      const data = (await res.json()) as {
+        suggestions?: unknown;
+        quota?: unknown;
+      };
+      // A rate limit is not "nothing related": stay quiet instead of
+      // printing the empty-list line over a quota failure.
+      quotaBlocked =
+        !res.ok &&
+        (data.quota === "rate-limited" || data.quota === "exhausted");
       setQlooSuggestions(
         res.ok && Array.isArray(data.suggestions)
           ? data.suggestions.filter(
@@ -346,7 +359,7 @@ export function useOrbRun({
       setQlooSuggestions([]);
     } finally {
       setSuggestBusy(false);
-      setSuggestDone(true);
+      setSuggestDone(!quotaBlocked);
     }
   }
 
@@ -391,7 +404,11 @@ export function useOrbRun({
           ? null
           : merged,
       );
-      const line = receiptLine("titles", merged.resolved.length, merged.notFound.length);
+      const line = receiptLine(
+        "titles",
+        merged.resolved.length,
+        merged.notFound.length,
+      );
       setStatus(`${line} Nothing new — every title here is already checked.`);
       return `${line} Nothing new.`;
     }
@@ -442,7 +459,8 @@ export function useOrbRun({
             merged.resolved
               .map((r) => r.qlooId)
               .filter(
-                (id): id is string => typeof id === "string" && id.trim() !== "",
+                (id): id is string =>
+                  typeof id === "string" && id.trim() !== "",
               ),
             parseSimilarTitles(similarTitles),
             workType,
@@ -452,7 +470,11 @@ export function useOrbRun({
         setTitleTagsDone(true);
         setSuggestDone(true);
       }
-      const line = receiptLine("titles", merged.resolved.length, merged.notFound.length);
+      const line = receiptLine(
+        "titles",
+        merged.resolved.length,
+        merged.notFound.length,
+      );
       setStatus(`${line} Tap suggestions to add, Done when set.`);
       return `${line} Done when set.`;
     } catch (e) {
@@ -585,9 +607,12 @@ export function useOrbRun({
     setCheckResult((prev) => {
       if (prev === null) return null;
       const resolved = prev.resolved.filter(
-        (r) => typeof r.query === "string" && keys.has(titleVerdictKey(r.query)),
+        (r) =>
+          typeof r.query === "string" && keys.has(titleVerdictKey(r.query)),
       );
-      const notFound = prev.notFound.filter((n) => keys.has(titleVerdictKey(n)));
+      const notFound = prev.notFound.filter((n) =>
+        keys.has(titleVerdictKey(n)),
+      );
       return resolved.length === 0 && notFound.length === 0
         ? null
         : { resolved, notFound };

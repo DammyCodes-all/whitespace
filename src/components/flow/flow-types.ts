@@ -41,5 +41,6 @@ export function callToEvidence(call: QlooCall): FlowEvidence {
     truncated: call.responseTruncated ?? call.responseBody === undefined,
     status: call.status,
     fromCache: call.fromCache,
+    mock: call.mock === true,
   };
 }

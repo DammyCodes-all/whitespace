@@ -11,6 +11,7 @@ import { FlowResultView } from "@/components/flow-result-view";
 import { IdeaCard } from "@/components/idea-card";
 import { EvidencePanel } from "@/components/orb/evidence-panel";
 import type { FlowResult } from "@/lib/flow/contract";
+import { isMockRun } from "@/lib/flow/contract";
 import { parseSimilarTitles } from "@/lib/flow/similar-titles";
 import type { FlowStepRow } from "@/lib/flow/view-types";
 import type { QlooCall } from "@/lib/types";
@@ -34,12 +35,13 @@ export function LegResults({
   compareLoaded,
   compareCalls,
 }: LegResultsProps) {
+  const qlooDataCalls = result.qlooCalls.network + result.qlooCalls.cached;
+  const runMeta = isMockRun(result)
+    ? `${result.type} · mock run, no Qloo key, no Qloo data`
+    : `${result.type} · live run · ${qlooDataCalls} Qloo calls`;
   return (
     <section aria-label="Results" className="leg-in-swap mt-10">
-      <IdeaCard
-        pitch={result.pitch}
-        meta={`${result.type} · live run · ${result.qlooCalls.total} Qloo calls`}
-      />
+      <IdeaCard pitch={result.pitch} meta={runMeta} />
 
       <div className="mt-8">
         <FlowResultView result={result} orangeVerdict={result.surprise} />

@@ -8,6 +8,7 @@
  * Spec ref: §6.12 (every claim opens its call).
  */
 
+import { evidenceCache, evidenceStatus } from "@/components/evidence-label";
 import type { FlowEvidence, FlowResult } from "@/lib/flow/contract";
 import type { FlowStepRow } from "@/lib/flow/view-types";
 import type { QlooCall } from "@/lib/types";
@@ -19,6 +20,7 @@ function callToEvidence(call: QlooCall): FlowEvidence {
     truncated: call.responseTruncated ?? call.responseBody === undefined,
     status: call.status,
     fromCache: call.fromCache,
+    mock: call.mock === true,
   };
 }
 
@@ -33,12 +35,23 @@ export function EvidencePanel({
   compareCalls: QlooCall[];
 }) {
   const total = result.qlooCalls.total + compareCalls.length;
+  const rows = {
+    ...result.evidence,
+    ...Object.fromEntries(
+      compareCalls.map((call) => [call.id, callToEvidence(call)]),
+    ),
+  };
+  const lines = Object.values(rows);
+  const mockOnly =
+    lines.length > 0 && lines.every((line) => line.mock === true);
 
   return (
     <div className="mt-10">
       <details>
         <summary className="cursor-pointer text-base tracking-tight text-ink">
-          Evidence · {total} calls
+          {mockOnly
+            ? `Evidence · ${lines.length} mock traces, no Qloo key`
+            : `Evidence · ${total} calls`}
         </summary>
         {steps.length > 0 && (
           <details className="mt-3">
@@ -58,17 +71,12 @@ export function EvidencePanel({
           </details>
         )}
         <ul className="mt-2 divide-y divide-rule">
-          {Object.entries({
-            ...result.evidence,
-            ...Object.fromEntries(
-              compareCalls.map((call) => [call.id, callToEvidence(call)]),
-            ),
-          }).map(([id, line]) => (
+          {Object.entries(rows).map(([id, line]) => (
             <li key={id} id={id} className="py-3">
               <details>
                 <summary className="cursor-pointer font-mono text-xs text-ink-2">
-                  {line.request.endpoint} · status {line.status}
-                  {line.fromCache ? " · saved" : ""}
+                  {line.request.endpoint} · {evidenceStatus(line)}
+                  {evidenceCache(line)}
                   {line.truncated ? " · truncated" : ""}
                 </summary>
                 <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-all bg-paper p-3 font-mono text-xs text-ink-2">
