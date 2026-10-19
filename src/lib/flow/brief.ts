@@ -1,7 +1,7 @@
 /**
  * The targeting brief: one-page markdown you can paste anywhere.
  *
- * Lives in `src/lib/flow` as plain TS (precedent: `../change-copy.ts`)
+ * Lives in `src/lib/flow` as plain TS (precedent: `../audience-words.ts`)
  * so both halves can import it without cycles: the Server Component
  * `flow-result-view.tsx` shares the verdict words and reach labels
  * with the UI, and the client clipboard island shares the builder.

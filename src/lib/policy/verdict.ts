@@ -116,8 +116,8 @@ export type ControlFieldReason = "no-control" | "no-signal";
 /**
  * One audience against the measured comparison field: how many
  * comparison audiences it beats, out of how many, and whether the
- * field itself is usable. Exported so the change re-check (§6.9) can
- * grade a proposed rewrite by exactly the same rule as the run.
+ * field itself is usable. Exported so a rescore can grade a proposed
+ * rewrite by exactly the same rule as the run.
  */
 export interface ControlTest {
   /** True only when every judgeable comparison audience is beaten. */

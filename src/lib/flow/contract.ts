@@ -105,10 +105,27 @@ export type FlowVerdict = "strong" | "mixed" | "weak" | "inconclusive";
 
 export interface FlowReachItem {
   name: string;
+  /** Qloo's English short description, or null when it supplied none. */
+  description?: string | null;
   /** 1-based Qloo affinity rank. Ranks only (§11). */
   rank: number;
   evidenceId: string | null;
 }
+
+/** The four fixed headings, plus places only when measured. */
+export type ReachSlot =
+  | "interests"
+  | "people"
+  | "podcasts"
+  | "brands"
+  | "places";
+
+/**
+ * Conversational copy for one audience. The AI writes it from the
+ * measured items and gaps; a deterministic draft fills any section the
+ * model cannot ground. Null means no items, never empty prose.
+ */
+export type ReachSections = Record<ReachSlot, string | null>;
 
 export interface FlowReach {
   audienceId: string;
@@ -118,6 +135,8 @@ export interface FlowReach {
   podcasts: FlowReachItem[];
   brands: FlowReachItem[];
   places: FlowReachItem[];
+  /** Attached by the run route; absent on older saved results. */
+  prose?: ReachSections;
 }
 
 export interface FlowEvidence {
@@ -212,6 +231,7 @@ function relatedSlot(
   if (!group || group.call === null) return [];
   return group.items.map((item) => ({
     name: item.name,
+    description: item.description,
     rank: item.affinityRank,
     evidenceId: group.call?.id ?? null,
   }));

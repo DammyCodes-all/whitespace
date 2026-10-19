@@ -105,6 +105,53 @@ describe("extractRelated", () => {
       ["a"],
     );
   });
+
+  it("carries Qloo's English description, flattened, and never invents one", () => {
+    const items = extractRelated(
+      {
+        results: {
+          entities: [
+            {
+              entity_id: "a",
+              name: "Waterstones",
+              properties: {
+                short_description:
+                  "<p>Waterstones is the UK's leading bookseller.</p>",
+                description: "A longer fallback that must not win.",
+              },
+            },
+            {
+              entity_id: "b",
+              name: "Deux",
+              properties: {
+                short_descriptions: [
+                  { language: "fr", value: "Une ligne française." },
+                  { languages: ["fr", "en"], value: "An English line." },
+                ],
+              },
+            },
+            {
+              entity_id: "c",
+              name: "Long",
+              properties: {
+                description: "<b>A long</b> description &amp; more.",
+              },
+            },
+            { entity_id: "d", name: "None" },
+          ],
+        },
+      },
+      "brand",
+      "c",
+    );
+    assert.equal(
+      items[0]?.description,
+      "Waterstones is the UK's leading bookseller.",
+    );
+    assert.equal(items[1]?.description, "An English line.");
+    assert.equal(items[2]?.description, "A long description & more.");
+    assert.equal(items[3]?.description, null);
+  });
 });
 
 describe("dedupeUserTitles", () => {
