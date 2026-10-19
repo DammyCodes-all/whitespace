@@ -15,7 +15,7 @@
  * (caps guard quota).
  */
 
-import type { AudienceTastes } from "../scoring/fit.ts";
+import type { AudienceTastes, WeightedTag } from "../scoring/fit.ts";
 import { type Bridge, MAX_BRIDGES, toBridges } from "../scoring/semantic.ts";
 import {
   type ChatMessage,
@@ -106,6 +106,25 @@ export function namesById(
   available: readonly BridgeAvailable[],
 ): Map<string, string> {
   return new Map(available.map((a) => [a.id, a.name]));
+}
+
+/**
+ * §6.6: keep only the bridges a contender actually holds. A weighted
+ * bridge that no contender holds can only dilute the weighted mean —
+ * every audience's denominator grows and no numerator does — so it is
+ * dropped rather than scored. Distance (weight 0) bridges stay: they
+ * score nothing and stay visible as "considered, not counted".
+ *
+ * Pure, exported for unit tests.
+ */
+export function usableBridges(
+  proposed: readonly WeightedTag[],
+  contenderTagIds: ReadonlySet<string>,
+): WeightedTag[] {
+  return proposed.filter(
+    (weighted) =>
+      weighted.weight === 0 || contenderTagIds.has(weighted.tag.qlooTagId),
+  );
 }
 
 function systemPrompt(): string {

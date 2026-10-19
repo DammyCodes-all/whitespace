@@ -66,15 +66,45 @@ export async function POST(request: Request) {
   }
 
   resetQuota();
+  const started = Date.now();
+  const log = (note: string, gifts: number, detail = "") => {
+    console.info(
+      `[titles/tags] ${note}: ${gifts} gifts${detail} (${Date.now() - started}ms)`,
+    );
+  };
   try {
+    const resolveStarted = Date.now();
     const titleRes = await resolveTitles(titles, workType as WorkType);
+    console.info(
+      `[titles/tags] resolve: ${titleRes.resolved.length}/${titles.length} titles (${
+        Date.now() - resolveStarted
+      }ms)`,
+    );
     if (titleRes.resolved.length === 0) {
+      log("unresolved", 0, ` from ${titles.length} typed`);
       return NextResponse.json({ tags: [], note: "unresolved" });
     }
+    const tastesStarted = Date.now();
     const targets = namedTasteAudiences(titleRes.resolved);
     const [{ all: namedTastes }, controlCached] = await Promise.all([
-      fetchAllAudienceTastes(targets, workType as WorkType),
-      loadControlTastes(workType as WorkType, CONTROL_COUNT),
+      fetchAllAudienceTastes(targets, workType as WorkType).then((res) => {
+        console.info(
+          `[titles/tags] title tastes: ${res.calls.length} calls for ${
+            targets.length
+          } titles (${Date.now() - tastesStarted}ms)`,
+        );
+        return res;
+      }),
+      loadControlTastes(workType as WorkType, CONTROL_COUNT).then((res) => {
+        console.info(
+          `[titles/tags] controls: ${res.tastes.length} lists, ${
+            res.calls.length
+          } calls, cache=${res.fromCache}, dropped=${
+            res.droppedControls.length
+          } (${Date.now() - tastesStarted}ms)`,
+        );
+        return res;
+      }),
     ]);
     const withTastes = titleRes.resolved.map((title, index) => ({
       tastes: namedTastes[index] ?? {
@@ -91,6 +121,7 @@ export async function POST(request: Request) {
           entry.tastes.failed === true || entry.tastes.tagIds.length === 0,
       )
     ) {
+      log("no-tastes", 0, ` (${titleRes.resolved.length} resolved)`);
       return NextResponse.json({ tags: [], note: "no-tastes" });
     }
     const pool = buildTitleTagPool({
@@ -100,8 +131,10 @@ export async function POST(request: Request) {
       pickedIds: [],
     });
     if (pool.length === 0) {
+      log("all-generic", 0, ` (${titleRes.resolved.length} resolved)`);
       return NextResponse.json({ tags: [], note: "all-generic" });
     }
+    log("ok", pool.length, ` (${titleRes.resolved.length} resolved)`);
     return NextResponse.json({
       tags: pool.map((candidate) => ({
         qlooId: candidate.qlooTagId,
@@ -112,7 +145,11 @@ export async function POST(request: Request) {
       })),
       note: "ok",
     });
-  } catch {
+  } catch (err) {
+    log(
+      `preview-failed — ${err instanceof Error ? err.message : String(err)}`,
+      0,
+    );
     return NextResponse.json({ tags: [], note: "preview-failed" });
   }
 }

@@ -260,7 +260,7 @@ function ReachBlock({ result }: { result: FlowResult }) {
                 Multi-column balances the two sides, and a magazine
                 column is read top-to-bottom then across — the same
                 order the DOM is in. */}
-            <div className="mt-6 columns-1 gap-10 lg:columns-2">
+            <div className="mt-6 columns-1 gap-12 lg:columns-2">
               {visibleSlots.map(({ slot, label }) => {
                 const text = sections[slot];
                 const items = group[slot];
@@ -271,7 +271,7 @@ function ReachBlock({ result }: { result: FlowResult }) {
                     className="mb-7 break-inside-avoid border-t border-rule pt-3"
                   >
                     <div className="flex items-baseline justify-between gap-4">
-                      <h4 className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-ink-2">
+                      <h4 className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-ink">
                         {label}
                       </h4>
                       {count > 0 ? (
