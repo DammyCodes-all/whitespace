@@ -61,6 +61,29 @@ export class QlooQuotaError extends Error {
 }
 
 /**
+ * Provider rate limit (HTTP 429) after every retry. Deliberately NOT a
+ * QlooError: a rate-limited lookup never happened, so callers must not
+ * turn it into not-found/no-data. It propagates to the route, which
+ * reports a real quota state.
+ */
+export class QlooRateLimitError extends Error {
+  readonly trace: QlooCall;
+  /** Milliseconds from `Retry-After`, when the provider sent one. */
+  readonly retryAfterMs: number | null;
+
+  constructor(
+    message: string,
+    trace: QlooCall,
+    retryAfterMs: number | null = null,
+  ) {
+    super(message);
+    this.name = "QlooRateLimitError";
+    this.trace = trace;
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
+/**
  * Generous ceiling, not a finding: above today's worst case (controls
  * alone warn 60+ calls), below absurdity. Counts network fetches only;
  * cache hits never trip it.
@@ -193,7 +216,7 @@ export function getQlooConfig(): QlooConfig {
       /\/$/,
       "",
     ),
-    // Empty string means unconfigured, same as unset: mock mode stays on.
+    // Empty string means unconfigured, same as unset: no request runs.
     apiKey: rawKey === undefined || rawKey === "" ? null : rawKey,
     timeoutMs:
       Number.isFinite(timeoutParsed) && timeoutParsed > 0
@@ -229,13 +252,26 @@ function isRetryableStatus(status: number): boolean {
   return status === 429 || (status >= 500 && status <= 599);
 }
 
+/** Parse `Retry-After` as delta-seconds or an HTTP date. */
+function retryAfterMs(response: Response): number | null {
+  const raw = response.headers.get("retry-after");
+  if (raw === null || raw.trim() === "") return null;
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0)
+    return Math.round(seconds * 1000);
+  const at = Date.parse(raw);
+  return Number.isFinite(at) ? Math.max(0, at - Date.now()) : null;
+}
+
 /**
  * Single authenticated GET against Qloo with retry, timeout, and a
  * §6.12 trace for the evidence drawer. Server-only: never import from
  * a Client Component and never expose the key to the browser.
  *
- * Legacy offline contract: without a key, calls return a
- * deterministic mock payload with fromCache=true instead of throwing.
+ * Keyless contract: without a key, no request runs. The call returns a
+ * placeholder payload marked `mock: true` (never data, never
+ * `fromCache`), so every caller degrades to no-data and the evidence
+ * drawer says why instead of showing a fake cached success.
  */
 export async function qlooFetch(
   path: string,
@@ -259,14 +295,20 @@ export async function qlooFetch(
   };
 
   if (config.apiKey === null) {
-    const mockBody = { success: true, mock: true, results: [] };
+    const mockBody = {
+      success: false,
+      mock: true,
+      results: [],
+      error: "QLOO_API_KEY is not set; no request was made.",
+    };
     return {
       data: mockBody,
       trace: {
         ...traceBase,
         status: 0,
         durationMs: Date.now() - started,
-        fromCache: true,
+        fromCache: false,
+        mock: true,
         responseSummary: summarizeResponse(mockBody),
         ...toStoredBody(JSON.stringify(mockBody)),
       },
@@ -366,21 +408,31 @@ export async function qlooFetch(
             : errText === ""
               ? {}
               : { responseBody: errText };
+        const trace: QlooCall = {
+          ...traceBase,
+          status: res.status,
+          durationMs,
+          fromCache: false,
+          ...errBody,
+        };
+        if (res.status === 429) {
+          throw new QlooRateLimitError(
+            `Qloo ${path} is rate-limited (429).`,
+            trace,
+            retryAfterMs(res),
+          );
+        }
         throw new QlooError(
           `Qloo ${path} failed with status ${res.status}.`,
-          {
-            ...traceBase,
-            status: res.status,
-            durationMs,
-            fromCache: false,
-            ...errBody,
-          },
+          trace,
           isRetryableStatus(res.status),
         );
       }
     } catch (err) {
       clearTimeout(timer);
-      if (err instanceof QlooError) throw err;
+      if (err instanceof QlooError || err instanceof QlooRateLimitError) {
+        throw err;
+      }
       const aborted =
         err instanceof Error &&
         (err.name === "AbortError" || err.message.includes("abort"));

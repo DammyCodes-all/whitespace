@@ -12,7 +12,8 @@
  * - Mixed: the top two both clear control and are close together.
  * - Weak: no audience clears control.
  * - Inconclusive: too few pitch words matched Qloo tags (coverage
- *   floor), or too many audiences had no data.
+ *   floor), too many audiences had no data, or the baseline itself was
+ *   unmeasured (no control scores, none judgeable, or a ceiling of 0).
  * - Surprise headline: the top audience is not the hypothesis and beats
  *   it clearly.
  *
@@ -186,11 +187,11 @@ export function decideVerdict(
   // Control ceiling (§6.7). Only JUDGEABLE controls set the ceiling: a
   // placeholder 0 from an unjudgeable control is not a measured low, so
   // it must never act as a floor the top audience can beat. A control
-  // batch with nothing judgeable in it has NO ceiling, which is
-  // Inconclusive — a real Strong needs a real baseline. Untested
-  // book/game scopes land here first (docs/qloo-coverage.md).
+  // batch with nothing judgeable in it — including a batch that is
+  // empty because no control resolved — has NO ceiling, which is
+  // Inconclusive: a real Strong needs a real baseline, and "we could
+  // not measure" must never read as "measured and low" (Weak).
   const judgeableControls = controlScores.filter((s) => !isUnjudgeable(s));
-  const hasControls = controlScores.length > 0;
   const hasCeiling = judgeableControls.length > 0;
   const controlBest = hasCeiling ? bestScore(judgeableControls) : 0;
   // A judgeable ceiling of exactly 0 means no control audience matched
@@ -205,10 +206,9 @@ export function decideVerdict(
   const clearsControl =
     hasCeiling && marginTopVsControl + MARGIN_EPSILON >= controlMargin;
   if (!clearsControl) {
-    // Controls exist but none could be judged: the baseline itself was
-    // not measured, so this is Inconclusive, never Weak ("measured and
-    // low") and never Strong (nothing was beaten).
-    if (hasControls && !hasCeiling) {
+    // No control scores at all, or none could be judged: the baseline
+    // itself was not measured, so this is Inconclusive, never Weak.
+    if (!hasCeiling) {
       return inconclusive(scores, "no-control");
     }
     return {

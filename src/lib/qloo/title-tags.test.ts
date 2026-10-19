@@ -166,6 +166,21 @@ describe("buildTitleTagPool", () => {
     assert.equal(pool[0]?.label, "urn:tag:y");
   });
 
+  it("keeps pitch tags when a title-gift selection narrows the pool", () => {
+    const pool = buildTitleTagPool({
+      namedTastes: [named("t1", ["urn:tag:gift"])],
+      pitchMatchedTags: [{ qlooTagId: "urn:tag:word", label: "word" }],
+      controlTastes: [],
+      pickedIds: ["urn:tag:gift"],
+    });
+    // pickedIds carries only confirmed title gifts. The pitch word was
+    // confirmed on its own chip row and must still reach scoring.
+    assert.deepEqual(
+      pool.map((c) => c.qlooTagId),
+      ["urn:tag:gift", "urn:tag:word"],
+    );
+  });
+
   it("keeps only pickedIds when a selection was confirmed", () => {
     const base = {
       namedTastes: [named("t1", ["urn:tag:a", "urn:tag:b"])],
