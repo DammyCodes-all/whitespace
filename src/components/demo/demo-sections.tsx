@@ -11,8 +11,6 @@
  */
 
 import type { ReactNode } from "react";
-import { ChangeView } from "@/components/change";
-import { changeReason } from "@/components/change-copy";
 import { ChatbotPreview } from "@/components/chatbot-preview";
 import { TagChipsDemo } from "@/components/demo/demo-interactive";
 import { EvidenceCalls } from "@/components/evidence";
@@ -30,8 +28,6 @@ import { VerdictHeadline } from "@/components/verdict";
 import {
   ABSENCE_SWATCHES,
   DEMO_CALLS,
-  DEMO_CHANGE_ACCEPTED,
-  DEMO_CHANGE_WITHHELD,
   DEMO_CHATBOT,
   DEMO_EVIDENCE_LINES,
   DEMO_FLOW_RESULT,
@@ -369,7 +365,7 @@ export function StatesSection() {
     <Section
       id="states"
       title="Absence and refusal"
-      lede="Three states, not two: measured-high, measured-low, and not measured. Not measured gets a hatch, a dashed border, the words, and never a number. A refusal is a solid ink block, not an error box."
+      lede="Three states, not two: measured-high, measured-low, and not measured. Not measured gets a hatch, a dashed border, the words, and never a number."
     >
       <div className="space-y-10">
         <Specimen label="not found in Qloo" hint="clay is this one state only">
@@ -382,18 +378,6 @@ export function StatesSection() {
               space
             </li>
           </ul>
-        </Specimen>
-        <Specimen label="withheld change" hint="solid ink, paper text">
-          <div className="max-w-md rounded-2xl border-2 border-outline bg-ink p-5">
-            <p className="font-serif text-base text-paper">Change withheld</p>
-            <p className="mt-2 text-sm text-paper">{changeReason("rise")}</p>
-            <p data-numeric className="tnum mt-2 font-mono text-sm text-paper">
-              0.61 → 0.62 (+0.01)
-            </p>
-            <p className="mt-2 text-sm text-paper">
-              Check with real people before spending more.
-            </p>
-          </div>
         </Specimen>
         <Specimen label="ScopeNotice" hint="/components/scope-notice.tsx">
           <ScopeNotice pitchText={DEMO_PITCH_TEXT} />
@@ -559,34 +543,7 @@ export function ReachSection() {
 }
 
 /* ─────────────────────────────────────────────────────────
- * 12. Change
- * ───────────────────────────────────────────────────────── */
-
-export function ChangeSection() {
-  return (
-    <Section
-      id="change"
-      title="Change and recheck"
-      lede="One accepted change plus one withheld per failed condition. Accepted shows the rise in measured green — the one accent spent only on measurement. Withheld is a complete state, never an error."
-    >
-      <div className="space-y-10">
-        <Specimen label="accepted" hint="/components/change.tsx">
-          <ChangeView changed={DEMO_CHANGE_ACCEPTED} />
-        </Specimen>
-        {DEMO_CHANGE_WITHHELD.map((entry) => (
-          <Specimen key={entry.label} label={`withheld · ${entry.label}`}>
-            <div className="max-w-md">
-              <ChangeView changed={entry.changed} />
-            </div>
-          </Specimen>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
- * 13. Compare
+ * 12. Compare
  * ───────────────────────────────────────────────────────── */
 
 export function CompareSection() {

@@ -13,7 +13,7 @@ One-line read: this product is a sharp-eyed friend with opinions. It is not a la
 | Principle | Ties to |
 |---|---|
 | Loud on color, strict on meaning. Big flat color blocks, but every color means exactly one thing. Mint is a strong fit. Nothing is colored for decoration. | §6.7 |
-| Surprise gets the stage. The loudest block on any screen is "Your best fit is not the audience you named": full width, coral, biggest type. The refusal (a withheld change) is second loudest, in solid ink. The happy path stays in the calmer colors. | §6.7, §6.9 |
+| Surprise gets the stage. The loudest block on any screen is "Your best fit is not the audience you named": full width, coral, biggest type. The happy path stays in the calmer colors. | §6.7 |
 | Absence stays visible. Three states, not two: measured-high, measured-low, not measured. Not measured gets a hatch, a dashed border, the words "not measured", and never a number. This is a system rule so that "no data" never quietly ships as a zero. | §6.6, App. B |
 | Runs show real work. A step appears when it actually finishes, with its counts: "21 titles checked, 19 found, 2 not found". Friendly pills, no fake progress bar, no typing dots. | §5.4, §6.12 |
 | Links look like citations. A small numbered dot sits next to every claim, with a 24px minimum touch target and an underline on hover and focus. On touch the dot stays visible without hover. Tapping opens a drawer with the request and response in mono. | §6.12 |
@@ -77,7 +77,6 @@ Light only. Four neutrals, four verdict fills, two text-safe colors, one texture
 | Weak fit | `--weak` fill | Measured, and it is low, so it gets the quietest color. Red here would punish the product for telling the truth. |
 | Inconclusive | `.nodata`, no fill color | Must never be confusable with Weak. Weak means "we measured and it is low" (§6.7). Inconclusive means "we could not measure" (App. B). Keep these two visually apart above everything else. |
 | Surprise | `--surprise` block | A finding, not a verdict. It only appears as the banner. |
-| Withheld | solid `--ink` block, paper text | A refusal (§6.9). |
 
 Color never carries a verdict alone. Every verdict wears its word, because mint, yellow and soft blue sit close in brightness and collapse together in grayscale print.
 

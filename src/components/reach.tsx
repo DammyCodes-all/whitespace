@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { RelatedKind, RelatedResult } from "@/lib/qloo/related";
 import type { GapItem } from "@/lib/scoring/gaps";
 import type { Audience } from "@/lib/types";
@@ -148,14 +147,7 @@ function GapList({
   );
 }
 
-export function ReachPlan({
-  groups,
-  gapAside,
-}: {
-  groups: ReachAudience[];
-  /** Bento sidecar: rendered beside the first group's gaps, narrower. */
-  gapAside?: ReactNode;
-}) {
+export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
   if (groups.length === 0) {
     return (
       <section aria-label="Reach plan" className="mt-12">
@@ -169,7 +161,7 @@ export function ReachPlan({
   return (
     <section aria-label="Reach plan" className="mt-12">
       <h2 className="text-lg tracking-tight text-ink">Reach plan</h2>
-      {groups.map((group, groupIndex) => {
+      {groups.map((group) => {
         const sorted = [...group.related].sort(byKindOrder);
         const totalItems = sorted.reduce(
           (sum, related) => sum + related.items.length,
@@ -233,28 +225,14 @@ export function ReachPlan({
                 />
               </div>
             </div>
-            {groupIndex === 0 && gapAside !== undefined ? (
-              <div className="mt-4 grid gap-4 md:grid-cols-12">
-                <div className="md:col-span-7">
-                  <GapList
-                    audienceName={group.audience.name}
-                    gaps={group.gaps}
-                    unlabeledCount={group.unlabeledCount}
-                    hasTastes={group.hasTastes}
-                  />
-                </div>
-                <div className="md:col-span-5">{gapAside}</div>
-              </div>
-            ) : (
-              <div className="mt-4">
-                <GapList
-                  audienceName={group.audience.name}
-                  gaps={group.gaps}
-                  unlabeledCount={group.unlabeledCount}
-                  hasTastes={group.hasTastes}
-                />
-              </div>
-            )}
+            <div className="mt-4">
+              <GapList
+                audienceName={group.audience.name}
+                gaps={group.gaps}
+                unlabeledCount={group.unlabeledCount}
+                hasTastes={group.hasTastes}
+              />
+            </div>
           </div>
         );
       })}
