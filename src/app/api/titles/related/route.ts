@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server.js";
+import { quotaFailure } from "../../../../lib/qloo/quota-state.ts";
 import { suggestFromEntities } from "../../../../lib/qloo/related-titles.ts";
 import type { WorkType } from "../../../../lib/types.ts";
 
@@ -59,10 +60,28 @@ export async function POST(request: Request) {
       )
     : [];
 
-  const out = await suggestFromEntities(
-    entityIds.slice(0, MAX_SIGNAL_ENTITIES),
-    excludeNames,
-    workType as WorkType,
-  );
-  return NextResponse.json({ suggestions: out.names });
+  try {
+    const out = await suggestFromEntities(
+      entityIds.slice(0, MAX_SIGNAL_ENTITIES),
+      excludeNames,
+      workType as WorkType,
+    );
+    return NextResponse.json({ suggestions: out.names, quota: "ok" });
+  } catch (err) {
+    const failure = quotaFailure(err);
+    if (failure !== null) {
+      console.warn(`[titles/related] ${failure.body.quota}`);
+      return NextResponse.json(failure.body, {
+        status: failure.status,
+        headers: failure.headers,
+      });
+    }
+    console.error(
+      `[titles/related] failed — ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return NextResponse.json(
+      { error: "Title suggestions failed." },
+      { status: 500 },
+    );
+  }
 }

@@ -5,8 +5,9 @@ import { clearControlCache } from "../qloo/control-cache.ts";
 import { CONTROL_SEEDS } from "../qloo/control-seeds.ts";
 import { runFlowPitch } from "./run-flow.ts";
 
-// No key in this env: the mock path. Taste fetches fail, so the run is
-// honestly Inconclusive — the flow's gates still run first.
+// No key in this env: the keyless path returns placeholder traces
+// (`mock: true`, status 0). Taste fetches fail, so the run is honestly
+// Inconclusive — the flow's gates still run first.
 delete process.env.QLOO_API_KEY;
 
 const tags = (n: number) =>
@@ -44,7 +45,7 @@ describe("runFlowPitch", () => {
   });
 
   it("passes the cheap check with titles, then stops at the pool gate", async () => {
-    // Titles exist so the run proceeds; the mock path resolves nothing
+    // Titles exist so the run proceeds; the keyless path resolves nothing
     // and fetches no tastes, so the pool is just the MIN-1 pitch tags
     // and the real gate stops it after the fetches, naming the pool.
     const out = await runFlowPitch({
@@ -88,13 +89,21 @@ describe("runFlowPitch", () => {
       tagChips.filter((t) => t.status === "matched").length,
       MIN_MATCHED_TAGS,
     );
-    // Mock path: every audience is unjudgeable, so nothing is a number
+    // Keyless path: every audience is unjudgeable, so nothing is a number
     // and the ceiling is null rather than 0.
     assert.ok(out.result.audiences.every((a) => a.score === null));
     assert.equal(out.result.ceiling, null);
     assert.equal(out.result.reach, null);
-    // Title-grounded pool: the mock resolves nothing, so the pool is
-    // the pitch tags only — all pitch-sourced, no hold-out rounds.
+    // §8: the real check ran and passed; the step names the counts.
+    assert.equal(out.result.grounding?.ok, true);
+    const groundingStep = out.steps.find((s) => s.id === "grounding");
+    assert.ok(groundingStep !== undefined);
+    assert.match(
+      groundingStep.detail ?? "",
+      /all from this run's Qloo results/,
+    );
+    // Title-grounded pool: the keyless path resolves nothing, so the pool
+    // is the pitch tags only — all pitch-sourced, no hold-out rounds.
     const tagsStep = out.steps.find((s) => s.id === "tags");
     assert.match(tagsStep?.detail ?? "", /pooled/);
     assert.ok(!out.steps.some((s) => s.id.startsWith("holdout-")));
@@ -108,6 +117,9 @@ describe("runFlowPitch", () => {
     });
     assert.equal(typeof out.result.qlooCalls.total, "number");
     assert.ok(out.result.qlooCalls.total >= 0);
+    // Keyless: every trace is a placeholder, so none counts as network.
+    assert.equal(out.result.qlooCalls.network, 0);
+    assert.equal(out.result.qlooCalls.mock, out.result.qlooCalls.total);
   });
 
   it("scope gate refuses a tool pitch with no Qloo calls", async () => {
@@ -312,9 +324,18 @@ describe("runFlowPitch", () => {
           filterType === "urn:entity:brand" ||
           filterType === "urn:entity:place"
         ) {
-          return new Response(JSON.stringify({ success: true, results: [] }), {
-            status: 200,
-          });
+          return new Response(
+            JSON.stringify({
+              success: true,
+              results: [
+                {
+                  entity_id: `id:reach-${filterType}`,
+                  name: `Reach ${filterType}`,
+                },
+              ],
+            }),
+            { status: 200 },
+          );
         }
         // Discovery: own domain carries a long tail so the far
         // candidate sits at the bottom, unused by any rival.
@@ -351,6 +372,32 @@ describe("runFlowPitch", () => {
       // sits on top, so the existing split branch reads Mixed. A
       // control-set line at ~0.21 would have read Weak.
       assert.equal(out.result.verdict, "mixed");
+      // §8/§10 #1: the check passed on the assembled output, and every
+      // displayed id traces to a response this stub actually returned.
+      assert.equal(out.result.grounding?.ok, true);
+      assert.ok(out.steps.some((step) => step.id === "grounding"));
+      for (const tag of out.result.tags) {
+        assert.ok(
+          tag.qlooId === undefined || hypTags.includes(tag.qlooId),
+          `ungrounded tag ${tag.qlooId}`,
+        );
+      }
+      for (const audience of out.result.audiences) {
+        for (const title of audience.titles) {
+          assert.match(title.qlooId, /^id:/);
+        }
+      }
+      // §6.8/§8: the reach card is in the checked output too, not just
+      // the chart rows. The stub returns one item per related category.
+      assert.ok(out.result.reach !== null && out.result.reach.length > 0);
+      const reachNames = out.result.reach.flatMap((group) => [
+        ...group.people.map((item) => item.name),
+        ...group.podcasts.map((item) => item.name),
+        ...group.brands.map((item) => item.name),
+        ...group.places.map((item) => item.name),
+      ]);
+      assert.ok(reachNames.length > 0);
+      assert.ok(reachNames.every((name) => name.startsWith("Reach ")));
       const controlsStep = out.steps.find((s) => s.id === "controls");
       assert.match(controlsStep?.detail ?? "", /line from strangers baseline/);
       assert.ok(
@@ -482,9 +529,18 @@ describe("runFlowPitch", () => {
           filterType === "urn:entity:brand" ||
           filterType === "urn:entity:place"
         ) {
-          return new Response(JSON.stringify({ success: true, results: [] }), {
-            status: 200,
-          });
+          return new Response(
+            JSON.stringify({
+              success: true,
+              results: [
+                {
+                  entity_id: `id:reach-${filterType}`,
+                  name: `Reach ${filterType}`,
+                },
+              ],
+            }),
+            { status: 200 },
+          );
         }
         const isOwn = filterType === "urn:entity:movie";
         const count = isOwn ? 6 : 2;
@@ -513,6 +569,16 @@ describe("runFlowPitch", () => {
       // Hypothesis 0.89 clears the eligible controls (0.52/12 each);
       // the title-excluded control at 0.89 must not set the line.
       assert.equal(out.result.verdict, "strong");
+      // Same gate on the fallback-ceiling path: the real check ran and
+      // no displayed id came from outside this stub's Qloo responses.
+      assert.equal(out.result.grounding?.ok, true);
+      assert.ok(out.steps.some((step) => step.id === "grounding"));
+      for (const tag of out.result.tags) {
+        assert.ok(
+          tag.qlooId === undefined || hypTags.includes(tag.qlooId),
+          `ungrounded tag ${tag.qlooId}`,
+        );
+      }
       const controlsStep = out.steps.find((s) => s.id === "controls");
       assert.match(
         controlsStep?.detail ?? "",
