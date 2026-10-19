@@ -79,11 +79,9 @@ describe("eligibleControls pitch-aware ceiling", () => {
     assert.equal(result.excluded.length, 2);
   });
 
-  it("verdict compares against the filtered field, not the excluded neighbor", () => {
-    // Top contender 0.60. The neighbor control 0.70 would win the
-    // comparison; after the filter the strongest comparison is 0.40,
-    // so the same contender clears. The excluded control must never
-    // set the line the verdict is judged against.
+  it("verdict margin uses the filtered best, not the excluded neighbor", () => {
+    // Top contender 0.60. Neighbor control 0.58 would hold the ceiling
+    // (gap 0.02 -> Weak); the distant control 0.40 gives gap 0.20.
     const hyp = audience("hyp", ["a", "b", "c", "d", "e", "f"]);
     const neighbor = audience("control-near", ["a", "b", "c"]);
     const far = audience("control-far", ["g", "h", "i"]);
@@ -91,36 +89,28 @@ describe("eligibleControls pitch-aware ceiling", () => {
     assert.equal(eligibility.filtered, true);
 
     const allScores: FitScore[] = [
-      judged("control-near", 0.7),
+      judged("control-near", 0.58),
       judged("control-far", 0.4),
     ];
     const eligibleIds = new Set(eligibility.eligible.map((c) => c.id));
     const filteredScores = allScores.filter((s) =>
       eligibleIds.has(s.audienceId),
     );
-    // Two controls here, so the field floors are pinned for the test.
-    const options = { minJudgeableControls: 1, minCeilingHits: 1 };
 
-    const before = decideVerdict(
-      {
-        hypothesisId: "hyp",
-        scores: [judged("hyp", 0.6)],
-        controlScores: allScores,
-        pooledTags: 3,
-      },
-      options,
-    );
+    const before = decideVerdict({
+      hypothesisId: "hyp",
+      scores: [judged("hyp", 0.6)],
+      controlScores: allScores,
+      coverage: 0.9,
+    });
     assert.equal(before.verdict, "Weak");
 
-    const after = decideVerdict(
-      {
-        hypothesisId: "hyp",
-        scores: [judged("hyp", 0.6)],
-        controlScores: filteredScores,
-        pooledTags: 3,
-      },
-      options,
-    );
+    const after = decideVerdict({
+      hypothesisId: "hyp",
+      scores: [judged("hyp", 0.6)],
+      controlScores: filteredScores,
+      coverage: 0.9,
+    });
     assert.equal(after.verdict, "Strong");
     assert.ok(Math.abs(after.marginTopVsControl - 0.2) < 1e-9);
   });

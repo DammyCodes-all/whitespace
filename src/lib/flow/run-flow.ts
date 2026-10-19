@@ -32,6 +32,7 @@ import {
   availableFromTastes,
   namesById,
   proposeBridges,
+  usableBridges,
 } from "../agent/bridge.ts";
 import { namedAudienceLabel } from "../audience-words.ts";
 import {
@@ -73,7 +74,6 @@ import type {
   PitchTag,
   QlooCall,
   RunStep,
-  SelfFitStatus,
 } from "../types.ts";
 import type { FlowReachInput, FlowTagSource } from "./contract.ts";
 import { toFlowResult } from "./contract.ts";
@@ -155,7 +155,7 @@ function emptyPipeline(
     verdict: {
       verdict: "Inconclusive",
       topAudienceId: null,
-      marginTopVsSecond: null,
+      marginTopVsSecond: 0,
       marginTopVsControl: 0,
       clearsControl: false,
       surprise: false,
@@ -509,9 +509,8 @@ export async function runFlowPitch(
     const leftoverWords = selectLeftoverWords(matchedTags, heldIds);
     if (leftoverWords.length > 0) {
       try {
-        // Pool ids are excluded from the candidates: a tag already in
-        // the scored list cannot be bridged onto itself, which scored
-        // the same signal twice (fix 6).
+        // A tag already in the scored pool cannot be a bridge target:
+        // it would count the same signal twice.
         const poolIds = new Set(poolTags.map((entry) => entry.tag.qlooTagId));
         const available = availableFromTastes([
           ...scoredContenders,
@@ -529,10 +528,7 @@ export async function runFlowPitch(
         const contenderIds = new Set(
           scoredContenders.flatMap((tastes) => tastes.tagIds),
         );
-        const usable = proposed.filter(
-          (weighted) =>
-            weighted.weight === 0 || contenderIds.has(weighted.tag.qlooTagId),
-        );
+        const usable = usableBridges(proposed, contenderIds);
         bridgeWtags.push(...usable);
         const dropped = proposed.length - usable.length;
         if (bridgeWtags.length > 0) {
@@ -573,8 +569,7 @@ export async function runFlowPitch(
   // (shared-set — never giver-only), so a round measures the pool's
   // dependence on that title, not the title's own fit. Zero Qloo
   // calls: pure rescoring. Each round lands as a step carrying the
-  // named delta; the self-fit gate further down reuses the same idea
-  // to decide whether a Strong is allowed to stand.
+  // named delta.
   const giftTitleIds: string[] = [];
   for (const entry of poolTags) {
     if (entry.source === "pitch") continue;
@@ -663,8 +658,8 @@ export async function runFlowPitch(
       : scoreAllWeighted(farTastes, flowWeightedTags)[0];
   const farMeasured = farScore !== null && !isUnjudgeable(farScore);
   const lineSource = farMeasured
-    ? "strangers measured, other-genre controls join the field"
-    : "strangers unmeasured, other-genre controls set the field";
+    ? "line from strangers baseline"
+    : "strangers unmeasured, other-genre ceiling";
   const flowControlsBase = controlCached.fromCache
     ? `${controlCached.controls.length} from cache, 0 Qloo calls`
     : `${controlCached.controls.length} built, ${controlCached.droppedControls.length} dropped`;
@@ -685,101 +680,23 @@ export async function runFlowPitch(
   const eligibleControlIds = new Set(
     controlEligibility.eligible.map((c) => c.id),
   );
-  const keepEligible = (scores: FitScore[]): FitScore[] =>
-    controlEligibility.filtered
-      ? scores.filter((s) => eligibleControlIds.has(s.audienceId))
-      : scores;
-  const verdictControlScores = keepEligible(controlScores);
-  const verdictStranger = farMeasured ? farScore : null;
-  const verdictInput = {
+  const verdictControlScores =
+    farMeasured && farScore !== null
+      ? [farScore]
+      : controlEligibility.filtered
+        ? controlScores.filter((s) => eligibleControlIds.has(s.audienceId))
+        : controlScores;
+  const verdict = decideVerdict({
     hypothesisId: "hyp",
     scores: contenderScores,
     controlScores: verdictControlScores,
-    strangerScore: verdictStranger,
-    pooledTags: poolTags.length,
-  };
-
-  // §6.7 self-fit gate (fix 1). The pool is built from the titles the
-  // user named, so a named-audience win is circular until it survives a
-  // rescore on the pitch-grounded tags alone: every pool tag the
-  // description supplied by id, plus bridges (also pitch-word pointed),
-  // and nothing that only exists because of a named title. The whole
-  // field rescores on that same reduced set, shared-set, exactly like
-  // the hold-out rounds above. Pure rescoring: zero Qloo calls.
-  const pitchTagIds = new Set(matchedTags.map((tag) => tag.qlooTagId));
-  const pitchGroundedWeighted: WeightedTag[] = [
-    ...poolTags
-      .filter(
-        (entry) =>
-          entry.source === "pitch" || pitchTagIds.has(entry.tag.qlooTagId),
-      )
-      .map((entry) => ({ tag: entry.tag, weight: 1 })),
-    ...bridgeWtags,
-  ];
-  const firstPass = decideVerdict(verdictInput);
-  let selfFit: SelfFitStatus | undefined;
-  if (
-    hypothesis !== null &&
-    firstPass.topAudienceId === "hyp" &&
-    firstPass.verdict === "Strong"
-  ) {
-    const reducedContenders = scoreAllWeighted(
-      scoredContenders,
-      pitchGroundedWeighted,
-    );
-    const reducedControls = keepEligible(
-      scoreAllWeighted(scoredControls, pitchGroundedWeighted),
-    );
-    const reducedStranger =
-      farTastes.length === 0
-        ? null
-        : (scoreAllWeighted(farTastes, pitchGroundedWeighted)[0] ?? null);
-    const reduced = decideVerdict({
-      hypothesisId: "hyp",
-      scores: reducedContenders,
-      controlScores: reducedControls,
-      strangerScore: reducedStranger,
-      pooledTags: pitchGroundedWeighted.length,
-    });
-    // The reduced verdict decides all three answers: Strong with the
-    // named audience on top = confirmed; Inconclusive = too thin to
-    // tell; anything else = the lead leans on its own title gifts.
-    selfFit =
-      reduced.verdict === "Strong" && reduced.topAudienceId === "hyp"
-        ? "confirmed"
-        : reduced.verdict === "Inconclusive"
-          ? "unverified"
-          : "leans";
-    const reducedHyp =
-      reducedContenders.find((s) => s.audienceId === "hyp") ?? null;
-    const selfFitNote =
-      selfFit === "confirmed"
-        ? "the named audience still leads without its own title gifts"
-        : selfFit === "leans"
-          ? "the named audience no longer leads without its own title gifts"
-          : "too few pitch-grounded tags were left to judge without the title gifts";
-    steps.push(
-      doneStep(
-        "self-fit",
-        "Self-fit check",
-        `${pitchGroundedWeighted.length} pitch-grounded tag(s): ${selfFitNote} (named ${fmtFit(reducedHyp)})`,
-      ),
-    );
-  }
-  const verdict = decideVerdict({
-    ...verdictInput,
-    ...(selfFit === undefined ? {} : { selfFit }),
+    coverage,
   });
-  const beaten = verdict.controlsBeaten;
   steps.push(
     doneStep(
       "verdict",
       "The verdict",
-      `${verdict.verdict}, top ${verdict.topAudienceId ?? "none"}${
-        beaten === undefined
-          ? ""
-          : `, beats ${beaten.beaten} of ${beaten.total} comparison audiences`
-      } (${lineSource})`,
+      `${verdict.verdict}, top ${verdict.topAudienceId ?? "none"} (${lineSource})`,
     ),
   );
 
@@ -800,15 +717,13 @@ export async function runFlowPitch(
     grounding: { ok: true, ungroundedTitles: [], ungroundedTags: [] },
     calls,
     steps,
-    // The displayed line follows the same field the verdict had to
-    // beat: the judgeable comparisons — the strangers baseline plus the
-    // title-eligible controls — so the ink line can never disagree with
-    // the field the verdict cleared (or missed). The adapter takes the
-    // strongest of them.
-    ceilingControlIds: [
-      ...(verdictStranger === null ? [] : [verdictStranger.audienceId]),
-      ...controlEligibility.eligible.map((c) => c.id),
-    ],
+    // The displayed ceiling follows the same set as the verdict: the
+    // strangers baseline when measured, else the title-eligible
+    // controls — never an excluded control.
+    ceilingControlIds:
+      farMeasured && farScore !== null
+        ? [farScore.audienceId]
+        : controlEligibility.eligible.map((c) => c.id),
   };
 
   // Reach (step 7): only when something beats the ceiling. Interests
