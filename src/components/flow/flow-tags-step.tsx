@@ -75,6 +75,10 @@ export function FlowTagsStep({
               "Qloo holds no taste data for these titles — only pitch words will score."}
             {previewNote === "all-generic" &&
               "These titles' top tastes were all generic (half the controls hold them) — only your sharper pitch words will score."}
+            {previewNote === "rate-limited" &&
+              "Qloo is rate-limiting requests right now — only your pitch words will score. Try again in a moment."}
+            {previewNote === "exhausted" &&
+              "This preview used its Qloo call budget — only your pitch words will score. Try again or use the sample."}
             {previewNote === "preview-failed" &&
               "Couldn't read the titles' tastes — only pitch words will score. Check again to retry."}
             {(previewNote === null ||

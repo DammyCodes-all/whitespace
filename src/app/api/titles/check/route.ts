@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server.js";
+import { quotaFailure } from "../../../../lib/qloo/quota-state.ts";
 import { resolveTitles } from "../../../../lib/qloo/resolve-titles.ts";
 import type { WorkType } from "../../../../lib/types.ts";
 
@@ -48,13 +49,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "titles is required." }, { status: 400 });
   }
 
-  const out = await resolveTitles(titles, workType as WorkType);
-  return NextResponse.json({
-    resolved: out.resolved.map((t) => ({
-      query: t.query,
-      name: t.name,
-      qlooId: t.qlooId,
-    })),
-    notFound: out.notFoundTitles,
-  });
+  try {
+    const out = await resolveTitles(titles, workType as WorkType);
+    return NextResponse.json({
+      resolved: out.resolved.map((t) => ({
+        query: t.query,
+        name: t.name,
+        qlooId: t.qlooId,
+      })),
+      notFound: out.notFoundTitles,
+      quota: "ok",
+    });
+  } catch (err) {
+    const failure = quotaFailure(err);
+    if (failure !== null) {
+      console.warn(`[titles/check] ${failure.body.quota}`);
+      return NextResponse.json(failure.body, {
+        status: failure.status,
+        headers: failure.headers,
+      });
+    }
+    console.error(
+      `[titles/check] failed — ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return NextResponse.json({ error: "Title check failed." }, { status: 500 });
+  }
 }

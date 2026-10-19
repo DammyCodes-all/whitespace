@@ -3,6 +3,7 @@ import { extractPitchTags, LlmError } from "@/lib/agent/extract-tags";
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 import type { FlowTag } from "@/lib/flow/contract";
 import { resetQuota, resolvePitchTags } from "@/lib/qloo";
+import { quotaFailure } from "@/lib/qloo/quota-state";
 
 /**
  * Package C step 2: POST { pitchText } -> FlowTag chips and the detected
@@ -56,35 +57,54 @@ export async function POST(request: Request) {
   }
 
   resetQuota();
-  const tagRes = await resolvePitchTags(proposal.words, proposal.workType);
-  const tags: FlowTag[] = [
-    ...tagRes.tags.map((t) => {
-      const qlooName = tagRes.qlooNames[t.qlooTagId];
-      return {
-        label: t.tag,
-        qlooId: t.qlooTagId,
-        status: "matched" as const,
-        // Only when Qloo's name differs from the word: `lonely → Loneliness`.
-        // Case alone is not a difference (`heist` vs `Heist` stays quiet).
-        ...(qlooName === undefined ||
-        qlooName.toLowerCase() === t.tag.toLowerCase()
-          ? {}
-          : { qlooName }),
-      };
-    }),
-    ...tagRes.notFoundWords.map((w) => ({
-      label: w,
-      status: "not_found" as const,
-    })),
-  ];
-  return NextResponse.json({
-    tags,
-    matched: tagRes.tags.length,
-    suggested: proposal.words.length,
-    workType: proposal.workType,
-    /** Words the semantic pass rescued on a plain-search miss. */
-    semanticWords: tagRes.semanticWords,
-    /** Below this the run stops as Inconclusive (flow gate). */
-    minMatched: MIN_MATCHED_TAGS,
-  });
+  try {
+    const tagRes = await resolvePitchTags(proposal.words, proposal.workType);
+    const tags: FlowTag[] = [
+      ...tagRes.tags.map((t) => {
+        const qlooName = tagRes.qlooNames[t.qlooTagId];
+        return {
+          label: t.tag,
+          qlooId: t.qlooTagId,
+          status: "matched" as const,
+          // Only when Qloo's name differs from the word: `lonely → Loneliness`.
+          // Case alone is not a difference (`heist` vs `Heist` stays quiet).
+          ...(qlooName === undefined ||
+          qlooName.toLowerCase() === t.tag.toLowerCase()
+            ? {}
+            : { qlooName }),
+        };
+      }),
+      ...tagRes.notFoundWords.map((w) => ({
+        label: w,
+        status: "not_found" as const,
+      })),
+    ];
+    return NextResponse.json({
+      tags,
+      matched: tagRes.tags.length,
+      suggested: proposal.words.length,
+      workType: proposal.workType,
+      /** Words the semantic pass rescued on a plain-search miss. */
+      semanticWords: tagRes.semanticWords,
+      /** Below this the run stops as Inconclusive (flow gate). */
+      minMatched: MIN_MATCHED_TAGS,
+      quota: "ok",
+    });
+  } catch (err) {
+    const failure = quotaFailure(err);
+    if (failure !== null) {
+      console.warn(`[tags] ${failure.body.quota}`);
+      return NextResponse.json(failure.body, {
+        status: failure.status,
+        headers: failure.headers,
+      });
+    }
+    console.error(
+      `[tags] failed — ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return NextResponse.json(
+      { error: "Tag matching failed." },
+      { status: 500 },
+    );
+  }
 }
