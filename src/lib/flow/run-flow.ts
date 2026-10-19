@@ -43,12 +43,14 @@ import {
   MIN_MATCHED_TAGS,
 } from "../config.ts";
 import { selectReachTargets } from "../demo/reach-targets.ts";
+import { checkGrounding } from "../policy/grounding.ts";
 import { checkScope } from "../policy/scope.ts";
 import { decideVerdict } from "../policy/verdict.ts";
 import {
   discoverRivals,
   fetchAllAudienceTastes,
   fetchRelated,
+  interestsFromTastes,
   loadControlTastes,
   resetQuota,
   resolveTitles,
@@ -77,6 +79,15 @@ import type {
 } from "../types.ts";
 import type { FlowReachInput, FlowTagSource } from "./contract.ts";
 import { toFlowResult } from "./contract.ts";
+import {
+  audienceTitleIds,
+  groundAudiences,
+  groundRelated,
+  groundTags,
+  mergeGrounding,
+  relatedEntityIds,
+  tasteTagIds,
+} from "./grounding-run.ts";
 
 export interface FlowInput extends PitchInput {
   /** Optional "similar to" titles; build the named audience (§6.2). */
@@ -143,13 +154,19 @@ function emptyPipeline(
   steps: RunStep[],
   hypothesis: Audience,
   tags: PitchTag[] = [],
+  knownTagIds: readonly string[] = [],
 ): PipelineResult {
+  // Early exits still run the real check on whatever they are about to
+  // display (the thin-pool exit passes its pooled tags). No known ids
+  // and no output is vacuously grounded, never an asserted `true`.
+  const knownTags = new Set(knownTagIds);
+  const keptTags = tags.filter((tag) => knownTags.has(tag.qlooTagId));
   return {
     input,
     hypothesis,
     rivals: [],
     controls: [],
-    tags,
+    tags: keptTags,
     coverage: 0,
     scores: [],
     verdict: {
@@ -161,7 +178,12 @@ function emptyPipeline(
       surprise: false,
       inconclusiveReason: "empty",
     },
-    grounding: { ok: true, ungroundedTitles: [], ungroundedTags: [] },
+    grounding: checkGrounding(
+      [],
+      keptTags.map((tag) => tag.qlooTagId),
+      [],
+      [...knownTagIds],
+    ),
     calls,
     steps,
   };
@@ -196,6 +218,15 @@ export async function runFlowPitch(
     .map((t) => t.label);
   const suggested = matchedTags.length + notFoundWords.length;
   const coverage = suggested === 0 ? 0 : matchedTags.length / suggested;
+
+  // §8 grounding ledger: everything Qloo returned during THIS run. The
+  // confirmed chip tags were resolved by /v2/tags in step 2, so they are
+  // the pre-run half of the tag set; every fetch below adds to it.
+  const knownTitleIds = new Set<string>();
+  const knownTagIds = new Set<string>(matchedTags.map((tag) => tag.qlooTagId));
+  // Tags stripped before scoring (pool, bridges): folded into the final
+  // GroundingResult so a removed id is never silently forgotten.
+  const strippedTagIds: string[] = [];
 
   const baseInput: PitchInput = {
     pitchText: pitch.pitchText,
@@ -269,6 +300,7 @@ export async function runFlowPitch(
       titles: titleRes.resolved,
       notFoundTitles: titleRes.notFoundTitles,
     };
+    for (const id of audienceTitleIds([hypothesis])) knownTitleIds.add(id);
     steps.push(
       doneStep(
         "hypothesis",
@@ -299,6 +331,13 @@ export async function runFlowPitch(
     count: wantedRivals,
   });
   calls.push(...rivalCalls);
+  for (const id of audienceTitleIds(discovered)) knownTitleIds.add(id);
+  if (farCandidate !== null) {
+    knownTitleIds.add(farCandidate.id);
+    if (farCandidate.member !== null) {
+      knownTitleIds.add(farCandidate.member.id);
+    }
+  }
   steps.push(
     doneStep(
       "rivals",
@@ -336,6 +375,9 @@ export async function runFlowPitch(
     options.controlCount ?? CONTROL_COUNT,
   );
   calls.push(...controlCached.calls);
+  for (const id of audienceTitleIds(controlCached.controls)) {
+    knownTitleIds.add(id);
+  }
 
   // Strangers baseline: a far audience from the discovery ranking's
   // leftovers — the last bottom entities no rival uses. Same domain,
@@ -423,6 +465,17 @@ export async function runFlowPitch(
   const { all: namedTastes, calls: namedTasteCalls } =
     await fetchAllAudienceTastes(namedTargets, input.workType);
   calls.push(...namedTasteCalls);
+  // Every taste list fetched this run is a grounding source. The named
+  // and audience fetches overlap by design; the set dedupes.
+  for (const id of tasteTagIds([
+    freshTastes,
+    farTastes,
+    controlCached.tastes,
+    namedTastes,
+  ])) {
+    knownTagIds.add(id);
+  }
+  const knownTagSet = new Set(knownTagIds);
   const pool = buildTitleTagPool({
     namedTastes: poolTitles.map((title, index) => ({
       tastes: namedTastes[index] ?? {
@@ -440,7 +493,7 @@ export async function runFlowPitch(
     controlTastes: controlCached.tastes,
     pickedIds: input.pickedTagIds ?? [],
   });
-  const poolTags: FlowPoolTag[] = pool.map((candidate) => ({
+  let poolTags: FlowPoolTag[] = pool.map((candidate) => ({
     tag: {
       tag: candidate.label,
       qlooTagId: candidate.qlooTagId,
@@ -454,11 +507,29 @@ export async function runFlowPitch(
             titleName: candidate.sourceTitleName ?? candidate.source.titleId,
           },
   }));
+  // §8: strip before scoring. Doing it later would leave scores built
+  // from a tag the output no longer shows.
+  const groundedPool = groundTags(
+    poolTags,
+    (entry) => entry.tag.qlooTagId,
+    knownTagSet,
+  );
+  poolTags = groundedPool.kept;
+  strippedTagIds.push(...groundedPool.removed);
   const poolFromTitles = poolTags.filter((p) => p.source !== "pitch").length;
   const poolGiftTitles = new Set(
     poolTags.flatMap((p) => (p.source === "pitch" ? [] : [p.source.titleId])),
   ).size;
   if (poolTags.length < MIN_MATCHED_TAGS) {
+    if (strippedTagIds.length > 0) {
+      steps.push(
+        doneStep(
+          "grounding",
+          "Grounding check",
+          `${strippedTagIds.length} tag(s) had no Qloo result; removed before scoring`,
+        ),
+      );
+    }
     steps.push(
       doneStep(
         "tags",
@@ -475,6 +546,7 @@ export async function runFlowPitch(
       steps,
       idleHypothesis,
       poolTags.map((p) => p.tag),
+      [...knownTagIds],
     );
     return {
       result: toFlowResult(result, {}, tagSourcesOf(poolTags)),
@@ -496,7 +568,7 @@ export async function runFlowPitch(
   // already-fetched taste id + bucket (max 4, pinned never bridged;
   // pool tags are unpinned). Any failure falls back to the exact-match
   // run; verdict and controls logic are untouched.
-  const bridgeWtags: WeightedTag[] = [];
+  let bridgeWtags: WeightedTag[] = [];
   let bridgeNote = "";
   let bridgeCallId: string | undefined;
   const bridgesOn = options.bridgesEnabled ?? BRIDGES_ENABLED;
@@ -530,7 +602,18 @@ export async function runFlowPitch(
         );
         const usable = usableBridges(proposed, contenderIds);
         bridgeWtags.push(...usable);
-        const dropped = proposed.length - usable.length;
+        // §8/§10 #1: a bridge target is only grounded when the id came
+        // back in this run's fetched tastes. `toBridges` already gates
+        // on that set; this keeps the ledger honest if that changes.
+        const groundedBridges = groundTags(
+          bridgeWtags,
+          (entry) => entry.tag.qlooTagId,
+          knownTagSet,
+        );
+        bridgeWtags = groundedBridges.kept;
+        strippedTagIds.push(...groundedBridges.removed);
+        const dropped =
+          proposed.length - usable.length + groundedBridges.removed.length;
         if (bridgeWtags.length > 0) {
           bridgeNote = `, +${bridgeWtags.length} AI bridge${bridgeWtags.length === 1 ? "" : "s"} (${bridgeWtags.map((w) => w.label).join("; ")})`;
           if (dropped > 0) {
@@ -700,6 +783,29 @@ export async function runFlowPitch(
     ),
   );
 
+  // §8: the check runs on the assembled output, never a literal. This
+  // first pass covers the chart rows and every scoring tag; the final
+  // pass after reach folds in the card's entity ids.
+  const preReachTitleIds = audienceTitleIds([
+    hypothesis ?? idleHypothesis,
+    ...discovered,
+    ...controlCached.controls,
+  ]);
+  const preReachTagIds = [
+    ...poolTags.map((entry) => entry.tag.qlooTagId),
+    ...bridgeWtags.map((entry) => entry.tag.qlooTagId),
+  ];
+  const preReachGrounding = mergeGrounding(
+    checkGrounding(
+      preReachTitleIds,
+      preReachTagIds,
+      [...knownTitleIds],
+      [...knownTagIds],
+    ),
+    [],
+    strippedTagIds,
+  );
+
   const result: PipelineResult = {
     input: baseInput,
     hypothesis: hypothesis ?? idleHypothesis,
@@ -714,7 +820,7 @@ export async function runFlowPitch(
       ...(farScore === null ? [] : [farScore]),
     ],
     verdict,
-    grounding: { ok: true, ungroundedTitles: [], ungroundedTags: [] },
+    grounding: preReachGrounding,
     calls,
     steps,
     // The displayed ceiling follows the same set as the verdict: the
@@ -770,6 +876,86 @@ export async function runFlowPitch(
       reachCalls,
     };
   }
+
+  // §8/§10 #1: the check covers the reach card too. Related entities came
+  // straight from /v2/insights, so they join the known set; the output
+  // set is what the assembled result will actually display.
+  for (const id of relatedEntityIds(reachInput.relatedByAudienceId)) {
+    knownTitleIds.add(id);
+  }
+  const finalTitleIds = [
+    ...new Set([
+      ...audienceTitleIds([
+        result.hypothesis,
+        ...result.rivals,
+        ...result.controls,
+      ]),
+      ...relatedEntityIds(reachInput.relatedByAudienceId),
+    ]),
+  ];
+  const finalTagIds = [
+    ...new Set([
+      ...result.tags.map((tag) => tag.qlooTagId),
+      ...bridgeWtags.map((entry) => entry.tag.qlooTagId),
+      // Reach interests are displayed tag names, so their ids belong in
+      // the checked set too. They come from the same fetched tastes, so
+      // this is a no-op today and a guard if the card ever gains ids.
+      ...Object.values(reachInput.tastesByAudienceId ?? {}).flatMap((tastes) =>
+        tastes === undefined
+          ? []
+          : interestsFromTastes(tastes).map((item) => item.tagId),
+      ),
+    ]),
+  ];
+  const knownTitleSet = new Set(knownTitleIds);
+  const grounding = mergeGrounding(
+    checkGrounding(
+      finalTitleIds,
+      finalTagIds,
+      [...knownTitleIds],
+      [...knownTagIds],
+    ),
+    [],
+    strippedTagIds,
+  );
+
+  // A failed check never leaves the id on screen: strip ungrounded
+  // titles from every row and names from the reach card. Tags were
+  // already stripped before scoring, so scores stay consistent.
+  if (!grounding.ok) {
+    const groundedHypothesis = groundAudiences(
+      [result.hypothesis],
+      knownTitleSet,
+    );
+    result.hypothesis = groundedHypothesis.kept[0] ?? result.hypothesis;
+    result.rivals = groundAudiences(result.rivals, knownTitleSet).kept;
+    result.controls = groundAudiences(result.controls, knownTitleSet).kept;
+    result.tags = result.tags.filter((tag) => knownTagSet.has(tag.qlooTagId));
+    const groundedReach = groundRelated(
+      reachInput.relatedByAudienceId,
+      knownTitleSet,
+    );
+    reachInput = {
+      ...reachInput,
+      relatedByAudienceId: groundedReach.byAudienceId,
+    };
+  }
+  result.grounding = grounding;
+
+  const removedIds = [
+    ...grounding.ungroundedTitles,
+    ...grounding.ungroundedTags,
+  ];
+  const shown = removedIds.slice(0, 3).join(", ");
+  steps.push(
+    doneStep(
+      "grounding",
+      "Grounding check",
+      removedIds.length === 0
+        ? `${finalTitleIds.length} title/entity ids, ${finalTagIds.length} tags, all from this run's Qloo results`
+        : `${removedIds.length} ungrounded id(s) removed — ${shown}${removedIds.length > 3 ? ` +${removedIds.length - 3} more` : ""}`,
+    ),
+  );
 
   return {
     result: toFlowResult(result, reachInput, tagSourcesOf(poolTags)),
