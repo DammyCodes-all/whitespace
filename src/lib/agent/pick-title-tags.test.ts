@@ -22,10 +22,20 @@ describe("toPickResult", () => {
     assert.deepEqual(toPickResult({ kept: [] }, IDS), []);
   });
 
-  it("drops invented, blank and duplicate ids", () => {
+  it("drops blank and duplicate ids, keeping order", () => {
     assert.deepEqual(
-      toPickResult({ kept: ["id1", "nope", "  ", "id1", "id2", 42] }, IDS),
+      toPickResult({ kept: ["id1", "  ", "id1", "id2", 42] }, IDS),
       ["id1", "id2"],
+    );
+  });
+
+  it("aborts on an id the model was not offered instead of silently cutting", () => {
+    // A model typo'd id used to vanish (a silent subtraction). It is
+    // an output failure now: the pass aborts so the route fails open
+    // with everything the model intended to keep.
+    assert.throws(
+      () => toPickResult({ kept: ["id1", "nope", "id2"] }, IDS),
+      LlmError,
     );
   });
 
