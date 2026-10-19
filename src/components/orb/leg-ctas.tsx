@@ -3,16 +3,21 @@
 /**
  * Each leg's primary action, plus the hint shown when it is not yet
  * ready. The hints name the one thing missing — never a guessed count
- * of what is in flight.
+ * of what is in flight. While the orb is working (`busy`) the primary
+ * action is disabled and shows no hint: the orb's own line already
+ * names the work.
  */
 
 import { MIN_MATCHED_TAGS } from "@/lib/config";
 
 /** Tags leg: the pool looks right, move on to naming similar work. */
 export function TagsCtas({
+  busy,
   onContinue,
   onEditPitch,
 }: {
+  /** The orb is mid-cycle — the primary action waits for it. */
+  busy: boolean;
   onContinue: () => void;
   onEditPitch: () => void;
 }) {
@@ -21,7 +26,8 @@ export function TagsCtas({
       <button
         type="button"
         onClick={onContinue}
-        className="btn-primary px-6 py-3 text-sm"
+        disabled={busy}
+        className="btn-primary px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
       >
         These look right, continue
       </button>
@@ -40,12 +46,15 @@ export function TagsCtas({
 export function TitlesCta({
   checked,
   named,
+  busy,
   onReview,
 }: {
   /** A Check has run at least once. */
   checked: boolean;
   /** At least one title is named. */
   named: boolean;
+  /** The orb is mid-cycle — the primary action waits for it. */
+  busy: boolean;
   onReview: () => void;
 }) {
   return (
@@ -53,7 +62,7 @@ export function TitlesCta({
       <button
         type="button"
         onClick={onReview}
-        disabled={!checked || !named}
+        disabled={!checked || !named || busy}
         className="btn-primary px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
       >
         Review the full tag set
@@ -71,11 +80,14 @@ export function TitlesCta({
 export function ScoreCta({
   canRun,
   similarCount,
+  busy,
   onRun,
 }: {
   canRun: boolean;
   /** Parsed similar titles, for naming what the gate is missing. */
   similarCount: number;
+  /** The orb is mid-cycle — the primary action waits for it. */
+  busy: boolean;
   onRun: () => void;
 }) {
   return (
@@ -83,7 +95,7 @@ export function ScoreCta({
       <button
         type="button"
         onClick={onRun}
-        disabled={!canRun}
+        disabled={!canRun || busy}
         className="btn-primary px-6 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
       >
         Score my idea

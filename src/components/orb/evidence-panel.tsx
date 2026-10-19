@@ -26,16 +26,13 @@ export function EvidencePanel({
   result,
   steps,
   compareCalls,
-  changedCalls,
 }: {
   result: FlowResult;
   steps: FlowStepRow[];
   /** Sidecar calls, folded in so the count never undersells the run. */
   compareCalls: QlooCall[];
-  changedCalls: QlooCall[];
 }) {
-  const total =
-    result.qlooCalls.total + compareCalls.length + changedCalls.length;
+  const total = result.qlooCalls.total + compareCalls.length;
 
   return (
     <div className="mt-10">
@@ -64,10 +61,7 @@ export function EvidencePanel({
           {Object.entries({
             ...result.evidence,
             ...Object.fromEntries(
-              [...compareCalls, ...changedCalls].map((call) => [
-                call.id,
-                callToEvidence(call),
-              ]),
+              compareCalls.map((call) => [call.id, callToEvidence(call)]),
             ),
           }).map(([id, line]) => (
             <li key={id} id={id} className="py-3">

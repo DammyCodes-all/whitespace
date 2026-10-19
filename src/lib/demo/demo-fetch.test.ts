@@ -77,11 +77,9 @@ describe("demoResponseFor", () => {
     assert.ok(json.steps.length > 0 && json.stopped === false);
   });
 
-  it("answers compare and change from fixtures", () => {
+  it("answers compare from fixtures", () => {
     const compare = demoResponseFor("/api/compare", {});
     assert.ok((compare?.json as { chatbot: object }).chatbot !== null);
-    const change = demoResponseFor("/api/flow/change", {});
-    assert.ok((change?.json as { changed: object }).changed !== null);
   });
 
   it("passes unknown routes through", () => {
