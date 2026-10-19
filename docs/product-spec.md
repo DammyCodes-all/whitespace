@@ -108,24 +108,22 @@ Discovery fills contenders to four (fewer when Qloo returns fewer).
 Zero contenders — no titles and no discovered rivals — stops the run
 as Inconclusive before any control or taste call is spent.
 
-### 6.4 Comparison field (controls)
+### 6.4 Control audiences
 
 About 20 fixed same-domain audiences (genre-spread seeds for film
 and music; 6 fallbacks each for book and game) are resolved once and
 their tag sets cached for 30 minutes; every pitch is scored fresh
 against the cached sets. Seeds that resolve to nothing are dropped
-and reported, never kept.
-
-Those controls are the field the verdict measures against (§6.7),
-not merely context. Controls sharing more than a third of their
-titles with the named audience are excluded as too close; when every
-control is too close, the full set comes back so the field never
-vanishes. The strangers baseline — the bottom-unused entities of the
-same live discovery ranking rivals come from (weakest overlap with
-the pitch, own domain first), one extra taste fetch — joins the same
-field whenever it is judgeable. The ink line on the chart is the
-strongest judgeable member of that field, so the line can never sit
-above a bar the verdict did not have to clear.
+and reported, never kept. They render as other-genre groups:
+context bars, not the line. The verdict ceiling is the strangers
+baseline: the bottom-unused entities of the same live discovery
+ranking rivals come from (weakest overlap with the pitch, own
+domain first), measured with one extra taste fetch and scored
+identically. When strangers are missing or unmeasured, the ceiling
+falls back to the pitch-aware control rule (controls sharing more
+than a third of titles with the named audience are excluded; when
+every control is too close, the full set comes back so the ceiling
+never vanishes), and the step says which source set the line.
 
 ### 6.5 Tag pool (title-grounded)
 
@@ -139,13 +137,10 @@ kept tag must tie to a pitch phrase or a named title (AI picks,
 you confirm on one chip row with [pitch]/[title] source badges) —
 untied tags drop. An empty title-gift preview names its reason
 (no tastes for these titles, all gifts generic, or the read
-failed) instead of one vague line. The result always shows coverage,
-but coverage is a display fact, not a gate: scoring runs on the
-pooled set, so sufficiency is the pooled count. A cheap empty-check
-stops title-less, word-less runs for ~0 calls; the real gate runs
-once on the combined pool — fewer than 3 pooled tags stops the run
-as Inconclusive before scoring. A pitch whose words match Qloo poorly
-is still judged when its titles carry the pool (2026-10-19).
+failed) instead of one vague line. The result always shows coverage. A cheap
+empty-check stops title-less, word-less runs for ~0 calls; the
+real gate runs once on the combined pool — fewer than 3 pooled
+tags stops the run as Inconclusive before scoring.
 
 ### 6.6 Scoring
 
@@ -153,17 +148,12 @@ Qloo describes each audience as a taste list ranked by strength. The
 app keeps the order and discards the raw strengths (ranks only,
 never counts): rank r of N scores (N − r + 1) / N. Each audience's
 fit is the weighted mean across one shared tag list, 0 to 1. There
-is no pinning on the flow path: every exact tag weighs 1.
-
-The circular fix: the pool comes from the titles the user named, so a
-named-audience win is circular until it survives without those gifts.
-Hold-out rounds rescore every audience — named, rivals, controls,
-strangers — on the same reduced set, one round per gifting title, and
-the deltas render beside the named row. The self-fit gate (§6.7) goes
-one step further for the verdict itself: the whole field is rescored
-on the pitch-grounded tags alone (pool tags the description supplied
-by id, plus bridges), and only a lead that survives that rescore can
-be Strong.
+is no pinning on the flow path: every exact tag weighs 1. The
+circular fix is hold-out rounds: a full-set round plus one round
+per gifting title, each round rescoring every audience — named,
+rivals, controls, strangers — on the same reduced set. The verdict
+uses full-set scores; hold-out deltas render beside the named row
+(self-fit exposes itself as near-zero, real fit survives).
 
 A tag missing from a long enough list (10+ tastes) is a ZERO — the
 audience does not over-index on it. A tag missing from a short or
@@ -182,47 +172,38 @@ continues on exact matches; AI failure falls back silently;
 every bridge renders as `word→Tag (AI: bucket)`. A bridge target must
 not already be in the scored pool (that would count the same signal
 twice), and a weighted bridge held by no contender is dropped: it
-could only grow every denominator and no numerator (2026-10-19). The
-weights are fixed in code: the AI points, our code scores. Same words
-always give same scores.
+could only grow every denominator and no numerator. The weights are
+fixed in code: the AI points, our code scores. Same words always
+give same scores.
 
 ### 6.7 Control test and verdict
 
-An audience "clears control" when it beats EVERY judgeable comparison
-audience in the measured field (§6.4): the eligible other-genre
-controls plus the strangers baseline when measured. There is no fixed
-gap: fit scores are a weighted mean over K pooled tags, so the same
-relationship reads 0.180 at K=12 and 0.036 at K=60 — a set-point
-margin flipped Strong/Weak on pool size alone, so it is gone
-(2026-10-19). The field must be real before it can gate anything:
-at least 8 judgeable controls (placeholder zeros never count), and
-the strongest comparison must hold at least 2% of the pooled tags
-(never fewer than one). A tie with a comparison is not a win.
+An audience "clears control" when it beats the strangers baseline
+(or the fallback other-genre ceiling when strangers are unmeasured)
+by the control margin (0.05, Margins v1 2026-10-09; observed noise
+≤ 0.03, signal ≈ 0.10). Only judgeable lines set the ceiling:
+placeholder zeros never act as a floor.
 
 | Verdict | Meaning |
 |---|---|
-| Strong fit | The top audience clears the field AND is clearly ahead of the measured runner-up (lead ≥ 5% of its own score) AND the self-fit check confirms the lead |
-| Mixed fit | The top clears the field, but either the runner-up is within that 5% (a photo-finish) or the lead stops holding once the tags from the named titles are removed (self-fit "leans") |
-| Weak fit | A measured comparison audience beats the top |
-| Inconclusive | The pooled set is too thin, too many audiences had no data, the field itself was unmeasured, or the lead could not be checked without its own title gifts |
+| Strong fit | The top audience clears control and is clearly ahead of the second |
+| Mixed fit | The top two audiences both clear control and are close together |
+| Weak fit | No audience clears control |
+| Inconclusive | Coverage or no-data guards fired, or the baseline itself was unmeasured |
 
-Guards, all Inconclusive, never Weak: fewer than 3 pooled tags (the
-pitch-word coverage rate is reported, never a gate); more than half
-the scores unjudgeable; an unjudgeable top; no contenders; fewer than
-8 judgeable controls; a strongest comparison holding too little of
-the pool (or exactly nothing); the self-fit check leaving too few
-pitch-grounded tags to judge; no titles; out-of-scope pitch.
+Guards, all Inconclusive, never Weak: coverage below 0.34;
+more than half the scores unjudgeable; an unjudgeable top; no
+contenders; too few pooled tags; no titles; out-of-scope pitch;
+a judgeable ceiling of exactly 0.00 (won against nothing — a real
+Strong needs a real baseline); controls exist but none judgeable.
 
 The story leads with rivals and reads the named audience as the
 benchmark: "your comparables agree" when the named row holds,
 "a rival matches them too" when a rival matches the comparables.
-If the top audience is not the named one and beats it by 10% of the
-top's own score, the headline becomes "Your best fit is not the
-audience you named." Results within 0.06 of the line read as a close
-call (display only — the verdict never changes there). The result
-states how many measured comparison audiences the winner beat
-("beats 19 of 20 other-genre audiences") and, when the self-fit check
-ran, whether the lead survived its own titles.
+If the top audience is not the named one and beats it by the
+surprise margin (0.10), the headline becomes "Your best fit is not the audience you named."
+Results within 0.06 of the control line read as a close call
+(display only — the verdict never changes there).
 
 ### 6.8 Reach plan
 
@@ -325,7 +306,7 @@ The demo domain is film first, music second (day-one coverage test). Book and ga
 |---|---|---|
 | 1 | Grounding | Across 20 runs, every title and tag in the final output came from that run's Qloo results; every bridge target was an already-fetched taste id |
 | 2 | Nonsense pitch | Three deliberately meaningless pitches return Weak or Inconclusive |
-| 3 | Circularity gate | The named winner is rescored on the pitch-grounded tags alone (shared reduced set: every audience on the same list). If its full-set win collapses without its own title gifts, the verdict is Mixed "leans" or Inconclusive "self-fit" — never Strong |
+| 3 | Circularity gate | Hold-out rounds rescore everyone on the same reduced set; the named row's self-fit delta renders beside it. If the named audience wins only on its own gifts (full-set win, hold-out collapse), stop and review before building more |
 | 4 | No data | A pitch with unmatched words shows "no data" and never a low score standing in for it |
 | 6 | Speed | A full run finishes in about 90 seconds |
 | 7 | Repeatability | Same words re-run give the same verdict |
@@ -354,10 +335,10 @@ Test 3 is a decision gate, not a pass or fail on shipping. A tool that always ag
 ## 12. Ship status
 
 Shipped (flow path): idea entry with detected type, tag chips with
-live match status and the pooled-tag gate, named audience plus
-Qloo-discovered rivals, cached controls scored as a comparison field,
-rank scoring with AI bridges, rank-based verdict with field and
-self-fit guards, reach card with grounded AI prose, chatbot comparison with Qloo marks,
+live match status and the matched-tag gate, named audience plus
+Qloo-discovered rivals, cached controls with pitch-aware ceiling,
+rank scoring with AI bridges, verdict with guards, reach card with
+grounded AI prose, chatbot comparison with Qloo marks,
 evidence drawer, static sample page.
 
 Cut: city map, printable audience case, second-domain support
@@ -386,9 +367,7 @@ What sets Whitespace apart is the rival audiences, the control test, honest "no 
 1. Re-running the 6-pitch table to confirm bridges discriminate (widens gaps) rather than inflate.
 2. Whether the city map ever ships (currently cut, fails closed).
 3. Whether exclusion, expansion, concept or pinning earn their way back onto the flow path.
-4. Final re-calibration of the share bars (tie 5%, surprise 10%, rise
-   10%, ceiling support 2%) against live runs, plus the bridge
-   discrimination re-check on the 6-pitch table.
+4. Final re-calibration of verdict margins once bridges are in the live mix.
 5. Whether any other sponsor technology or extra judging criteria on the Devpost page carry points. Check the page again before building.
 6. Repository license.
 7. The deadline's time zone.
@@ -416,12 +395,11 @@ If no audience clears control, the verdict is Weak fit and the app recommends ch
 
 Named audience: the audience built from the user's own confirmed "similar to" titles. Absent when no titles are given.
 Rival audience: an audience built from Qloo-discovered entities related to the pitch, not from model prose.
-Control audience: an audience built from fixed other-genre seeds. The judgeable, title-eligible controls plus the strangers baseline form the comparison field the verdict must beat (§6.4).
-Strangers baseline: one far crowd per pitch, taken from the bottom-unused entities of the live discovery ranking and scored identically; joins the comparison field when judgeable.
-Self-fit: the winning audience rescored with the tags from the named titles removed. A lead that survives is confirmed; one that collapses is "leans"; one too thin to judge is "unverified" (§6.7).
+Control audience: an audience built from fixed other-genre seeds, shown as context bars. The best eligible, judgeable control sets the ceiling only when strangers are unmeasured.
+Strangers baseline: one far crowd per pitch, taken from the bottom-unused entities of the live discovery ranking and scored identically; sets the verdict line when judgeable.
 Pitch tags: real Qloo tags that match words from the pitch.
 Coverage: the share of suggested words that matched a real Qloo tag.
-Bridge: an AI-pointed link from a leftover pitch word to an already-fetched taste id, with a fixed-weight bucket (strong 0.75, related 0.5, distant 0).
+Bridge: an AI-pointed link from a leftover pitch word to an already-fetched taste id, with a fixed-weight bucket (strong 0.75, related 0.5, distant 0). Never points at a tag already in the scored pool; a weighted bridge no contender holds is dropped.
 Margin: the fit-score difference between two audiences.
 Close call: a result within 0.06 of the control line; the verdict stands but the UI says a re-run may read differently.
 No data: Qloo did not return enough to judge. Not the same as "doesn't care".
