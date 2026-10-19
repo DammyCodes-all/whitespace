@@ -89,7 +89,9 @@ function toResolvedTitle(
 /**
  * §6.2: look up each title in Qloo. Found titles resolve; the rest are
  * dropped and listed as not-found. One miss never throws (§8): its trace
- * is kept in `calls` and the batch always resolves.
+ * is kept in `calls` and the batch always resolves. A provider rate
+ * limit or budget breach is not a miss — those error types propagate so
+ * a 429 never becomes a fake not-found.
  */
 export async function resolveTitles(
   queries: string[],
@@ -123,8 +125,10 @@ export async function resolveTitles(
         resolved.push(title);
       }
     } catch (err) {
-      // Per-item never throws on Qloo failures: record not-found, keep the
-      // trace for §6.12. Programming errors propagate so bugs stay visible.
+      // Per-item never throws on ordinary Qloo failures: record not-found,
+      // keep the trace for §6.12. A rate limit or budget breach is not a
+      // miss; it propagates so the route can report the real quota state.
+      // Programming errors propagate too, so bugs stay visible.
       if (err instanceof QlooError) {
         calls.push(err.trace);
         notFoundTitles.push(query);

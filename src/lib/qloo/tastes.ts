@@ -4,8 +4,9 @@
  * Builds on the Day 1 network boundary (`qlooFetch` in `./client.ts`).
  * No scoring, no verdict, no AI. S consumes the `tagIds` order in
  * `src/lib/scoring/fit.ts`; U links each step to its trace (§6.12).
- * Fixtures first: without a key `qlooFetch` returns a mock payload, so
- * this resolves to failed tastes and the pipeline reports no-data (§6.6).
+ * Fixtures first: without a key `qlooFetch` returns a placeholder
+ * payload marked `mock` (never data), so this resolves to an empty list
+ * and the pipeline reports no-data (§6.6).
  *
  * Endpoint (confirmed on the live spike per docs.qloo.com Taste
  * Analysis): `GET /v2/insights` with `filter.type=urn:tag` plus

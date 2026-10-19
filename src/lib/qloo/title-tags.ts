@@ -67,9 +67,11 @@ export interface BuildTitleTagPoolInput {
   pitchMatchedTags: readonly PitchMatchedTagInput[];
   controlTastes: readonly AudienceTastes[];
   /**
-   * Confirmed ids; empty keeps everything. The selection itself is
-   * applied by the caller (user confirm or LLM pass) — this only
-   * filters to it, in pool order.
+   * Confirmed title-gift ids; empty keeps everything. Pitch-sourced
+   * candidates are never narrowed here: the chip row confirmed those
+   * separately and the run passes them in its `tags` input. The
+   * selection itself is applied by the caller (user confirm or LLM
+   * pass) — this only filters to it, in pool order.
    */
   pickedIds: readonly string[];
 }
@@ -81,8 +83,10 @@ function cleanId(value: unknown): string | null {
 /**
  * Build the combined pool: title gifts first (top {@link TITLE_TAG_TOP_N}
  * per named title, deduped by tag id, first source wins), then pitch
- * tags not already present, minus the generic cut, minus anything
- * outside `pickedIds` when a selection was confirmed. Deterministic.
+ * tags not already present, minus the generic cut, minus title gifts
+ * outside `pickedIds` when a selection was confirmed. Pitch tags stay
+ * because their confirmation arrives in the run's `tags` input.
+ * Deterministic.
  */
 export function buildTitleTagPool(
   input: BuildTitleTagPoolInput,
@@ -143,7 +147,13 @@ export function buildTitleTagPool(
 
   if (input.pickedIds.length === 0) return kept;
   const picked = new Set(input.pickedIds);
-  return kept.filter((candidate) => picked.has(candidate.qlooTagId));
+  // A title-gift selection never speaks for the pitch chips: those
+  // arrived as the run's separately confirmed `tags`, so narrowing to
+  // picked gift ids must not silently discard a confirmed word.
+  return kept.filter(
+    (candidate) =>
+      candidate.source === "pitch" || picked.has(candidate.qlooTagId),
+  );
 }
 
 /**
