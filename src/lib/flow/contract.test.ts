@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Audience, PipelineResult, QlooCall } from "../types.ts";
-import { barRows, toFlowResult } from "./contract.ts";
+import { barRows, isMockRun, toFlowResult } from "./contract.ts";
 
 function call(id: string, fromCache = false): QlooCall {
   return {
@@ -101,8 +101,47 @@ describe("toFlowResult", () => {
     ]);
     assert.equal(out.tags[1]?.qlooId, undefined);
     assert.equal(out.ceiling, 0.6);
-    assert.deepEqual(out.qlooCalls, { network: 1, cached: 1, total: 2 });
+    assert.deepEqual(out.qlooCalls, {
+      network: 1,
+      cached: 1,
+      total: 2,
+      mock: 0,
+    });
     assert.equal(out.evidence.c1?.response, "{}");
+    assert.equal(out.evidence.c1?.mock, false);
+    assert.equal(out.grounding?.ok, true);
+  });
+
+  it("reports keyless placeholders as mock, never as live calls", () => {
+    const mockCall = (id: string): QlooCall => ({
+      ...call(id),
+      status: 0,
+      fromCache: false,
+      mock: true,
+      responseBody: '{"mock":true,"results":[]}',
+    });
+    const out = toFlowResult({
+      ...base(),
+      calls: [mockCall("m1"), mockCall("m2")],
+    });
+    assert.deepEqual(out.qlooCalls, {
+      network: 0,
+      cached: 0,
+      total: 2,
+      mock: 2,
+    });
+    assert.equal(isMockRun(out), true);
+    assert.equal(out.evidence.m1?.mock, true);
+  });
+
+  it("carries the grounding failure through, never a literal ok", () => {
+    const grounding = {
+      ok: false,
+      ungroundedTitles: ["urn:fake"],
+      ungroundedTags: [],
+    };
+    const out = toFlowResult({ ...base(), grounding });
+    assert.deepEqual(out.grounding, grounding);
   });
 
   it("carries title provenance onto matched tags, pitch by default", () => {

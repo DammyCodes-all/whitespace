@@ -37,6 +37,7 @@ import { countUnlabeled, findGaps, labelsForTastes } from "../scoring/gaps.ts";
 import type {
   Audience,
   FitScore,
+  GroundingResult,
   PipelineResult,
   QlooCall,
   WorkType,
@@ -141,12 +142,16 @@ export interface FlowEvidence {
   truncated: boolean;
   status: number;
   fromCache: boolean;
+  /** True when no request ran (no Qloo key): a placeholder, never data. */
+  mock?: boolean;
 }
 
 export interface FlowQlooUsage {
   network: number;
   cached: number;
   total: number;
+  /** Placeholder traces (no key): counted in `total`, never `network`. */
+  mock?: number;
 }
 
 export interface FlowResult {
@@ -166,6 +171,12 @@ export interface FlowResult {
   gaps: FlowGapGroup[];
   evidence: Record<string, FlowEvidence>;
   qlooCalls: FlowQlooUsage;
+  /**
+   * §8 grounding result for this run. Absent on older saved runs, which
+   * predate the runtime check. `ok: false` means ids were found outside
+   * Qloo's results and stripped before display.
+   */
+  grounding?: GroundingResult;
 }
 
 /** Reach data fetched outside the pipeline, keyed by audience id. */
@@ -205,6 +216,7 @@ function evidenceOf(call: QlooCall): FlowEvidence {
     truncated: call.responseTruncated ?? call.responseBody === undefined,
     status: call.status,
     fromCache: call.fromCache,
+    mock: call.mock === true,
   };
 }
 
@@ -443,8 +455,13 @@ export function toFlowResult(
     });
   }
 
-  const network = pipeline.calls.filter((c) => !c.fromCache).length;
-  const cached = pipeline.calls.length - network;
+  const mock = pipeline.calls.filter((c) => c.mock === true).length;
+  const network = pipeline.calls.filter(
+    (c) => c.mock !== true && !c.fromCache,
+  ).length;
+  const cached = pipeline.calls.filter(
+    (c) => c.mock !== true && c.fromCache,
+  ).length;
 
   return {
     pitch: pipeline.input.pitchText,
@@ -457,6 +474,17 @@ export function toFlowResult(
     reach,
     gaps,
     evidence,
-    qlooCalls: { network, cached, total: pipeline.calls.length },
+    qlooCalls: { network, cached, total: pipeline.calls.length, mock },
+    grounding: pipeline.grounding,
   };
+}
+
+/**
+ * True when every recorded trace is a keyless placeholder. The result
+ * page must not call such a run "live": no request ran and no Qloo data
+ * backs it. Older saved runs carry no mock count, so they read false.
+ */
+export function isMockRun(result: FlowResult): boolean {
+  const mock = result.qlooCalls.mock ?? 0;
+  return mock > 0 && mock === result.qlooCalls.total;
 }
