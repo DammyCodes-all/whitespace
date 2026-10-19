@@ -219,8 +219,8 @@ function ReachBlock({ result }: { result: FlowResult }) {
           Where to find them
         </h3>
         <p className="mt-2 text-body text-ink-2">
-          No audience scored above the other-genre comparison, so there is no
-          list of where to find them. The app says so instead of inventing one.
+          No audience scored above the other-genre comparison, so there is
+          nowhere to point you. The app says so instead of inventing one.
         </p>
       </section>
     );
@@ -242,7 +242,7 @@ function ReachBlock({ result }: { result: FlowResult }) {
     <section aria-label="Where to find them" className="mt-8">
       <h3 className="text-base tracking-tight text-ink">Where to find them</h3>
       <p className="mt-1 max-w-prose text-sm text-ink-3">
-        Not a list. The places their taste already points to.
+        Not a list. What their taste already points to.
       </p>
       {reach.map((group) => {
         const gapGroup =

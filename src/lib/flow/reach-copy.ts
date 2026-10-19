@@ -62,8 +62,11 @@ export function joinNames(names: string[]): string {
 /** Cut a Qloo blurb at a natural boundary without losing its meaning. */
 function shorten(text: string): string {
   const clean = text.replace(/\s+/g, " ").trim();
-  if (clean.length <= DESCRIPTION_MAX) return clean;
-  const head = clean.slice(0, DESCRIPTION_MAX);
+  // Prefer the first sentence when it can stand alone in an appositive;
+  // multi-sentence blurbs would otherwise splice two sentences into one.
+  const base = clean.match(/^(.{20,}?[.!?])(?:\s|$)/)?.[1] ?? clean;
+  if (base.length <= DESCRIPTION_MAX) return base;
+  const head = base.slice(0, DESCRIPTION_MAX);
   const comma = head.lastIndexOf(", ");
   const boundary =
     comma >= 48

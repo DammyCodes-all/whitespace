@@ -509,7 +509,7 @@ export function ReachSection() {
     <Section
       id="reach"
       title="Reach plan"
-      lede="Four category shelves per audience plus the loves-but-lacks gap list. Empty categories get the no-data state, never a zero, and gaps say out loud that they are research leads."
+      lede="The production result now renders one conversational card per audience inside FlowResultView. This specimen keeps the earlier three-step component for reference: empty categories get the no-data state, never a zero, and gaps say out loud that they are research leads."
     >
       <Specimen label="ReachPlan" hint="/components/reach.tsx">
         <ReachPlan

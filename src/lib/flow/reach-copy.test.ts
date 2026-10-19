@@ -117,6 +117,24 @@ describe("buildReachSections", () => {
     );
   });
 
+  it("keeps only the first sentence of a multi-sentence description", () => {
+    const sections = buildReachSections(
+      group({
+        brands: [
+          item(
+            "Field Notes",
+            1,
+            "A pocket notebook and stationery brand. It is based in Portland.",
+          ),
+        ],
+      }),
+    );
+    assert.equal(
+      sections.brands,
+      "Field Notes, a pocket notebook and stationery brand, is the only brand that surfaced.",
+    );
+  });
+
   it("drops a description it cannot turn into a clean appositive", () => {
     const sections = buildReachSections(
       group({
