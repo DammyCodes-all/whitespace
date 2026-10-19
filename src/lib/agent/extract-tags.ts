@@ -17,7 +17,7 @@
  */
 
 import type { WorkType } from "@/lib/types";
-import { TAG_WORDS } from "../config.ts";
+import { MIN_MATCHED_TAGS, TAG_WORDS } from "../config.ts";
 import {
   type ChatMessage,
   callChatCompletions,
@@ -44,6 +44,25 @@ export interface TagProposal {
 
 const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
 
+/**
+ * Slot count the prompt demands. Fixed (not a range) so the scoring
+ * denominator is comparable run to run: "5 to 8" swung it by 60% and
+ * that variance is what moved verdicts in the 2026-10-12 repeatability
+ * probe (`docs/qloo-coverage.md`).
+ */
+const WANTED_TAG_COUNT = TAG_WORDS.max - 1;
+
+/**
+ * Floor for accepting a reply. The flow's real gate is
+ * `MIN_MATCHED_TAGS` matched tags, so a short-but-valid proposal should
+ * reach the chips and let that gate decide, not fail as a 502. Spec
+ * §6.1 asks the call for its words; §6.5 gates matching.
+ */
+const MIN_USABLE_TAGS = Math.min(TAG_WORDS.min, MIN_MATCHED_TAGS);
+
+/** Deterministic extraction: same pitch, same words (cf. `PICK_TEMPERATURE`). */
+export const EXTRACT_TEMPERATURE = 0;
+
 /** Validated + capped; exported for unit tests (pure, no I/O). */
 export function toTagProposal(data: unknown): TagProposal {
   if (typeof data !== "object" || data === null) {
@@ -66,9 +85,9 @@ export function toTagProposal(data: unknown): TagProposal {
     words.push(trimmed);
     if (words.length >= TAG_WORDS.max) break;
   }
-  if (words.length < TAG_WORDS.min) {
+  if (words.length < MIN_USABLE_TAGS) {
     throw new LlmError(
-      `LLM returned fewer than ${TAG_WORDS.min} usable tags.`,
+      `LLM returned fewer than ${MIN_USABLE_TAGS} usable tags.`,
       "parse",
       true,
     );
@@ -86,15 +105,18 @@ export function toTagProposal(data: unknown): TagProposal {
   };
 }
 
-function systemPrompt(): string {
+/** Prompt builder; exported for unit tests (pure, no I/O). */
+export function systemPrompt(): string {
   return [
-    "You read a creator's pitch and pull out its descriptive words and its type.",
+    "You read a creator's pitch and name what it is about, in words Qloo's tag dictionary already uses.",
     "Reply with JSON ONLY, no markdown, no prose, matching this shape exactly:",
     '{"tags":["word1","word2","more words"],"workType":"film"}',
-    `Rules: tags between ${TAG_WORDS.min} and ${TAG_WORDS.max} words, lowercase, single concepts.`,
-    "Words describe what the pitch is about — they do NOT need to appear verbatim: 'heist' is a fine word for a casino-robbery pitch that never says heist. Taste data speaks in plain lowercase concepts — single nouns and short phrases like: criminal, betrayal, detective, amnesia, conspiracy, small town, based on true story, anti hero. Favor words shaped like these (concrete things, occupations, settings, situations) over generic genre labels (thriller, drama); use mood adjectives sparingly, at most one.",
-    'workType is exactly one of "film", "music", "book", "game" — whichever the pitch itself describes.',
-    "Never invent a word the pitch is not about. No titles, no ids, no numbers. No claims about audiences.",
+    `Return exactly ${WANTED_TAG_COUNT} tags. They describe what the pitch is about — they do NOT need to appear in it: 'heist' is right for a casino-robbery pitch that never says heist.`,
+    "Form matters: singular nouns or short noun phrases, lowercase, no plurals, no verbs, no -ing words unless that is the name of the thing. Use the plainest everyday name for a thing, never a literary paraphrase — 'small town' not 'close-knit rural backwater', 'detective' not 'investigator of secrets'.",
+    "Budget the slots: two specific genre or subgenre keywords (cyberpunk, folk horror, neo-noir — never broad buckets like thriller or drama), two settings, places or occupations, two themes or situations (betrayal, grief, redemption, undercover, based on true story), and at most one mood word.",
+    "Skip anything you would expect to be absent from a tag dictionary: invented proper nouns, coined compounds, poetic phrasing. If a concept has a plainer everyday name, use that name instead.",
+    'workType is exactly one of "film", "music", "book", "game" — whichever the pitch itself describes. A series, short or TV film is "film".',
+    "Never name something the pitch is not about. No titles, no ids, no numbers. No claims about audiences.",
   ].join("\n");
 }
 
@@ -153,7 +175,10 @@ export async function extractPitchTags(
         attempt.model,
         messages,
         attempt.provider,
-        "options" in attempt ? attempt.options : {},
+        {
+          temperature: EXTRACT_TEMPERATURE,
+          ...("options" in attempt ? attempt.options : {}),
+        },
       );
       return toTagProposal(JSON.parse(extractJson(content)));
     } catch (err) {
