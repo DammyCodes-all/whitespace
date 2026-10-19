@@ -13,6 +13,7 @@ import { POST } from "./route.ts";
 
 const SAVED_KEY = process.env.QLOO_API_KEY;
 const SAVED_FETCH = globalThis.fetch;
+const SAVED_RETRIES = process.env.QLOO_MAX_RETRIES;
 
 /** Synthetic key plus a /search stub: only "Moon" resolves. */
 function stubSearch(t: TestContext): { calls: number } {
@@ -45,6 +46,26 @@ function post(body: unknown): Request {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+}
+
+/** Synthetic key plus a /search stub that always answers 429. */
+function stubRateLimit(t: TestContext): void {
+  process.env.QLOO_API_KEY = "synthetic-test-key";
+  process.env.QLOO_MAX_RETRIES = "0";
+  resetQuota();
+  globalThis.fetch = (async () =>
+    new Response("slow down", {
+      status: 429,
+      headers: { "Retry-After": "30" },
+    })) as typeof fetch;
+  t.after(() => {
+    if (SAVED_KEY === undefined) delete process.env.QLOO_API_KEY;
+    else process.env.QLOO_API_KEY = SAVED_KEY;
+    if (SAVED_RETRIES === undefined) delete process.env.QLOO_MAX_RETRIES;
+    else process.env.QLOO_MAX_RETRIES = SAVED_RETRIES;
+    globalThis.fetch = SAVED_FETCH;
+    resetQuota();
   });
 }
 
@@ -89,7 +110,28 @@ describe("POST /api/titles/check", () => {
       { query: "Moon", name: "Moon", qlooId: "moon-id" },
     ]);
     assert.deepEqual(data.notFound, ["No Such Title XYZ"]);
+    assert.equal((data as { quota?: string }).quota, "ok");
     assert.ok(!JSON.stringify(data).includes("synthetic-test-key"));
+  });
+
+  it("returns 429 with a quota state instead of a fake not-found", async (t) => {
+    stubRateLimit(t);
+    const res = await POST(post({ titles: ["Moon"], workType: "film" }));
+    assert.equal(res.status, 429);
+    assert.equal(res.headers.get("Retry-After"), "30");
+    const data = (await res.json()) as {
+      error?: string;
+      quota?: string;
+      retryAfterMs?: number;
+      resolved?: unknown;
+      notFound?: unknown;
+    };
+    assert.equal(data.quota, "rate-limited");
+    assert.equal(data.retryAfterMs, 30_000);
+    assert.ok(data.error);
+    // The title was never looked up; it must not be reported as missing.
+    assert.equal(data.notFound, undefined);
+    assert.equal(data.resolved, undefined);
   });
 
   it("caps search calls at MAX_TITLE_QUERIES", async (t) => {

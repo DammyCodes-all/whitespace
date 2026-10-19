@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { attachReachProse } from "@/lib/agent/reach-prose";
 import type { FlowTagInput } from "@/lib/flow/run-flow";
 import { runFlowPitch } from "@/lib/flow/run-flow";
+import { quotaFailure } from "@/lib/qloo/quota-state";
 import type { WorkType } from "@/lib/types";
 
 const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
@@ -61,18 +62,34 @@ export async function POST(request: Request) {
         )
       : [];
 
-  const out = await runFlowPitch({
-    pitchText,
-    workType: workType as WorkType,
-    nothingLike: [],
-    similarTitles: toStrings(root.similarTitles),
-    tags: toTags(root.tags),
-    pickedTagIds: toStrings(root.pickedTagIds),
-  });
-  const result = await attachReachProse(out.result);
-  return NextResponse.json({
-    result,
-    steps: out.steps,
-    stopped: out.stopped,
-  });
+  try {
+    const out = await runFlowPitch({
+      pitchText,
+      workType: workType as WorkType,
+      nothingLike: [],
+      similarTitles: toStrings(root.similarTitles),
+      tags: toTags(root.tags),
+      pickedTagIds: toStrings(root.pickedTagIds),
+    });
+    const result = await attachReachProse(out.result);
+    return NextResponse.json({
+      result,
+      steps: out.steps,
+      stopped: out.stopped,
+      quota: "ok",
+    });
+  } catch (err) {
+    const failure = quotaFailure(err);
+    if (failure !== null) {
+      console.warn(`[flow] ${failure.body.quota}`);
+      return NextResponse.json(failure.body, {
+        status: failure.status,
+        headers: failure.headers,
+      });
+    }
+    console.error(
+      `[flow] failed — ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return NextResponse.json({ error: "The run failed." }, { status: 500 });
+  }
 }

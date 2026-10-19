@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { answerChatbot } from "@/lib/agent/chatbot";
 import { LlmError } from "@/lib/agent/llm-client";
 import { markChatbotTitles } from "@/lib/qloo/mark";
+import { quotaFailure } from "@/lib/qloo/quota-state";
 import type { WorkType } from "@/lib/types";
 
 const WORK_TYPES: WorkType[] = ["film", "music", "book", "game"];
@@ -52,8 +53,19 @@ export async function POST(request: Request) {
         },
         error: null,
         calls: marks.calls,
+        quota: "ok",
       });
-    } catch {
+    } catch (err) {
+      // A rate limit or budget breach is not an unmarked answer: report
+      // the real quota state instead of a generic failure.
+      const failure = quotaFailure(err);
+      if (failure !== null) {
+        console.warn(`[compare] ${failure.body.quota}`);
+        return NextResponse.json(failure.body, {
+          status: failure.status,
+          headers: failure.headers,
+        });
+      }
       return NextResponse.json({
         chatbot: null,
         error: "Chatbot titles could not be checked in Qloo.",
