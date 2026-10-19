@@ -37,6 +37,7 @@ export {
   getQuotaUsage,
   MAX_CALLS_PER_RUN,
   QlooError,
+  QlooRateLimitError,
   resetQuota,
 } from "./client.ts";
 export {
@@ -56,10 +57,6 @@ export {
   MAX_TITLES_PER_CONTROL,
 } from "./controls.ts";
 export { INTEREST_TRIM, interestsFromTastes } from "./interests.ts";
-export {
-  discoverRivals,
-  WORK_TYPE_TO_ENTITY_TYPE,
-} from "./rival-discovery.ts";
 export {
   fetchLocation,
   guardLocationData,
@@ -82,6 +79,10 @@ export {
   resolveTitles,
   WORK_TYPE_TO_SEARCH_TYPES,
 } from "./resolve-titles.ts";
+export {
+  discoverRivals,
+  WORK_TYPE_TO_ENTITY_TYPE,
+} from "./rival-discovery.ts";
 export {
   buildRivals,
   MAX_TITLES_PER_RIVAL,

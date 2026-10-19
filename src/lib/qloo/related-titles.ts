@@ -10,16 +10,18 @@
  * user already has.
  *
  * Response order is the rank (§11); nothing is sorted numerically.
- * Convenience only, never a gate: any Qloo failure yields
+ * Convenience only, never a gate: an ordinary Qloo failure yields
  * `{ names: [] }` and records nothing — this route stays trace-free.
- * Server-only: keys stay server-side.
+ * Rate limits and budget breaches propagate so the route can report a
+ * real quota state instead of "no suggestions". Server-only: keys stay
+ * server-side.
  *
  * Spec ref: §6.1 (similar-to titles), §7 (Qloo supplies facts),
  * §11 (ranks only, caps guard quota).
  */
 
 import type { WorkType } from "../types.ts";
-import { qlooFetch } from "./client.ts";
+import { QlooError, qlooFetch } from "./client.ts";
 import { WORK_TYPE_TO_ENTITY_TYPE } from "./rival-discovery.ts";
 
 /** Suggestions shown: enough to choose from, few enough to read (§11). */
@@ -96,7 +98,10 @@ export async function suggestFromEntities(
       take: RELATED_TAKE,
     });
     return { names: extractNames(data, exclude) };
-  } catch {
-    return { names: [] };
+  } catch (err) {
+    // Ordinary Qloo misses are convenience-empty. Rate limits and budget
+    // breaches are not misses; let the route return a quota state.
+    if (err instanceof QlooError) return { names: [] };
+    throw err;
   }
 }

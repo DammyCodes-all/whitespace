@@ -66,8 +66,14 @@ export interface LoadControlsResult {
 
 /**
  * Control audiences plus their tag sets, from cache when fresh.
- * Never throws on Qloo failure: misses degrade to dropped/failed
- * entries exactly like the uncached path (§8).
+ * Never throws on ordinary Qloo failure: misses degrade to
+ * dropped/failed entries exactly like the uncached path (§8). Rate
+ * limits and budget breaches are not misses and propagate.
+ *
+ * An empty or wholly unmeasured set is never cached: a failed seed
+ * batch is not a finding about the domain, and pinning it for 30
+ * minutes would keep every later run Inconclusive long after Qloo
+ * recovered.
  */
 export async function loadControlTastes(
   workType: WorkType,
@@ -101,20 +107,25 @@ export async function loadControlTastes(
     built.controls,
     workType,
   );
-  cache.set(key, {
-    fetchedAt: now,
+  // Cache only a real measurement: at least one control resolved and at
+  // least one taste list came back (failed lists are placeholders, not
+  // data). Zero controls stays uncached so the next run retries.
+  const measured =
+    built.controls.length > 0 && all.some((t) => t.failed !== true);
+  if (measured) {
+    cache.set(key, {
+      fetchedAt: now,
+      controls: structuredClone(built.controls),
+      droppedControls: [...built.droppedControls],
+      tastes: structuredClone(all),
+      calls: [...built.calls, ...tasteCalls],
+    });
+  }
+  return {
     controls: structuredClone(built.controls),
     droppedControls: [...built.droppedControls],
     tastes: structuredClone(all),
-    calls: [...built.calls, ...tasteCalls],
-  });
-  const stored = cache.get(key);
-  if (stored === undefined) throw new Error("Control cache write failed.");
-  return {
-    controls: structuredClone(stored.controls),
-    droppedControls: [...stored.droppedControls],
-    tastes: structuredClone(stored.tastes),
-    calls: stored.calls.map((call) => ({ ...call })),
+    calls: [...built.calls, ...tasteCalls].map((call) => ({ ...call })),
     fromCache: false,
   };
 }
