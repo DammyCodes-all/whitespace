@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { fetchConceptTastes } from "./concept.ts";
 
-// No key in this env: force the mock path so the suite never dials Qloo.
+// No key in this env: keyless placeholder traces, so the suite never
+// dials Qloo.
 delete process.env.QLOO_API_KEY;
 
 describe("fetchConceptTastes", () => {
@@ -14,12 +15,13 @@ describe("fetchConceptTastes", () => {
     assert.equal(call, null);
   });
 
-  it("mock path returns a traced call without throwing", async () => {
+  it("keyless path returns a traced placeholder, never data", async () => {
     const { tastes, call } = await fetchConceptTastes([
       "urn:tag:genre:media:science_fiction",
     ]);
     assert.equal(tastes.audienceId, "concept");
-    assert.ok(Array.isArray(tastes.tagIds));
+    assert.deepEqual(tastes.tagIds, []);
     assert.ok(call !== null);
+    assert.equal(call.mock, true);
   });
 });

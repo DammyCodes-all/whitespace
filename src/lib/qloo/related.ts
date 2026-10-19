@@ -6,7 +6,7 @@
  * `signal.interests.entities` set to the audience's title ids and
  * `filter.type` set per category. The user's own titles are excluded
  * server-side (`filter.exclude.entities`) and filtered client-side
- * (mock mode honors only the latter).
+ * (keyless placeholder responses are empty, so no filter runs).
  *
  * Never throws on Qloo failure: a failed category resolves to an empty
  * list with its trace, which downstream renders as no-data (§10 #4).

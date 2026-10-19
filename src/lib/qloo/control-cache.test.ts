@@ -83,4 +83,84 @@ describe("loadControlTastes", () => {
     assert.equal(film.fromCache, false);
     assert.equal(music.fromCache, false);
   });
+
+  it("never caches an empty control set, so the next call retries", async () => {
+    // First pass: Qloo resolves nothing (an outage, not a finding).
+    let resolved = false;
+    process.env.QLOO_API_KEY = "test-key";
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("/search")) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            results: resolved
+              ? [{ entity_id: "seed-1", name: "Seed Title" }]
+              : [],
+          }),
+          { status: 200 },
+        );
+      }
+      const tags = [{ tag_id: "urn:tag:t1", name: "Tag 1" }];
+      return new Response(
+        JSON.stringify({ success: true, results: { tags } }),
+        {
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    const empty = await loadControlTastes("film", 2, 1_000);
+    assert.equal(empty.fromCache, false);
+    assert.equal(empty.controls.length, 0);
+
+    // A new run starts with a fresh request cache (`resetQuota`); only
+    // the control cache could have carried the empty set across.
+    resetQuota();
+    resolved = true;
+    const recovered = await loadControlTastes("film", 2, 1_001);
+    assert.equal(recovered.fromCache, false);
+    assert.ok(recovered.controls.length > 0);
+
+    // Only the recovered measurement is cached.
+    const hit = await loadControlTastes("film", 2, 1_002);
+    assert.equal(hit.fromCache, true);
+    assert.ok(hit.controls.length > 0);
+  });
+
+  it("never caches a wholly unmeasured taste set", async () => {
+    process.env.QLOO_API_KEY = "test-key";
+    let insightsFail = true;
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("/search")) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            results: [{ entity_id: "seed-1", name: "Seed Title" }],
+          }),
+          { status: 200 },
+        );
+      }
+      if (insightsFail) {
+        return new Response("boom", { status: 400 });
+      }
+      const tags = [{ tag_id: "urn:tag:t1", name: "Tag 1" }];
+      return new Response(
+        JSON.stringify({ success: true, results: { tags } }),
+        {
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    const failed = await loadControlTastes("film", 2, 0);
+    assert.equal(failed.fromCache, false);
+    assert.ok(failed.tastes.every((t) => t.failed === true));
+
+    insightsFail = false;
+    const recovered = await loadControlTastes("film", 2, 1);
+    assert.equal(recovered.fromCache, false);
+    assert.ok(recovered.tastes.some((t) => t.failed !== true));
+  });
 });
