@@ -47,6 +47,13 @@ export interface QlooCall {
   responseBody?: string;
   /** True when `responseBody` is a prefix of the real body, not the whole. */
   responseTruncated?: boolean;
+  /**
+   * True when no request ran because `QLOO_API_KEY` is unset. The trace
+   * is a placeholder, never data, and `fromCache` stays false so a mock
+   * can never read as a cache hit. Additive optional field — types
+   * unfreeze noted in docs/build-tracker.md (grounding pass).
+   */
+  mock?: boolean;
 }
 
 /** §6.2: a title Qloo resolved. Queries it could not find live in `notFoundTitles`. */

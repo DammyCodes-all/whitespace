@@ -43,7 +43,10 @@ export function LegTags({
   onRestoreGift,
 }: LegTagsProps) {
   return (
-    <section aria-label="Tags under review" className="leg-in mx-auto mt-4 max-w-3xl">
+    <section
+      aria-label="Tags under review"
+      className="leg-in mx-auto mt-4 max-w-3xl"
+    >
       <TagChips
         tags={tags}
         onChange={onTagsChange}
@@ -72,6 +75,10 @@ export function LegTags({
               "Qloo has no taste data for these titles. Only your pitch words will score."}
             {previewNote === "all-generic" &&
               "These titles' top tastes were all generic (half the controls hold them too). Only your sharper pitch words will score."}
+            {previewNote === "rate-limited" &&
+              "Qloo is rate-limiting requests right now. Only your pitch words will score. Try again in a moment."}
+            {previewNote === "exhausted" &&
+              "This preview used its Qloo call budget. Only your pitch words will score. Try again or use the sample."}
             {previewNote === "preview-failed" &&
               "Couldn't read the titles' tastes. Only pitch words will score. Check again to retry."}
             {(previewNote === null ||

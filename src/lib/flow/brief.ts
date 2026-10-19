@@ -63,7 +63,11 @@ export function buildTargetingBrief(result: FlowResult): string {
           "Close call: near the other-genre line — a re-run may read differently.",
         ]
       : []),
-    `Qloo data calls: ${result.qlooCalls.network} live, ${result.qlooCalls.cached} from cache`,
+    `Qloo data calls: ${result.qlooCalls.network} live, ${result.qlooCalls.cached} from cache${
+      (result.qlooCalls.mock ?? 0) > 0
+        ? `, ${result.qlooCalls.mock} mock (no key)`
+        : ""
+    }`,
     "",
     "## Where to find them",
     ...(result.reach === null

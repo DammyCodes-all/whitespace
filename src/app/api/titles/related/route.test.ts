@@ -12,6 +12,7 @@ import { POST } from "./route.ts";
 
 const SAVED_KEY = process.env.QLOO_API_KEY;
 const SAVED_FETCH = globalThis.fetch;
+const SAVED_RETRIES = process.env.QLOO_MAX_RETRIES;
 
 /** Synthetic key plus a /v2/insights stub returning canned entities. */
 function stubInsights(t: TestContext, entities: unknown[]): void {
@@ -53,6 +54,26 @@ function post(body: unknown): Request {
   });
 }
 
+/** Synthetic key plus a /v2/insights stub that always answers 429. */
+function stubRateLimit(t: TestContext): void {
+  process.env.QLOO_API_KEY = "synthetic-test-key";
+  process.env.QLOO_MAX_RETRIES = "0";
+  resetQuota();
+  globalThis.fetch = (async () =>
+    new Response("slow down", {
+      status: 429,
+      headers: { "Retry-After": "30" },
+    })) as typeof fetch;
+  t.after(() => {
+    if (SAVED_KEY === undefined) delete process.env.QLOO_API_KEY;
+    else process.env.QLOO_API_KEY = SAVED_KEY;
+    if (SAVED_RETRIES === undefined) delete process.env.QLOO_MAX_RETRIES;
+    else process.env.QLOO_MAX_RETRIES = SAVED_RETRIES;
+    globalThis.fetch = SAVED_FETCH;
+    resetQuota();
+  });
+}
+
 describe("POST /api/titles/related", () => {
   it("400s on an invalid workType", async (t) => {
     stubInsights(t, []);
@@ -88,8 +109,29 @@ describe("POST /api/titles/related", () => {
       }),
     );
     assert.equal(res.status, 200);
-    const data = (await res.json()) as { suggestions?: string[] };
+    const data = (await res.json()) as {
+      suggestions?: string[];
+      quota?: string;
+    };
     assert.deepEqual(data.suggestions, ["Tokyo Ghoul", "The Fly"]);
+    assert.equal(data.quota, "ok");
+  });
+
+  it("returns 429 with a quota state instead of no suggestions", async (t) => {
+    stubRateLimit(t);
+    const res = await POST(post({ entityIds: ["id1"], workType: "film" }));
+    assert.equal(res.status, 429);
+    assert.equal(res.headers.get("Retry-After"), "30");
+    const data = (await res.json()) as {
+      error?: string;
+      quota?: string;
+      retryAfterMs?: number;
+      suggestions?: unknown;
+    };
+    assert.equal(data.quota, "rate-limited");
+    assert.equal(data.retryAfterMs, 30_000);
+    assert.ok(data.error);
+    assert.equal(data.suggestions, undefined);
   });
 
   it("returns 200 with an empty list on Qloo failure", async (t) => {
