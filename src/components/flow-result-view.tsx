@@ -13,6 +13,11 @@ import type { FlowBarRow, FlowResult, ReachSlot } from "@/lib/flow/contract";
 import { barRows, isCloseCall } from "@/lib/flow/contract";
 import { resolveReachSections } from "@/lib/flow/reach-copy";
 import { segmentReachProse } from "@/lib/flow/reach-highlight";
+import {
+  FIT_INDEX_NOTE,
+  fitIndex,
+  fitIndexLabel,
+} from "@/lib/scoring/fit-index";
 
 /**
  * What a slot's items are called, singular and plural — the count on
@@ -41,16 +46,16 @@ const VERDICT_FILLS: Record<FlowResult["verdict"], string> = {
  * Show the numbers, never the gap.
  */
 function scoreLine(result: FlowResult, top: FlowBarRow): string {
-  const percent = Math.round(top.score * 100);
+  const index = fitIndex(top.score);
   if (result.surprise)
-    return `${top.name} matches your idea ${percent}% — and matches the titles you named too.`;
+    return `${top.name} has a fit index of ${index} — and fits the titles you named too.`;
   if (result.verdict === "weak") {
-    return `The closest, ${top.name}, matches your idea ${percent}%.`;
+    return `The closest, ${top.name}, has a fit index of ${index}.`;
   }
   if (top.role === "named") {
-    return `The fans of the titles you named match your idea ${percent}%.`;
+    return `The fans of the titles you named have a fit index of ${index}.`;
   }
-  return `What they like matches your idea ${percent}%.`;
+  return `What they like has a fit index of ${index}.`;
 }
 
 function barFill(index: number): string {
@@ -113,6 +118,9 @@ function VerdictHeadline({
           {scoreLine(result, top)}
         </p>
       )}
+      <p className="mt-1 max-w-prose text-sm leading-relaxed text-ink-2">
+        {FIT_INDEX_NOTE}
+      </p>
       {isCloseCall(result) && (
         <p className="mt-2 max-w-prose text-body text-ink">
           Close call — this one sits only just above the comparison line. A
@@ -122,7 +130,7 @@ function VerdictHeadline({
       <p className="mt-2 max-w-prose text-body text-ink">
         {result.ceiling === null
           ? "No comparison audience could be measured, so there is nothing to compare this against."
-          : `The comparison line sits at ${Math.round(result.ceiling * 100)}%.`}
+          : `The comparison line sits at fit index ${fitIndex(result.ceiling)}.`}
       </p>
     </div>
   );
@@ -151,7 +159,7 @@ function Bars({ result }: { result: FlowResult }) {
         One bar per audience, best first.{" "}
         {ceiling === null
           ? "No comparison audience could be measured, so there is no line to compare against."
-          : `The ink line marks the comparison line: ${Math.round(ceiling * 100)}%. It is the strangers baseline when measured; otherwise the best eligible other-genre control.`}
+          : `The ink line marks the comparison line: fit index ${fitIndex(ceiling)}. It is the strangers baseline when measured; otherwise the best eligible other-genre control.`}
       </p>
       <div className="mt-4">
         {rows.length === 0 ? (
@@ -168,7 +176,7 @@ function Bars({ result }: { result: FlowResult }) {
                     {row.name}
                   </p>
                   <p data-numeric className="tnum font-mono text-sm text-ink">
-                    {Math.round(row.score * 100)}%
+                    {fitIndexLabel(row.score)}
                   </p>
                 </div>
                 <div className="relative mt-2 h-7 rounded-full bg-surface">
@@ -198,7 +206,7 @@ function Bars({ result }: { result: FlowResult }) {
               style={{ left: `${ceiling * 100}%` }}
             >
               <span className="control-pill">
-                comparison line {Math.round((ceiling ?? 0) * 100)}%
+                comparison line {fitIndexLabel(ceiling ?? 0)}
               </span>
             </div>
           </div>

@@ -13,11 +13,21 @@ import { installDemoFetch } from "@/lib/demo/demo-fetch";
  * Review pace: speed 0.6 slows the orb's morph→think→resolve beats so
  * each leg can be watched. Demo-only — the real run stays at 1.
  */
-export function DemoRun() {
+export function DemoRun({
+  initialSimilarTitles = "",
+}: {
+  initialSimilarTitles?: string;
+}) {
   const installedRef = useRef(false);
   if (typeof window !== "undefined" && !installedRef.current) {
     installedRef.current = true;
     installDemoFetch();
   }
-  return <OrbFlow homeHref="/demo/flow" speed={0.6} />;
+  return (
+    <OrbFlow
+      homeHref="/demo/flow"
+      speed={0.6}
+      initialSimilarTitles={initialSimilarTitles}
+    />
+  );
 }

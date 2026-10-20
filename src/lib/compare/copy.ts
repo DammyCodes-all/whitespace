@@ -5,19 +5,17 @@
  * audience, control score, runner-up, named titles, matched tags — and
  * returns plain-spoken paragraphs with every number embedded, so the text
  * can never disagree with the numbers. Scores are 0–1 fractions; every
- * one passes through `pct` exactly once. No LLM is involved: deterministic
- * templates, human voice.
+ * one passes through `fitIndex` exactly once and is spoken as a fit
+ * index out of 100, never as a percentage or a probability. No LLM is
+ * involved: deterministic templates, human voice.
  *
- * Spec ref: §6.7 (verdict table; "Mixed" is the verdict word everywhere),
- * §6.11 (measured side of the chatbot comparison).
+ * Spec ref: §6.6 (fit index display), §6.7 (verdict table; "Mixed" is
+ * the verdict word everywhere), §6.11 (measured side of the chatbot
+ * comparison).
  */
 
+import { fitIndex } from "../scoring/fit-index.ts";
 import type { Verdict } from "../types.ts";
-
-/** The single rounding point: 0–1 score in, whole percent out. */
-export function pct(score: number): number {
-  return Math.round(score * 100);
-}
 
 /** Capitalise a label when it starts a sentence; labels may arrive lowercase. */
 export function cap(label: string): string {
@@ -73,7 +71,7 @@ function cleanTags(tags: string[] | undefined): string[] {
 }
 
 function runnerSentence(runnerUp: CopyAudience): string {
-  const score = `${pct(runnerUp.score)}%`;
+  const score = `fit index ${fitIndex(runnerUp.score)}`;
   if (runnerUp.role === "rival") {
     return `And a rival reads it too: ${cap(runnerUp.label)} at ${score}. Two crowds, both checked.`;
   }
@@ -102,12 +100,10 @@ export function buildCopy(input: CopyInput): ResultCopy {
 
   if (input.verdict === "Weak") {
     const body = [
-      `No audience stands out here. Closest is ${best.label} at ${pct(best.score)}%.`,
+      `No audience stands out here. Closest is ${best.label} at fit index ${fitIndex(best.score)}.`,
     ];
     if (input.controlScore !== null) {
-      body.push(
-        `Strangers match it at ${pct(input.controlScore)}%. Flat room.`,
-      );
+      body.push(`Strangers sit at ${fitIndex(input.controlScore)}. Flat room.`);
     }
     if (landed.length > 0) {
       body.push(`What landed: ${landed.join(", ")}.`);
@@ -119,11 +115,11 @@ export function buildCopy(input: CopyInput): ResultCopy {
   const opener =
     input.controlScore !== null
       ? hedged
-        ? `${cap(best.label)} leads at ${pct(best.score)}%, but not by much. Strangers sit at ${pct(input.controlScore)}%.`
-        : `${cap(best.label)} fits this idea best. What they like puts them at ${pct(best.score)}%. Strangers land at only ${pct(input.controlScore)}%.`
+        ? `${cap(best.label)} leads at fit index ${fitIndex(best.score)}, but not by much. Strangers sit at ${fitIndex(input.controlScore)}.`
+        : `${cap(best.label)} fits this idea best. Its fit index is ${fitIndex(best.score)}. Strangers land at just ${fitIndex(input.controlScore)} on the same scale.`
       : hedged
-        ? `${cap(best.label)} leads at ${pct(best.score)}%, but not by much.`
-        : `${cap(best.label)} fits this idea best. What they like puts them at ${pct(best.score)}%.`;
+        ? `${cap(best.label)} leads at fit index ${fitIndex(best.score)}, but not by much.`
+        : `${cap(best.label)} fits this idea best. Its fit index is ${fitIndex(best.score)}.`;
   const body = [opener];
   if (input.runnerUp !== null) {
     body.push(runnerSentence(input.runnerUp));

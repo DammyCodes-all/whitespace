@@ -9,6 +9,7 @@
  * `node --test` type stripping.
  */
 
+import { fitIndex } from "../scoring/fit-index.ts";
 import type { FlowBarRow, FlowResult } from "./contract.ts";
 import { barRows, isCloseCall } from "./contract.ts";
 
@@ -47,16 +48,18 @@ export function buildTargetingBrief(result: FlowResult): string {
     `Pitch: ${result.pitch}`,
     `Type: ${result.type}`,
     "",
-    "## Scores",
+    "## Fit index (out of 100, relative — not a probability)",
     ...rows.map(
       (r) =>
-        `- ${r.name} (${r.role}): ${r.score.toFixed(2)}${
+        `- ${r.name} (${r.role}): fit index ${fitIndex(r.score)}${
           r.evidenceId ? ` [evidence: ${r.evidenceId}]` : ""
         }`,
     ),
     "",
     `Comparison line: ${
-      result.ceiling === null ? "not measured" : result.ceiling.toFixed(2)
+      result.ceiling === null
+        ? "not measured"
+        : `fit index ${fitIndex(result.ceiling)}`
     }`,
     // §6.7: a capped verdict never travels without its reason — which
     // title was removed and what it did to the named audience and the

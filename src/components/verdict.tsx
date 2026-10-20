@@ -10,6 +10,7 @@
  * Spec ref: §6.7 (verdict + margins + surprise), §5.5 (see the verdict).
  */
 
+import { fitIndex } from "@/lib/scoring/fit-index";
 import type { VerdictResult } from "@/lib/types";
 
 /**
@@ -42,11 +43,11 @@ export function VerdictHeadline({
       <p className="mt-4 max-w-prose text-body text-ink-2">
         {pitchText} Verdict {context} is {verdict.verdict}:{" "}
         <span data-numeric className="tnum font-mono text-sm">
-          {verdict.marginTopVsSecond.toFixed(2)}
+          {fitIndex(verdict.marginTopVsSecond)}
         </span>{" "}
-        ahead of the runner-up,{" "}
+        fit-index points ahead of the runner-up,{" "}
         <span data-numeric className="tnum font-mono text-sm">
-          {verdict.marginTopVsControl.toFixed(2)}
+          {fitIndex(verdict.marginTopVsControl)}
         </span>{" "}
         ahead of the strongest comparison.
       </p>

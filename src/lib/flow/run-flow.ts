@@ -60,6 +60,7 @@ import {
   scoreAllWeighted,
   type WeightedTag,
 } from "../scoring/fit.ts";
+import { fitIndex } from "../scoring/fit-index.ts";
 import { assessFragility, type HoldOutRound } from "../scoring/fragility.ts";
 import { eligibleControls } from "../scoring/overlap.ts";
 import {
@@ -749,7 +750,7 @@ export async function runFlowPitch(
       ? "n/a"
       : isUnjudgeable(fit)
         ? "not measured"
-        : fit.score.toFixed(2);
+        : `${fitIndex(fit.score)}`;
   /** A score the guard can read; no data is null, never a zero (§6.6). */
   const judgedScore = (fit: FitScore | null): number | null =>
     fit === null || isUnjudgeable(fit) ? null : fit.score;
@@ -793,13 +794,14 @@ export async function runFlowPitch(
         return "";
       }
       const delta = red.score - full.score;
-      return ` (Δ ${(delta >= 0 ? "+" : "") + delta.toFixed(2)})`;
+      const points = fitIndex(delta);
+      return ` (Δ ${points >= 0 ? "+" : ""}${points} points)`;
     };
     steps.push(
       doneStep(
         `holdout-${index + 1}`,
         `Hold-out: ${titleName}`,
-        `without ${titleName}'s ${dropped} tag(s): named ${fmtFit(hypFull)} → ${fmtFit(hypRed)}${deltaOf(hypFull, hypRed)}, top ${fmtFit(topFull)} → ${fmtFit(topRed)}${deltaOf(topFull, topRed)}`,
+        `without ${titleName}'s ${dropped} tag(s): named fit index ${fmtFit(hypFull)} → ${fmtFit(hypRed)}${deltaOf(hypFull, hypRed)}, top ${fmtFit(topFull)} → ${fmtFit(topRed)}${deltaOf(topFull, topRed)}`,
       ),
     );
     // The round as the fragility test reads it: the named audience and

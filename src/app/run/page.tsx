@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { OrbFlow } from "@/components/orb-flow";
-import { startPitch } from "@/lib/flow/start-pitch";
+import { startPitch, startTitles } from "@/lib/flow/start-pitch";
 
 export const metadata: Metadata = {
   title: "Running: Whitespace",
@@ -37,7 +37,7 @@ export default async function RunPage({
       className="page-enter flex flex-1 flex-col"
     >
       <Suspense>
-        <OrbFlow speed={0.85} />
+        <OrbFlow speed={0.85} initialSimilarTitles={startTitles(params)} />
       </Suspense>
     </main>
   );

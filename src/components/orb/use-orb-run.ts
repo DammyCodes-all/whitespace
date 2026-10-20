@@ -110,6 +110,7 @@ export function useOrbRun({
   orbRef,
   homeHref,
   speed = 1,
+  initialSimilarTitles = "",
 }: {
   orbRef: RefObject<OrbHandle | null>;
   /** Where Edit-the-pitch hands back to (the entry that started this). */
@@ -117,6 +118,8 @@ export function useOrbRun({
   /** Orb pace multiplier (1 = live). Scales the finale wait like the
    *  runtime scales its tracks, so the result never jumps a slow orb. */
   speed?: number;
+  /** Comparable titles a worked example handed over in `?titles=`. */
+  initialSimilarTitles?: string;
 }): OrbRun {
   const router = useTransitionRouter();
   const [leg, setLeg] = useState<Leg>("entry");
@@ -149,7 +152,7 @@ export function useOrbRun({
   const [pitchText, setPitchText] = useState("");
   const [workType, setWorkType] = useState<WorkType>("film");
   const [tags, setTags] = useState<FlowTag[]>([]);
-  const [similarTitles, setSimilarTitles] = useState("");
+  const [similarTitles, setSimilarTitles] = useState(initialSimilarTitles);
   const [qlooSuggestions, setQlooSuggestions] = useState<string[]>([]);
   const [suggestBusy, setSuggestBusy] = useState(false);
   const [suggestDone, setSuggestDone] = useState(false);

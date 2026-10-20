@@ -691,7 +691,7 @@ describe("runFlowPitch", () => {
       assert.equal(holdout?.label, "Hold-out: Moon");
       assert.match(
         holdout?.detail ?? "",
-        /without Moon's 12 tag\(s\): named 0\.89 → 0\.00 \(Δ -0\.89\)/,
+        /without Moon's 12 tag\(s\): named fit index 89 → 0 \(Δ -89 points\)/,
       );
     } finally {
       if (savedKey === undefined) delete process.env.QLOO_API_KEY;
@@ -863,7 +863,7 @@ describe("runFlowPitch", () => {
       assert.equal(holdout?.label, "Hold-out: Moon");
       assert.match(
         holdout?.detail ?? "",
-        /without Moon's 12 tag\(s\): named 0\.89 → 0\.00/,
+        /without Moon's 12 tag\(s\): named fit index 89 → 0/,
       );
     } finally {
       if (savedKey === undefined) delete process.env.QLOO_API_KEY;

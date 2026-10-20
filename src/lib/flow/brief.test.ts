@@ -50,10 +50,14 @@ test("names the verdict word, the pitch and the call counts", () => {
   assert.match(brief, /Type: film/);
   assert.match(
     brief,
-    /- Slow science-fiction \(named\): 0\.61 \[evidence: call-tastes-1\]/,
+    /- Slow science-fiction \(named\): fit index 61 \[evidence: call-tastes-1\]/,
   );
-  assert.match(brief, /Comparison line: 0\.33/);
+  assert.match(brief, /Comparison line: fit index 33/);
   assert.match(brief, /Qloo data calls: 2 live, 9 from cache/);
+  assert.match(
+    brief,
+    /## Fit index \(out of 100, relative — not a probability\)/,
+  );
 });
 
 test("keeps the footer on every brief", () => {
@@ -75,7 +79,7 @@ test("writes not measured instead of a zero for absent reach slots", () => {
 test("says the ceiling is not measured when no control was judgeable", () => {
   const brief = buildTargetingBrief(fixture({ ceiling: null }));
   assert.match(brief, /Comparison line: not measured/);
-  assert.ok(!brief.includes("comparison: 0.00"));
+  assert.ok(!brief.includes("fit index 0"));
 });
 
 test("writes no reach plan when nothing beat the ceiling", () => {
@@ -124,7 +128,7 @@ test("every reach slot has a word, so the brief never prints a raw key", () => {
 
 test("carries the fragility reason, because a capped verdict never travels alone", () => {
   const note =
-    "Without Moon's 12 gift tag(s) the named audience falls 0.82 → 0.00, while the field's best goes 0.82 → 1.00 — it leans on its own gifts more than the field leans on that removal. The verdict is capped at Mixed fit (was Strong fit).";
+    "Without Moon's 12 gift tag(s) the named audience falls from fit index 82 to 0, while the field's best goes from 82 to 100 — it leans on its own gifts more than the field leans on that removal. The verdict is capped at Mixed fit (was Strong fit).";
   const brief = buildTargetingBrief(
     fixture({ verdict: "mixed", fragile: true, fragilityNote: note }),
   );
