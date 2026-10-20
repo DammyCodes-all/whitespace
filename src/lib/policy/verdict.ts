@@ -70,7 +70,7 @@ export {
  */
 
 /** Float hygiene: a 0.0999… gap from rank fractions must read as 0.1. */
-const MARGIN_EPSILON = 1e-9;
+export const MARGIN_EPSILON = 1e-9;
 
 export interface VerdictInput {
   /** Hypothesis audience id, for the surprise check. */
@@ -253,4 +253,25 @@ export function decideVerdict(
     clearsControl: true,
     surprise,
   };
+}
+
+/**
+ * §6.7: the fragility cap. A fragile named audience (§6.6) cannot read
+ * Strong fit, so the verdict word drops to Mixed fit and the reason
+ * travels with it.
+ *
+ * Only the WORD moves: the ranking, the scores, the margins, the
+ * ceiling and the reach plan stay exactly as measured, so a capped run
+ * still costs the same calls. The caller keeps the finding (which
+ * title, what it did) and shows it — a capped verdict never travels
+ * without its reason.
+ *
+ * Spec ref: §6.7 (the cap), §6.6 (what "fragile" means).
+ */
+export function applyFragilityCap(
+  verdict: VerdictResult,
+  finding: { capped: boolean },
+): VerdictResult {
+  if (!finding.capped) return verdict;
+  return { ...verdict, verdict: "Mixed" };
 }

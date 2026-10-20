@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { FitScore } from "../types.ts";
-import { COVERAGE_FLOOR, decideVerdict } from "./verdict.ts";
+import type { FitScore, VerdictResult } from "../types.ts";
+import { applyFragilityCap, COVERAGE_FLOOR, decideVerdict } from "./verdict.ts";
 
 function judged(
   audienceId: string,
@@ -206,5 +206,40 @@ describe("decideVerdict inconclusive reasons", () => {
     assert.equal(result.verdict, "Inconclusive");
     assert.equal(result.inconclusiveReason, "top-unjudgeable");
     assert.equal(result.topAudienceId, "u");
+  });
+});
+
+describe("applyFragilityCap", () => {
+  function strong(): VerdictResult {
+    return {
+      verdict: "Strong",
+      topAudienceId: "hyp",
+      marginTopVsSecond: 0.7,
+      marginTopVsControl: 0.7,
+      clearsControl: true,
+      surprise: false,
+    };
+  }
+
+  it("drops a capped verdict from Strong fit to Mixed fit", () => {
+    const capped = applyFragilityCap(strong(), { capped: true });
+    assert.equal(capped.verdict, "Mixed");
+  });
+
+  it("moves nothing but the word: the ranking and the scores stay", () => {
+    const capped = applyFragilityCap(strong(), { capped: true });
+    assert.equal(capped.topAudienceId, "hyp");
+    assert.equal(capped.marginTopVsSecond, 0.7);
+    assert.equal(capped.marginTopVsControl, 0.7);
+    assert.equal(capped.clearsControl, true);
+    assert.equal(capped.surprise, false);
+  });
+
+  it("leaves a verdict alone when the guard did not cap it", () => {
+    const before = strong();
+    assert.equal(
+      applyFragilityCap(before, { capped: false }).verdict,
+      "Strong",
+    );
   });
 });

@@ -66,6 +66,7 @@ export {
 } from "./resolve-titles.ts";
 export {
   discoverRivals,
+  shouldReplanWithEntities,
   WORK_TYPE_TO_ENTITY_TYPE,
 } from "./rival-discovery.ts";
 export {
