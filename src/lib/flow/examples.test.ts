@@ -27,16 +27,16 @@ describe("worked examples", () => {
     }
   });
 
-  it("keeps the documented Strong case and its comps", () => {
-    const strong = EXAMPLE_PITCHES.find((e) => e.id === "cyberpunk-strong");
-    assert.ok(strong !== undefined);
-    assert.deepEqual(strong.similarTitles, [
-      "Blade Runner 2049",
-      "The Matrix",
-      "Ghost in the Shell",
+  it("keeps the Extraction demo and its A comps", () => {
+    const demo = EXAMPLE_PITCHES.find((e) => e.id === "extraction-demo");
+    assert.ok(demo !== undefined);
+    assert.deepEqual(demo.similarTitles, [
+      "The Raid: Redemption",
+      "Man on Fire",
+      "Sicario",
     ]);
-    assert.match(strong.outcome, /strong/i);
-    assert.match(strong.pitch, /cyberpunk/i);
+    assert.match(demo.outcome, /action/i);
+    assert.match(demo.pitch, /Dhaka|mercenary/i);
   });
 
   it("keeps the documented zero-rival case and its comps", () => {

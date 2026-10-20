@@ -7,10 +7,6 @@
  * percent sign.
  */
 
-/** The one-line definition shown beside the scores. */
-export const FIT_INDEX_NOTE =
-  "Fit index is relative to the audiences measured here, out of 100 — not a probability.";
-
 /** 0–1 score in, whole fit-index point out. */
 export function fitIndex(score: number): number {
   return Math.round(score * 100);

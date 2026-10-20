@@ -1,11 +1,10 @@
 /**
  * Worked examples for the entry box. One click hands the run a pitch
  * plus the comparable titles it was tested with, so a judge never has
- * to invent either. Both cases come from the 6-pitch hunt in
- * `docs/qloo-coverage.md`:
+ * to invent either.
  *
- * - cyberpunk: the Strong case (named audience cleared the strangers
- *   baseline by 11 points in the hand-tagged hunt, and again live).
+ * - extraction-demo: the live-tested demo case. A grounded, Asia-set
+ *   action pitch with its A comps (the creative-lineage set).
  * - mystery-noir: one of the three pitches whose tag-seeded rival
  *   discovery answered with nothing, so the run takes the §6.3
  *   re-plan and asks the graph again from the titles.
@@ -16,7 +15,7 @@
  * Spec ref: §5 (entry), §6.3 (re-plan), §9 (demo plan).
  */
 
-export type WorkedExampleId = "cyberpunk-strong" | "mystery-replan";
+export type WorkedExampleId = "extraction-demo" | "mystery-replan";
 
 export interface WorkedExample {
   id: WorkedExampleId;
@@ -32,12 +31,12 @@ export interface WorkedExample {
 
 export const EXAMPLE_PITCHES: readonly WorkedExample[] = [
   {
-    id: "cyberpunk-strong",
-    outcome: "Known Strong result",
-    label: "Cyberpunk noir",
+    id: "extraction-demo",
+    outcome: "Live-tested action case",
+    label: "Grounded action",
     pitch:
-      "In a rain-soaked neon megacity, a burned-out android detective takes one last case with a rogue hacker: a missing girl whose memories may hold the key to a corporate conspiracy. A slow, atmospheric cyberpunk noir set in a dystopia where body modification is ordinary and the city owns your memories. It is about class, identity, and what is left of being human.",
-    similarTitles: ["Blade Runner 2049", "The Matrix", "Ghost in the Shell"],
+      "A hardened black-market mercenary is hired to rescue the kidnapped son of an imprisoned Indian crime lord. The job goes wrong in Dhaka, Bangladesh, and he finds himself trapped in a city locked down by rival gangs, corrupt police, and a boy who reminds him of the life he lost. To get them both out, he has to fight through a gauntlet of close-quarters ambushes, car chases, and bridge battles — and decide whether this is just another payday or the first thing he has cared about in years. A grounded, R-rated action thriller with brutal hand-to-hand combat, a world-weary hero, and a reluctant father-son bond. The tone is hard, fast, and physical; the setting is South Asia, not a soundstage. Think a one-man rescue mission with the texture of a war film.",
+    similarTitles: ["The Raid: Redemption", "Man on Fire", "Sicario"],
   },
   {
     id: "mystery-replan",
