@@ -163,7 +163,7 @@ function pickSemanticTag(
 function toPitchTag(word: string, hit: TagEntry): PitchTag | null {
   const rawId = tagEntryId(hit);
   if (rawId === null) return null;
-  return { tag: word, qlooTagId: rawId, pinned: false };
+  return { tag: word, qlooTagId: rawId };
 }
 
 function searchParams(
@@ -233,7 +233,7 @@ async function resolveWord(
 
 /**
  * §6.5: check each suggested word against Qloo tags. Matches become
- * `PitchTag`s (`pinned: false`; pinning is a later U/S decision).
+ * `PitchTag`s.
  * Unmatched words are no-data and stay out of scoring. Pass `workType`
  * to scope the search to the domain's namespaces (`./tag-scopes.ts`) so
  * resolved ids share a namespace with audience tastes (§6.6 scoring

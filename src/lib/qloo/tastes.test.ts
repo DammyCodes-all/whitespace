@@ -46,7 +46,7 @@ describe("fetchAudienceTastes", () => {
     const fit = scoreAudience(tastes, []);
     assert.equal(isUnjudgeable(fit), false);
     const withTags = scoreAudience(tastes, [
-      { tag: "x", qlooTagId: "urn:tag:y", pinned: false },
+      { tag: "x", qlooTagId: "urn:tag:y" },
     ]);
     assert.equal(isUnjudgeable(withTags), true);
   });

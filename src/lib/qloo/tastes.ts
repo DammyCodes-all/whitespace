@@ -27,7 +27,7 @@ import type { Audience, QlooCall, WorkType } from "@/lib/types";
 import { QlooError, qlooFetch } from "./client.ts";
 import { TAG_SCOPES } from "./tag-scopes.ts";
 
-/** Covers hypothesis + 3 rivals + 20 controls + exclusion with headroom. */
+/** Covers hypothesis + 3 rivals + 20 controls with headroom. */
 export const MAX_TASTE_AUDIENCES = 25;
 
 /** Quota guard: at most this many entity ids signal one audience. */

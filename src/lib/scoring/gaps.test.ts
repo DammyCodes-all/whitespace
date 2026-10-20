@@ -29,7 +29,7 @@ function tastesFor(audienceId: string): AudienceTastes {
 }
 
 describe("findGaps", () => {
-  it("excludes pitch-covered tags, pinned or not", () => {
+  it("excludes pitch-covered tags", () => {
     const gaps = findGaps(tastesFor("hyp"), SAMPLE_PITCH_TAGS, TAG_LABELS);
     const covered = new Set(SAMPLE_PITCH_TAGS.map((t) => t.qlooTagId));
     assert.ok(gaps.length > 0);
@@ -73,7 +73,6 @@ describe("findGaps", () => {
     const all = tagIdsFor("rival-amb").map((tagId, i) => ({
       tag: `t${i}`,
       qlooTagId: tagId,
-      pinned: false,
     }));
     assert.deepEqual(findGaps(tastesFor("rival-amb"), all, TAG_LABELS), []);
   });
