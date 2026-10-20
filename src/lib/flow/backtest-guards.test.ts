@@ -193,7 +193,7 @@ describe("back-test guards through the flow", () => {
       // The hold-out round is the back-test shape: dropping Moon's gifts
       // takes the named audience to zero while the field's best rises.
       const holdout = out.steps.find((s) => s.id === "holdout-1");
-      assert.match(holdout?.detail ?? "", /named 0\.82 → 0\.00/);
+      assert.match(holdout?.detail ?? "", /named fit index 82 → 0/);
       // So the verdict is capped, and the reason travels with it.
       assert.equal(out.result.verdict, "mixed");
       assert.equal(out.result.fragile, true);
