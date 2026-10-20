@@ -79,7 +79,7 @@ export function EvidencePanel({
                   {evidenceCache(line)}
                   {line.truncated ? " · truncated" : ""}
                 </summary>
-                <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-all bg-paper p-3 font-mono text-xs text-ink-2">
+                <pre className="mt-2 whitespace-pre-wrap break-all bg-paper p-3 font-mono text-xs text-ink-2">
                   {JSON.stringify(line.request.params)}
                   {"\n"}
                   {line.response}

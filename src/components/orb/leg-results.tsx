@@ -5,6 +5,7 @@
  * the plain-chatbot comparison, and the collapsed evidence shelf.
  */
 
+import { useEffect, useRef } from "react";
 import type { ChatbotView } from "@/components/chatbot-preview";
 import { FlowCompareView } from "@/components/flow-compare";
 import { FlowResultView } from "@/components/flow-result-view";
@@ -39,8 +40,22 @@ export function LegResults({
   const runMeta = isMockRun(result)
     ? `${result.type} · mock run, no Qloo key, no Qloo data`
     : `${result.type} · live run · ${qlooDataCalls} Qloo calls`;
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // The orb's clear finale swaps the stage for the result. Focus the
+  // visible verdict heading so the swap is announced, not silent.
+  useEffect(() => {
+    sectionRef.current
+      ?.querySelector<HTMLElement>("[data-verdict-heading]")
+      ?.focus({ preventScroll: true });
+  }, []);
+
   return (
-    <section aria-label="Results" className="leg-in-swap mt-10">
+    <section
+      ref={sectionRef}
+      aria-label="Results"
+      className="leg-in-swap mt-10"
+    >
       <IdeaCard pitch={result.pitch} meta={runMeta} />
 
       <div className="mt-8">
