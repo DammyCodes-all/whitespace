@@ -8,6 +8,8 @@
  * Spec ref: §6.3 (a rival more than about a third overlapping the
  * hypothesis or another rival is replaced; up to five builds; the run
  * continues with what exists when fewer than two valid rivals remain),
+ * §6.4 (a control sharing ANY title with the named audience does not
+ * set the ceiling; the full set comes back when every control does),
  * §7 (comparison is our code, not the AI's).
  */
 
@@ -40,6 +42,28 @@ export function overlapRatio(a: Audience, b: Audience): number {
 /** True when the pair overlaps by more than a third (§6.3). */
 export function isTooSimilar(a: Audience, b: Audience): boolean {
   return overlapRatio(a, b) > OVERLAP_LIMIT;
+}
+
+/**
+ * §6.4: true when the two audiences share at least one title (canonical
+ * `qlooId`). This is the CONTROL rule, not the rival rule: a control
+ * that shares any title with the named audience is not an unrelated
+ * comparison field — it holds the very film under test.
+ *
+ * The Horror control seed (`Halloween`, `A Nightmare on Elm Street`,
+ * `Get Out`) is the case that forced this: name "Get Out" as one of
+ * three titles and the control shares exactly one title with the named
+ * audience — a third of it, which the ratio rule (`isTooSimilar`, more
+ * than a third) let through. The control row was then the subject
+ * film's own crowd reading as an independent baseline
+ * (`docs/backtest-results.md`, problem 1).
+ *
+ * Deliberately separate from `isTooSimilar`: the §6.3 rival rule is a
+ * deliberate ratio and stays exactly as it is.
+ */
+export function sharesAnyTitle(a: Audience, b: Audience): boolean {
+  const bIds = new Set(b.titles.map((t) => t.qlooId));
+  return a.titles.some((t) => bIds.has(t.qlooId));
 }
 
 export interface DroppedRival {
@@ -88,10 +112,15 @@ export function selectRivals(
 }
 
 /**
- * Pitch-aware control ceiling: drop controls that collide with the
- * hypothesis audience under the same rival-overlap rule
- * (`overlapRatio` > `OVERLAP_LIMIT`). Hardcoded seeds stay — this only
- * chooses which controls set the verdict ceiling for this pitch.
+ * Pitch-aware control ceiling: drop controls that share ANY title with
+ * the hypothesis audience (`sharesAnyTitle`). Hardcoded seeds stay — this
+ * only chooses which controls set the verdict ceiling for this pitch.
+ *
+ * The threshold is "any shared title", not the §6.3 rival ratio: a
+ * control that holds one of the titles under test is not an unrelated
+ * comparison field, whatever fraction that title is of the control
+ * (`docs/backtest-results.md`, problem 1 — the Horror seed holds "Get
+ * Out").
  *
  * Never lets the ceiling vanish: when every control is too close, the
  * full set comes back (`fellBack: true`, `filtered: false`) so the
@@ -112,7 +141,7 @@ export function eligibleControls(
   controls: Audience[],
 ): ControlEligibility {
   const excluded = controls.filter((control) =>
-    isTooSimilar(control, hypothesis),
+    sharesAnyTitle(control, hypothesis),
   );
   if (excluded.length === 0) {
     return {
