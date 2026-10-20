@@ -14,7 +14,8 @@ lets you confirm the words and name similar titles, then scores your named
 audience plus rival audiences it discovers against ~20 unrelated control
 audiences using [Qloo](https://qloo.com) taste data.
 
-Every number in the result comes from a recorded Qloo call, and every Qloo
+Every title, tag and entity ID in the result is grounded in a recorded Qloo
+call; scores are computed in code from Qloo's ranked tastes, and every Qloo
 call is in the evidence drawer — so the reasoning can be checked, not just
 read.
 
@@ -50,11 +51,12 @@ who it is for". Whitespace takes that same artifact and does the part no
 human can: it compares the audience behind your comps against the audiences
 your work could have reached instead.
 
-**And guessing wrong is expensive.** Across three separate studies of 6,800+
-independent artists: 54% of 300 independent musicians name "getting music
-heard" as their biggest challenge; discoverability is the single biggest
-barrier for 35.8% of 1,595 independent rappers; and 74% of 5,039 independent
-artists earned under $1,000 from music in the past year.
+**And guessing wrong is expensive.** Across three separate vendor-run surveys
+of 6,800+ independent artists — each polling its own users, so read them as
+testimony, not a market sample — 54% of 300 independent musicians name
+"getting music heard" as their biggest challenge; discoverability is the
+single biggest barrier for 35.8% of 1,595 independent rappers; and 74% of
+5,039 independent artists earned under $1,000 from music in the past year.
 
 Every figure above is other people's research, traced to its primary source
 in [`docs/impact-evidence.md`](docs/impact-evidence.md) — sample sizes,
@@ -267,9 +269,13 @@ docs/               product spec, impact evidence (every sourced figure), Devpos
 - It uses aggregate taste data only. No personal data is collected or used.
 - It is evidence for a decision, not a substitute for it. The output is a
   hypothesis with a full trace behind it.
-- Film and music are the covered domains. Book and game are detected and
-  runnable, but their taste data is thin in the Qloo hackathon dataset, so
-  they are on hold.
+- Film and music are the covered domains. Book and game are detected, but
+  their taste data is thin in the Qloo hackathon dataset, so they are on hold.
+- A pre-registered one-film back-test came out **PARTIAL**: the tool mirrored
+  the comps and surfaced the crossover crowd as rivals, but the surprise
+  headline did not fire. Results are in
+  [`docs/backtest-results.md`](docs/backtest-results.md); a second film is
+  still to run.
 - The name means *the audience you did not know your work fit*, not an empty
   market.
 

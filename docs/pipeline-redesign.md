@@ -1,5 +1,7 @@
 # Audience-discovery pipeline: proposed v2
 
+> **Status: historical proposal.** The v2 pipeline was removed in October 2026. Current behavior is defined by [product-spec.md](product-spec.md); this proposal is kept for the record.
+
 Date: 2026-10-10
 
 **Status: design proposal, not implemented.** This replaces the pipeline's reasoning model, not the product's purpose. `product-spec.md` remains the source of truth until the spec changes listed below are adopted. The existing implementation and `build-plan.md` describe v1; no application code is changed by this proposal.

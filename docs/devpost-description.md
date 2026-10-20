@@ -42,11 +42,12 @@ Per-title viewing is low "due to the lack of marketing to bring attention to
 small titles".
 
 Independent musicians say the same thing from the other side of the
-industry. Across three separate studies of 6,800+ artists: **74%** of 5,039
-independent artists earned under $1,000 from music in the past year; **54%**
-of 300 independent musicians name "getting music heard" as their biggest
-challenge; and discoverability is the single biggest barrier for **35.8%** of
-1,595 independent rappers.
+industry. Across three separate vendor-run surveys of 6,800+ artists — each
+polling its own users, so read them as testimony, not a market sample —
+**74%** of 5,039 independent artists earned under $1,000 from music in the
+past year; **54%** of 300 independent musicians name "getting music heard" as
+their biggest challenge; and discoverability is the single biggest barrier
+for **35.8%** of 1,595 independent rappers.
 
 Meanwhile the supply of work keeps growing — Nollywood alone produces
 roughly 2,500 films a year — and the one audience artifact every creator
@@ -81,11 +82,11 @@ name the comparable titles the industry already asks you for. Then it runs:
 7. **The evidence drawer** — every Qloo call of the run: request, response
    summary, status, cache hit.
 
-**Most of the time your comparables are right.** That is the point of them —
-the whole trade markets a film by naming the films it is like, and the
-premise is that the comp's audience transfers. Nobody, though, measures how
-well it transfers. That is the service: the same guess, checked against
-twenty unrelated audiences, with the trace behind it.
+**Your comparables are already a claim about the audience.** That is the
+point of them — the whole trade markets a film by naming the films it is
+like, and the premise is that the comp's audience transfers. Nobody, though,
+measures how well it transfers. That is the service: the same guess, checked
+against twenty unrelated audiences, with the trace behind it.
 
 And when the rare case happens — the comps point somewhere the data does not
 support — the tool says so rather than agreeing with you. *"Your best fit is
@@ -100,6 +101,11 @@ American history, and the second was a documentary about a Black woman's
 murder and the failure of the justice system. Neither had anything to do
 with the comps. Your comparables won, and the tool still handed you two
 audiences worth testing that you had not thought of.
+
+The overall result was **PARTIAL**: the tool mirrored the comps when they
+were right and surfaced the crossover crowd as rivals when they were not,
+but the named audience still won and the surprise headline did not fire. We
+published that result, misses included.
 
 ### Why comps are the right input
 
@@ -119,7 +125,8 @@ people who have nothing to do with your film.
 ## How we built it
 
 Next.js 16 (App Router, server components), TypeScript, Tailwind, Biome.
-The Qloo boundary is a single module; everything else is deterministic code.
+Qloo sits behind one boundary; scoring, verdicts and grounding are
+deterministic code.
 
 **Qloo calls** (all `GET`):
 
@@ -135,7 +142,7 @@ The Qloo boundary is a single module; everything else is deterministic code.
 *measurement*, and measurement is not something a language model can
 fabricate: whether Aftersun's audience over-indexes on grief more than
 Moonlight's does, relative to twenty unrelated audiences, is a fact about
-250M+ entities' taste graph and has no approximation in model weights. The
+Qloo's taste graph and has no approximation in model weights. The
 same goes for the tag namespace (real tag ids to match a creator's words
 against), entity resolution (mapping "Moonlight (2016)" to the right entity
 id), and the reach graph (people and podcasts that actually belong to an
@@ -148,10 +155,10 @@ invents a tag, a title, a score, an audience, an entity or a ranking. Scoring
 is code: rank `r` of `N` scores `(N − r + 1) / N`, raw strengths discarded,
 every audience scored as a weighted mean over one shared tag list.
 
-### It is an agentic tool
+### It works as an agentic tool
 
 The rules ask for a project that "functions as an agentic tool." This one does,
-in the strict sense: you give it a goal in plain language and it works out
+in the tool-use sense: you give it a goal in plain language and it works out
 what to look up and in what order.
 
 The Qloo endpoints are its tools. It decides which to call, with what
@@ -228,9 +235,12 @@ worthless, and one that improvises its own judgment cannot be checked.
 
 ## Accomplishments we're proud of
 
-- **The grounding check.** Every number on screen came from a Qloo call in
-  that run, enforced by code at runtime, with the whole call log in an
-  evidence drawer a judge can open.
+- **The grounding check.** Every title, tag and entity ID on screen is
+  grounded in a Qloo call from that run; scores are computed in code from
+  Qloo's ranked tastes. The whole call log is in an evidence drawer a judge
+  can open.
+- **A published PARTIAL back-test.** One film, two pre-registered runs,
+  misses included — the result is in the repo, not hidden.
 - **The chatty control.** The verdict has a floor — ~20 unrelated audiences
   in the same domain — so "strong fit" means "strong *relative to strangers*",
   not "we liked it".
@@ -273,17 +283,18 @@ thing they are judging is not a hallucination with a progress bar.
 
 ## What's next
 
-- **Back-test released work.** The real test: take films and albums that
-  found an audience, pitch each as if unreleased, and check whether the
-  audience Whitespace names is the audience that actually showed up. Publish
-  the misses alongside the hits — a back-test that only shows wins is a
-  marketing asset, not evidence.
+- **Run the second back-test.** The first, on *Get Out*, came out PARTIAL:
+  the tool mirrored the comps and surfaced the crossover crowd as rivals, but
+  the surprise headline did not fire. The next step is a second film, then a
+  reverse pair (genre pitch, serious comps), publishing the misses alongside
+  the hits — a back-test that only shows wins is a marketing asset, not
+  evidence.
 - **Take it to creators.** Every run is free to try and every run comes with
   its evidence drawer, so the next step is simply more of them in front of
   more people.
-- **Reach beyond film.** Film and music are covered today; book and game are
-  detected and runnable but their taste data is too thin in the current Qloo
-  dataset to discriminate, so they are on hold rather than faked.
+- **Reach beyond film.** Film and music are covered today. Book and game are
+  detected, but their taste data is too thin in the current Qloo dataset to
+  discriminate, so they are on hold rather than faked.
 
 ## Built with
 

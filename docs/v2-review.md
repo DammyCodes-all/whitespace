@@ -1,5 +1,7 @@
 # V2 implementation review
 
+> **Status: historical (2026-10-10).** The v2 pipeline described here was removed in October 2026. Current behavior is defined by [product-spec.md](product-spec.md); this review is kept for the record and does not describe the shipped product.
+
 Date: 2026-10-10
 
 Scope: uncommitted v2 working-tree implementation against `HEAD` (`514105c`), including adopted `product-spec.md`, the originating `pipeline-redesign.md`, and the implementation/coverage findings. New v2 source files are untracked and were inspected directly; a tracked-only git diff does not include them.
