@@ -17,7 +17,7 @@ export const PITCH_PLACEHOLDER =
 
 const STORED_KEY = "whitespace-pitch";
 const FLIGHT_KEY = "whitespace-flight";
-const DEMO_EXAMPLE = exampleById("cyberpunk-strong");
+const DEMO_EXAMPLE = exampleById("extraction-demo");
 
 export interface FlightRect {
   left: number;

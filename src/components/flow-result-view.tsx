@@ -13,11 +13,7 @@ import type { FlowBarRow, FlowResult, ReachSlot } from "@/lib/flow/contract";
 import { barRows, isCloseCall } from "@/lib/flow/contract";
 import { resolveReachSections } from "@/lib/flow/reach-copy";
 import { segmentReachProse } from "@/lib/flow/reach-highlight";
-import {
-  FIT_INDEX_NOTE,
-  fitIndex,
-  fitIndexLabel,
-} from "@/lib/scoring/fit-index";
+import { fitIndex, fitIndexLabel } from "@/lib/scoring/fit-index";
 
 /**
  * What a slot's items are called, singular and plural — the count on
@@ -117,9 +113,6 @@ function VerdictHeadline({
           {scoreLine(result, top)}
         </p>
       )}
-      <p className="mt-1 max-w-prose text-sm leading-relaxed text-ink-2">
-        {FIT_INDEX_NOTE}
-      </p>
       {isCloseCall(result) && (
         <p className="mt-2 max-w-prose text-body text-ink">
           Close call — this one sits only just above the other-genre line. A
