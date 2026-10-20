@@ -32,6 +32,7 @@ import type { OrbHandle } from "@/components/ui/orb/types";
 export function OrbFlow({
   homeHref = "/",
   speed = 1,
+  initialSimilarTitles = "",
 }: {
   homeHref?: string;
   /** Orb pace multiplier (1 = live pace). The run page passes 0.85 so
@@ -39,9 +40,11 @@ export function OrbFlow({
    *  slower and more deliberate; the demo drops further to 0.6 for
    *  review pacing. */
   speed?: number;
+  /** Comparable titles a worked example handed over in `?titles=`. */
+  initialSimilarTitles?: string;
 }) {
   const orbRef = useRef<OrbHandle | null>(null);
-  const run = useOrbRun({ orbRef, homeHref, speed });
+  const run = useOrbRun({ orbRef, homeHref, speed, initialSimilarTitles });
   const flight = useOrbFlight({ orbRef, arm: run.armEntry, speed });
 
   const poolVisible = run.leg === "tags" || run.leg === "aggregate";
