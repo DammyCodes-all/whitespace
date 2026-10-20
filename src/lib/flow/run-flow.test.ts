@@ -22,7 +22,6 @@ describe("runFlowPitch", () => {
   const base = {
     pitchText: pitch,
     workType: "film" as const,
-    nothingLike: [],
     similarTitles: ["Moon", "Arrival", "Dune"],
   };
 
@@ -127,7 +126,6 @@ describe("runFlowPitch", () => {
       pitchText:
         "I want to build a telegram bot that tracks workouts and sends reminders.",
       workType: "film",
-      nothingLike: [],
       similarTitles: [],
       tags: tags(MIN_MATCHED_TAGS),
     });
@@ -359,7 +357,6 @@ describe("runFlowPitch", () => {
       const out = await runFlowPitch({
         pitchText: pitch,
         workType: "film",
-        nothingLike: [],
         similarTitles: ["Moon"],
         tags: [
           { label: "alpha", qlooId: "urn:tag:alpha", status: "matched" },
@@ -557,7 +554,6 @@ describe("runFlowPitch", () => {
       const out = await runFlowPitch({
         pitchText: pitch,
         workType: "film",
-        nothingLike: [],
         similarTitles: ["Moon"],
         tags: [
           { label: "alpha", qlooId: "urn:tag:alpha", status: "matched" },

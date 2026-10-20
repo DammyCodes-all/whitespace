@@ -51,7 +51,6 @@ const mockInput: PitchInput = {
   pitchText:
     "A quiet science-fiction film about a lonely worker on a space station.",
   workType: "film",
-  nothingLike: ["Fast franchise action"],
 };
 
 const mockSteps: RunStep[] = [

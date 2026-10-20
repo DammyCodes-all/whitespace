@@ -17,8 +17,6 @@ export type WorkType = "film" | "music" | "book" | "game";
 export interface PitchInput {
   pitchText: string;
   workType: WorkType;
-  /** §6.1: up to five "nothing like" titles, optional. */
-  nothingLike: string[];
 }
 
 /**
@@ -65,10 +63,10 @@ export interface ResolvedTitle {
   type: string;
 }
 
-export type AudienceKind = "hypothesis" | "rival" | "control" | "exclusion";
+export type AudienceKind = "hypothesis" | "rival" | "control";
 
 /**
- * §6.2 hypothesis, §6.3 rivals, §6.4 controls, §6.6 exclusion.
+ * §6.2 hypothesis, §6.3 rivals, §6.4 controls.
  * Titles and numbers come only from Qloo; the AI writes names/reasons (§7).
  */
 export interface Audience {
@@ -91,8 +89,6 @@ export interface PitchTag {
   tag: string;
   /** Real Qloo tag id, e.g. "urn:tag:genre:media:slow_burn". */
   qlooTagId: string;
-  /** §6.6: pinned must-haves count double. */
-  pinned: boolean;
 }
 
 /**
