@@ -112,15 +112,15 @@ function GapList({
         What {audienceName} loves that your pitch doesn&apos;t mention yet
       </h3>
       {!hasTastes ? (
-        <p className="mt-3 text-sm text-ink-3">
+        <p className="mt-3 text-sm text-ink">
           No taste data for this audience.
         </p>
       ) : covered ? (
-        <p className="mt-3 text-sm text-ink-3">
+        <p className="mt-3 text-sm text-ink">
           Your pitch already mentions what this audience loves most.
         </p>
       ) : gaps.length === 0 ? (
-        <p className="mt-3 text-sm text-ink-3">
+        <p className="mt-3 text-sm text-ink">
           Every other love Qloo named had no label, so there is nothing to list.
         </p>
       ) : (
@@ -142,7 +142,7 @@ function GapList({
         </ul>
       )}
       {unlabeled}
-      <p className="mt-2 text-sm text-white">Research leads, not pitch copy.</p>
+      <p className="mt-2 text-sm text-ink">Research leads, not pitch copy.</p>
     </div>
   );
 }
@@ -172,12 +172,12 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
         ).length;
         return (
           <div key={group.audience.id} className="mt-6">
-            <p className="font-serif text-base text-ink">
+            <h3 className="font-serif text-base text-ink">
               {group.audience.name}{" "}
               <span className="font-mono text-xs text-ink-3">
                 {group.headline}
               </span>
-            </p>
+            </h3>
             <p className="mt-1 font-mono text-xs text-ink-2">
               <span data-numeric className="tnum">
                 {totalItems} picks across {kindsMeasured} of the 4 kinds.
@@ -185,7 +185,7 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
             </p>
             <div className="mt-4 grid gap-4">
               <div className="card bg-weak p-4 sm:p-5">
-                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
+                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink">
                   Step 1 · Listen first
                 </p>
                 <p className="mt-1 text-sm text-ink-2">
@@ -197,7 +197,7 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
                 />
               </div>
               <div className="card bg-split p-4 sm:p-5">
-                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
+                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink">
                   Step 2 · Find them
                 </p>
                 <p className="mt-1 text-sm text-ink-2">
@@ -213,7 +213,7 @@ export function ReachPlan({ groups }: { groups: ReachAudience[] }) {
                 />
               </div>
               <div className="card bg-strong p-4 sm:p-5">
-                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink-3">
+                <p className="font-mono text-xs uppercase tracking-[0.12em] text-ink">
                   Step 3 · Fit in
                 </p>
                 <p className="mt-1 text-sm text-ink-2">
