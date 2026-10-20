@@ -44,7 +44,7 @@ export function RunSteps({ steps }: { steps: RunStep[] }) {
             <a
               href={`#${step.callId}`}
               className="cite shrink-0"
-              aria-label={`Evidence for ${step.label}`}
+              aria-label={`[${index + 1}] Evidence for ${step.label}`}
             >
               [{index + 1}]
             </a>

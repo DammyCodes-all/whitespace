@@ -43,7 +43,7 @@ export function FlowTagsStep({
 }) {
   return (
     <>
-      <h1 id="flow-tags-heading" className="sr-only">
+      <h1 id="flow-tags-heading" className="sr-only" tabIndex={-1}>
         Confirm tags and titles
       </h1>
       <p className="font-mono text-xs text-ink-3">Read as {workType}</p>

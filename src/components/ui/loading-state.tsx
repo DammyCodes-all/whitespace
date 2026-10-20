@@ -91,7 +91,12 @@ export default function LoadingState({
       >
         {label}
       </span>
-      <span className="font-mono text-[12px] text-ink-3 tabular-nums">
+      {/* The timer repaints every 100ms. Announcing it would flood a
+          live region, so the label is the only spoken part. */}
+      <span
+        aria-hidden="true"
+        className="font-mono text-[12px] text-ink-3 tabular-nums"
+      >
         {elapsed}
       </span>
     </div>
