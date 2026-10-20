@@ -47,8 +47,9 @@ export function TagChips({
   extraMatched = 0,
 }: TagChipsProps) {
   const [draft, setDraft] = useState("");
-  const matched =
-    tags.filter((t) => t.status === "matched").length + extraMatched;
+  const pitchMatched = tags.filter((t) => t.status === "matched").length;
+  const notFound = tags.length - pitchMatched;
+  const matched = pitchMatched + extraMatched;
   const canRun = matched >= MIN_MATCHED_TAGS;
 
   function remove(index: number) {
@@ -68,11 +69,8 @@ export function TagChips({
         <h2 className="text-lg tracking-tight text-ink">Confirm the tags</h2>
         <p data-numeric className="tnum font-mono text-sm text-ink-2">
           {matched} found
-          {tags.length - matched > 0 && (
-            <span className="text-clay">
-              {" "}
-              · {tags.length - matched} not found
-            </span>
+          {notFound > 0 && (
+            <span className="text-clay"> · {notFound} not found</span>
           )}
         </p>
       </div>
@@ -101,7 +99,7 @@ export function TagChips({
                   {tag.qlooName}
                 </span>
               )}
-              <span className="font-mono text-[10px] text-ink-3">[pitch]</span>
+              <span className="font-mono text-[10px] text-ink">[pitch]</span>
               {isMatched ? null : (
                 <span className="font-mono text-xs">not found in Qloo</span>
               )}

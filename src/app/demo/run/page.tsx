@@ -19,7 +19,11 @@ export default async function DemoRunPage({
 }) {
   const params = (await searchParams) ?? {};
   return (
-    <main id="main-content" className="page-enter flex flex-1 flex-col">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="page-enter flex flex-1 flex-col"
+    >
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 pt-6 sm:px-8">
         <p className="w-max max-w-[calc(100vw-3rem)] border-2 border-outline bg-split px-4 py-1 font-mono text-xs text-ink">
           Demo harness — fixtures only, nothing spent

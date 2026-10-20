@@ -14,9 +14,10 @@ Placeholders: **none left.** `DEMO_URL` → <https://whitespace-ecru.vercel.app/
 <https://github.com/DammyCodes-all/whitespace>.
 
 Deployment notes for the judges: the live demo needs no login and no
-sign-up. The static sample (`/demo/result`) renders the same result page
-from fixtures and makes no network calls, so the demo survives a dead
-network or an exhausted Qloo quota.
+sign-up. The static sample (`/demo/result`) replays one real recorded Qloo
+run — 96 calls, 24 audiences, its evidence drawer included — and makes no
+network calls now, so the demo survives a dead network or an exhausted Qloo
+quota.
 
 ---
 
@@ -104,8 +105,9 @@ audiences worth testing that you had not thought of.
 
 The overall result was **PARTIAL**: the tool mirrored the comps when they
 were right and surfaced the crossover crowd as rivals when they were not,
-but the named audience still won and the surprise headline did not fire. We
-published that result, misses included.
+but the named audience still won and the surprise headline did not fire in
+either run — a published surprise rate of **0/2**. We report that rather than
+tune the threshold until the banner appears.
 
 ### Why comps are the right input
 
@@ -247,8 +249,9 @@ worthless, and one that improvises its own judgment cannot be checked.
 - **Honest Inconclusive.** Coverage guards, no-data guards and thin tag
   pools all produce *Inconclusive* with a stated cause, never a Weak fit
   dressed up as a finding. A trust moment that a demo can point at.
-- **A static sample result** (`/demo/result`) that makes no Qloo or AI calls,
-  so the demo never dies on a network.
+- **A recorded sample result** (`/demo/result`) that replays one real 96-call
+  Qloo run with its evidence, so the demo never dies on a network — and the
+  numbers on the page are measured, not fixture copy.
 
 ## What we learned
 
@@ -304,7 +307,7 @@ nextjs, typescript, tailwindcss, react, node.js, qloo-api
 
 - Live demo: <https://whitespace-ecru.vercel.app/>
 - Repository: <https://github.com/DammyCodes-all/whitespace>
-- Static sample (no network needed): <https://whitespace-ecru.vercel.app/demo/result>
+- Recorded sample run (no network needed): <https://whitespace-ecru.vercel.app/demo/result>
 
 ## Sources
 

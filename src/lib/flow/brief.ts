@@ -56,7 +56,7 @@ export function buildTargetingBrief(result: FlowResult): string {
         }`,
     ),
     "",
-    `Strongest other-genre comparison: ${
+    `Comparison line: ${
       result.ceiling === null
         ? "not measured"
         : `fit index ${fitIndex(result.ceiling)}`
@@ -70,7 +70,7 @@ export function buildTargetingBrief(result: FlowResult): string {
       : []),
     ...(isCloseCall(result)
       ? [
-          "Close call: near the other-genre line — a re-run may read differently.",
+          "Close call: near the comparison line — a re-run may read differently.",
         ]
       : []),
     `Qloo data calls: ${result.qlooCalls.network} live, ${result.qlooCalls.cached} from cache${

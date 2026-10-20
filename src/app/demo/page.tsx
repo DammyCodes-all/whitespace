@@ -50,75 +50,73 @@ const NAV = [
 
 export default function DemoPage() {
   return (
-    <>
-      <main id="main-content" className="flex flex-1 flex-col">
-        <div className="mx-auto w-full max-w-6xl px-6 py-12 sm:px-8">
-          <p className="font-mono text-xs tracking-tight text-ink-3">
-            design system
-          </p>
-          <h1 className="mt-2 max-w-3xl font-serif text-4xl leading-tight tracking-tight text-ink sm:text-5xl">
-            How Whitespace looks, in one place.
-          </h1>
-          <p className="mt-4 max-w-prose text-body text-ink-2">
-            Every token and every component, rendered with the same fixtures the
-            product screens use. Internal reference — nothing here is a product
-            screen, and the spec does not define one.
-          </p>
+    <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col">
+      <div className="mx-auto w-full max-w-6xl px-6 py-12 sm:px-8">
+        <p className="font-mono text-xs tracking-tight text-ink-3">
+          design system
+        </p>
+        <h1 className="mt-2 max-w-3xl font-serif text-4xl leading-tight tracking-tight text-ink sm:text-5xl">
+          How Whitespace looks, in one place.
+        </h1>
+        <p className="mt-4 max-w-prose text-body text-ink-2">
+          Every token and every component, rendered with the same fixtures the
+          product screens use. Internal reference — nothing here is a product
+          screen, and the spec does not define one.
+        </p>
 
-          <nav
-            aria-label="Sections"
-            className="sticky top-0 z-10 -mx-6 mt-8 border-b border-rule bg-paper/95 px-6 py-3 backdrop-blur sm:-mx-8 sm:px-8"
-          >
-            <ul className="flex flex-wrap gap-x-5 gap-y-2">
-              {NAV.map((item) => (
-                <li key={item.id}>
-                  <a
-                    href={`#${item.id}`}
-                    className="font-mono text-xs text-ink-2 underline decoration-dotted decoration-ink-3 underline-offset-4 transition-colors hover:text-ink"
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        <nav
+          aria-label="Sections"
+          className="sticky top-0 z-10 -mx-6 mt-8 border-b border-rule bg-paper/95 px-6 py-3 backdrop-blur sm:-mx-8 sm:px-8"
+        >
+          <ul className="flex flex-wrap gap-x-5 gap-y-2">
+            {NAV.map((item) => (
+              <li key={item.id}>
+                <a
+                  href={`#${item.id}`}
+                  className="font-mono text-xs text-ink-2 underline decoration-dotted decoration-ink-3 underline-offset-4 transition-colors hover:text-ink"
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-          <Section
-            id="foundations"
-            title="How to read this page"
-            lede="Sections run from the smallest unit outwards: tokens, then primitives, then the states that carry meaning, then whole screens. The page is a spec of record for the look, not a demo of the product."
-          >
-            <ul className="max-w-prose list-disc space-y-2 pl-5 text-body text-ink-2">
-              <li>
-                Every number shown is a fixture. Nothing here is a live Qloo
-                result except inside the screens section, which is labeled.
-              </li>
-              <li>
-                Every verdict carries its word, because mint, yellow and soft
-                blue collapse together in grayscale and in print.
-              </li>
-              <li>
-                Every absence reads &ldquo;not measured&rdquo; next to the
-                hatch. A not-measured state never renders a number.
-              </li>
-            </ul>
-          </Section>
+        <Section
+          id="foundations"
+          title="How to read this page"
+          lede="Sections run from the smallest unit outwards: tokens, then primitives, then the states that carry meaning, then whole screens. The page is a spec of record for the look, not a demo of the product."
+        >
+          <ul className="max-w-prose list-disc space-y-2 pl-5 text-body text-ink-2">
+            <li>
+              Every number shown is a fixture. Nothing here is a live Qloo
+              result except inside the screens section, which is labeled.
+            </li>
+            <li>
+              Every verdict carries its word, because mint, yellow and soft blue
+              collapse together in grayscale and in print.
+            </li>
+            <li>
+              Every absence reads &ldquo;not measured&rdquo; next to the hatch.
+              A not-measured state never renders a number.
+            </li>
+          </ul>
+        </Section>
 
-          <ColorSection />
-          <TypeSection />
-          <ShapeSection />
-          <ButtonsSection />
-          <LoadersSection />
-          <InputsSection />
-          <StatesSection />
-          <EvidenceSection />
-          <VerdictsSection />
-          <ResultViewSection />
-          <ReachSection />
-          <CompareSection />
-          <ScreensSection />
-        </div>
-      </main>
-    </>
+        <ColorSection />
+        <TypeSection />
+        <ShapeSection />
+        <ButtonsSection />
+        <LoadersSection />
+        <InputsSection />
+        <StatesSection />
+        <EvidenceSection />
+        <VerdictsSection />
+        <ResultViewSection />
+        <ReachSection />
+        <CompareSection />
+        <ScreensSection />
+      </div>
+    </main>
   );
 }

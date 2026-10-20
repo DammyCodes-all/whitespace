@@ -74,6 +74,7 @@ export function OrbFlow({
     <div
       className={`mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-6 sm:px-8 ${centered ? "" : "pb-12"}`}
     >
+      <h1 className="sr-only">Whitespace run</h1>
       {/* The stage unmounts with the result: the orb dissolved into
           it, so keeping the empty 240px block would strand dead space
           above the verdict. LegResults enters with leg-in-swap as the
@@ -104,20 +105,25 @@ export function OrbFlow({
       )}
 
       {/* Errors only — the work line lives under the orb, and leg
-          instructions live with the leg's own UI below. */}
-      {(run.error !== null || run.interrupted) && (
+          instructions live with the leg's own UI below. An error is
+          announced once, as an alert; an interruption is a quieter
+          status update. Rendering both would read the same failure
+          twice. */}
+      {run.error !== null ? (
+        <p
+          role="alert"
+          className="mx-auto mt-2 max-w-prose text-center text-sm leading-relaxed text-ink-2"
+        >
+          {run.error}
+        </p>
+      ) : run.interrupted ? (
         <output
           aria-live="polite"
           className="mx-auto mt-2 block max-w-prose text-center text-sm leading-relaxed text-ink-2"
         >
-          {run.error ?? run.status}
+          {run.status}
         </output>
-      )}
-      {run.error !== null && (
-        <p role="alert" className="mt-2 text-center text-sm text-ink-2">
-          {run.error}
-        </p>
-      )}
+      ) : null}
       {(run.error !== null || run.interrupted) && (
         <div className="mt-3 flex justify-center">
           <button

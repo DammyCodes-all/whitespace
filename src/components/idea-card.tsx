@@ -10,7 +10,7 @@
  * require echoing the pitch; this card is presentation only.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 /** Preview height before "See more". */
 const LINES = 3;
@@ -50,6 +50,8 @@ export function IdeaCard({
   className = "",
 }: IdeaCardProps) {
   const pitchRef = useRef<HTMLElement | null>(null);
+  const fallbackPitchId = useId();
+  const pitchId = headingId ?? fallbackPitchId;
   const [expanded, setExpanded] = useState(false);
   const [clipped, setClipped] = useState(false);
 
@@ -80,13 +82,14 @@ export function IdeaCard({
   return (
     <section
       aria-labelledby={headingId}
+      aria-label={headingId === undefined ? "The idea" : undefined}
       className={`rounded-[18px] border-2 border-outline bg-surface p-5 shadow-[4px_4px_0_var(--outline)] sm:p-7 ${className}`}
     >
       <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-3">
         The idea
       </p>
       <PitchTag
-        id={headingId}
+        id={pitchId}
         ref={(node: HTMLElement | null) => {
           pitchRef.current = node;
         }}
@@ -100,6 +103,7 @@ export function IdeaCard({
         <button
           type="button"
           aria-expanded={expanded}
+          aria-controls={pitchId}
           onClick={() => setExpanded((v) => !v)}
           className="mt-2 font-mono text-xs text-ink-2 underline decoration-dotted decoration-ink-3 underline-offset-[5px] hover:text-ink"
         >

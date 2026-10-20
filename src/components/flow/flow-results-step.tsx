@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { ChatbotView } from "@/components/chatbot-preview";
 import { FlowEvidenceBlock } from "@/components/flow/flow-evidence-block";
 import type {
@@ -46,8 +47,19 @@ export function FlowResultsStep({
   const runMeta = isMockRun(result)
     ? `${result.type} · mock run, no Qloo key, no Qloo data`
     : `${result.type} · live run · ${qlooDataCalls} Qloo calls`;
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // The run replaces the screen in place. Focus the visible verdict
+  // heading so screen-reader users land on the result, not on a button
+  // that no longer exists.
+  useEffect(() => {
+    sectionRef.current
+      ?.querySelector<HTMLElement>("[data-verdict-heading]")
+      ?.focus({ preventScroll: true });
+  }, []);
+
   return (
-    <section aria-labelledby="flow-results-heading">
+    <section ref={sectionRef} aria-labelledby="flow-results-heading">
       <h1 id="flow-results-heading" className="sr-only">
         Results
       </h1>

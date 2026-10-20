@@ -20,7 +20,7 @@ export default async function FlowPage({
   const params = (await searchParams) ?? {};
   const pitch = first(params.pitch).slice(0, 2000);
   return (
-    <main id="main-content" className="flex flex-1 flex-col">
+    <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col">
       <FlowClient initialPitch={pitch} autoStart={pitch.trim() !== ""} />
     </main>
   );

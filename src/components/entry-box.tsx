@@ -147,7 +147,7 @@ export function EntryBox({
           maxLength={2000}
           placeholder={PITCH_PLACEHOLDER}
           onChange={(e) => setValue(e.target.value)}
-          className="h-full w-full resize-none bg-transparent text-[15px] leading-[1.6] text-ink placeholder:text-ink-3 focus:outline-none"
+          className="h-full w-full resize-none bg-transparent text-[15px] leading-[1.6] text-ink placeholder:text-ink-3"
         />
       </div>
 

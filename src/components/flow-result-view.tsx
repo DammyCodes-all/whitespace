@@ -93,17 +93,18 @@ function VerdictHeadline({
   const top = rows[0];
   return (
     <div
-      className={`card px-6 py-5 ${VERDICT_FILLS[result.verdict]}`}
-      style={
-        orange ? { backgroundColor: "#f76743", color: "#17151F" } : undefined
-      }
+      className={`card px-6 py-5 ${
+        orange ? "bg-surprise" : VERDICT_FILLS[result.verdict]
+      }`}
     >
-      <p
-        className={`font-mono text-xs tracking-tight ${orange ? "text-white" : "text-ink"}`}
-      >
+      <p className="font-mono text-xs tracking-tight text-ink">
         {VERDICT_WORDS[result.verdict]}
       </p>
-      <h2 className="mt-1 font-serif text-2xl tracking-tight text-ink">
+      <h2
+        data-verdict-heading
+        tabIndex={-1}
+        className="mt-1 font-serif text-2xl tracking-tight text-ink"
+      >
         {result.surprise
           ? "Your best fit is not the audience you named."
           : verdictSentence(result)}
@@ -115,14 +116,14 @@ function VerdictHeadline({
       )}
       {isCloseCall(result) && (
         <p className="mt-2 max-w-prose text-body text-ink">
-          Close call — this one sits only just above the other-genre line. A
+          Close call — this one sits only just above the comparison line. A
           re-run may read differently. Adjust the words and run again.
         </p>
       )}
       <p className="mt-2 max-w-prose text-body text-ink">
         {result.ceiling === null
-          ? "No other-genre audience could be measured, so there is nothing to compare this against."
-          : `The strongest other-genre comparison has a fit index of ${fitIndex(result.ceiling)}.`}
+          ? "No comparison audience could be measured, so there is nothing to compare this against."
+          : `The comparison line sits at fit index ${fitIndex(result.ceiling)}.`}
       </p>
     </div>
   );
@@ -150,8 +151,8 @@ function Bars({ result }: { result: FlowResult }) {
       <p className="mt-1 max-w-prose text-sm text-ink-2">
         One bar per audience, best first.{" "}
         {ceiling === null
-          ? "No other-genre audience could be measured, so there is no line to compare against."
-          : `The ink line marks the strongest other-genre comparison: fit index ${fitIndex(ceiling)}.`}
+          ? "No comparison audience could be measured, so there is no line to compare against."
+          : `The ink line marks the comparison line: fit index ${fitIndex(ceiling)}. It is the strangers baseline when measured; otherwise the best eligible other-genre control.`}
       </p>
       <div className="mt-4">
         {rows.length === 0 ? (
@@ -198,7 +199,7 @@ function Bars({ result }: { result: FlowResult }) {
               style={{ left: `${ceiling * 100}%` }}
             >
               <span className="control-pill">
-                other-genre line {fitIndexLabel(ceiling ?? 0)}
+                comparison line {fitIndexLabel(ceiling ?? 0)}
               </span>
             </div>
           </div>
@@ -217,8 +218,8 @@ function ReachBlock({ result }: { result: FlowResult }) {
           Where to find them
         </h3>
         <p className="mt-2 text-body text-ink-2">
-          No audience scored above the other-genre comparison, so there is
-          nowhere to point you. The app says so instead of inventing one.
+          No audience scored above the comparison line, so there is nowhere to
+          point you. The app says so instead of inventing one.
         </p>
       </section>
     );
@@ -230,8 +231,8 @@ function ReachBlock({ result }: { result: FlowResult }) {
           Where to find them
         </h3>
         <p className="mt-2 text-body text-ink-2">
-          This audience scored above the other-genre comparison, but nothing
-          they love was measured.
+          This audience scored above the comparison line, but nothing they love
+          was measured.
         </p>
       </section>
     );
@@ -252,9 +253,9 @@ function ReachBlock({ result }: { result: FlowResult }) {
         );
         return (
           <article key={group.audienceId} className="card mt-5 p-5 sm:p-7">
-            <p className="font-serif text-3xl leading-tight tracking-tight text-ink">
+            <h4 className="font-serif text-3xl leading-tight tracking-tight text-ink">
               {group.audienceName}
-            </p>
+            </h4>
             {/* Balanced columns, not a grid of pairs: a fixed two-column
                 grid leaves a hole under the shortest section, and the
                 hole is what makes the card read as a half-filled form.
@@ -272,9 +273,9 @@ function ReachBlock({ result }: { result: FlowResult }) {
                     className="mb-7 break-inside-avoid border-t border-rule pt-3"
                   >
                     <div className="flex items-baseline justify-between gap-4">
-                      <h4 className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-ink">
+                      <h5 className="font-mono text-xs font-medium uppercase tracking-[0.14em] text-ink">
                         {label}
-                      </h4>
+                      </h5>
                       {count > 0 ? (
                         <span className="shrink-0 font-mono text-[11px] text-ink-3">
                           {count === 1

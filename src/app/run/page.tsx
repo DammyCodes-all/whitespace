@@ -31,7 +31,11 @@ export default async function RunPage({
   const params = (await searchParams) ?? {};
   if (startPitch(params) === "") redirect("/");
   return (
-    <main id="main-content" className="page-enter flex flex-1 flex-col">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="page-enter flex flex-1 flex-col"
+    >
       <Suspense>
         <OrbFlow speed={0.85} initialSimilarTitles={startTitles(params)} />
       </Suspense>

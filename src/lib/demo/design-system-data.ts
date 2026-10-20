@@ -389,7 +389,7 @@ export const VERDICT_SWATCHES: Swatch[] = [
   },
   { name: "split", value: "#FFCB3D", note: "yellow · 11.9:1", on: "ink" },
   { name: "weak", value: "#C4D8F5", note: "soft blue · 12.5:1", on: "ink" },
-  { name: "surprise", value: "#FF6B4A", note: "coral · 6.4:1", on: "paper" },
+  { name: "surprise", value: "#FF6B4A", note: "coral · 6.4:1", on: "ink" },
 ];
 
 export const TEXT_SAFE_SWATCHES: Swatch[] = [

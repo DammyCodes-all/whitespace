@@ -11,13 +11,17 @@ import LoadingState from "@/components/ui/loading-state";
 export function FlowRunningStep({ steps }: { steps: FlowStepRow[] }) {
   return (
     <section aria-labelledby="flow-run-heading">
-      <h1 id="flow-run-heading" className="sr-only">
+      <h1 id="flow-run-heading" className="sr-only" tabIndex={-1}>
         Running the analysis
       </h1>
       <output aria-live="polite" className="block py-2">
         <LoadingState label="Running pitch" variant="Dots" />
       </output>
-      <ol className="mt-4 space-y-2">
+      <ol
+        aria-label="Run progress"
+        aria-live="polite"
+        className="mt-4 space-y-2"
+      >
         {steps.length === 0 && (
           <li className="font-mono text-sm text-ink-3">starting the run…</li>
         )}
@@ -29,11 +33,6 @@ export function FlowRunningStep({ steps }: { steps: FlowStepRow[] }) {
               <span className="font-mono text-xs text-ink-2">
                 {step.detail}
               </span>
-            )}
-            {step.callId !== undefined && (
-              <a href={`#${step.callId}`} className="cite">
-                [e]
-              </a>
             )}
           </li>
         ))}
