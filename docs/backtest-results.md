@@ -8,6 +8,13 @@ committed (§6.12); this file records aggregates and conclusions.
 surfaced the right flavour of rival, not an oracle. Details and the two
 real problems it exposed are below.
 
+> **Post-run status (2026-10-20):** both problems below were acted on after
+> this record was written. Control exclusion now uses "any shared title"
+> (§6.4), and the fragility guard caps a fragile named audience at Mixed fit
+> when its condition fires (§6.6–§6.7). The results themselves are unchanged
+> and retained as the pre-fix record. The second film and the live re-check
+> remain outstanding.
+
 ---
 
 ## The two runs
@@ -182,10 +189,10 @@ one of its own gifts is removed should read as **fragile**, not Strong.
 2. **The rivals are the story, not the verdict.** Run A's rival set —
    *This Is Me*, *All My Rage* — is the part that shows the tool knows things
    the user did not tell it. Lead with that, not with "Strong fit".
-3. **Fix the control threshold.** Exclude a control that shares *any* title
-   with the named audience, not more than a third.
+3. **Fix the control threshold.** (Done 2026-10-20.) Exclude a control that
+   shares *any* title with the named audience, not more than a third.
 4. **Consider a fragility guard** on the named row when a single hold-out
-   collapses it past the field.
+   collapses it past the field. (Shipped 2026-10-20.)
 
 ## Call cost
 
@@ -204,5 +211,6 @@ Deferred deliberately, in cost order:
 3. **The reverse pair** (genre pitch, serious comps) — ~13 Qloo calls to
    check the mirror runs both ways. Nice-to-have, not needed for the
    submission.
-4. **Fix the control threshold** (§6.4) and **consider the fragility guard**.
-   Code work, no Qloo cost, and it needs a live re-check afterwards.
+4. ~~**Fix the control threshold** (§6.4) and **consider the fragility guard**.~~
+   **Done 2026-10-20:** the exclusion is now "any shared title" and the
+   fragility cap shipped. A live re-check is still outstanding.
