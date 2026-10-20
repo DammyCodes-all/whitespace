@@ -10,8 +10,13 @@ import { SampleRunLink } from "@/components/demo/sample-run-link";
  */
 export function SiteHeader() {
   const pathname = usePathname();
-  // The sample-run link is redundant inside the sample itself.
-  const inSampleFlow = pathname === "/demo/flow" || pathname === "/demo/run";
+  // The sample-run link is redundant once the visitor is already in a
+  // flow or run — live or fixture demo. Only offer it before they start.
+  const inFlowOrRun =
+    pathname === "/run" ||
+    pathname === "/flow" ||
+    pathname === "/demo/run" ||
+    pathname === "/demo/flow";
 
   return (
     <header className="bg-paper print:hidden">
@@ -37,7 +42,7 @@ export function SiteHeader() {
           >
             Read a sample result
           </Link>
-          {!inSampleFlow && <SampleRunLink />}
+          {!inFlowOrRun && <SampleRunLink />}
         </nav>
       </div>
     </header>

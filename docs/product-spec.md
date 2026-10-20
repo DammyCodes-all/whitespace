@@ -164,12 +164,13 @@ stays disabled: title-grounded tags need a title to ground in.
 There is no "nothing like" input on the flow path.
 
 One worked example is one click from the live landing: the demo
-button beside the primary action loads the cyberpunk pitch and comps
-that produced the Strong result in the 6-pitch hunt. It hands over the
-pitch and its comparable titles; the titles arrive prefilled in the
-titles leg and still go through Check and the run's own live
-resolution. The demo creates no special path — same gates, same Qloo
-calls, same evidence.
+button beside the primary action loads the Extraction action pitch and
+its A comps (The Raid: Redemption, Man on Fire, Sicario) — the grounded
+action case that worked in the live backtest. It hands over the pitch
+and its comparable titles; the titles arrive prefilled in the titles
+leg and still go through Check and the run's own live resolution. The
+demo creates no special path — same gates, same Qloo calls, same
+evidence.
 
 ### 6.2 Named audience
 
@@ -260,12 +261,12 @@ fit is the weighted mean across one shared tag list, 0 to 1. There
 is no pinning on the flow path: every exact tag weighs 1.
 
 Scores stay 0–1 in the pipeline. Every surface that shows one renders
-it as a **fit index** out of 100 (rounded once at display), defined in
-place as relative to the audiences measured in that run and explicitly
-not a probability. No score is ever shown with a percent sign, and the
-result headline never says "matches your idea". The targeting brief
-carries the same definition, because a pasted brief travels without the
-screen around it.
+it as a **fit index** out of 100 (rounded once at display), relative to
+the audiences measured in that run. No score is ever shown with a
+percent sign or presented as a probability, and the result headline
+never says "matches your idea". The targeting brief carries the full
+definition, because a pasted brief travels without the screen around
+it.
 
 The circular fix is hold-out rounds: a full-set round plus one round
 per gifting title, each round rescoring every audience — named,
@@ -457,7 +458,7 @@ Length: about 90 seconds.
 1. State the problem in two sentences: the audience data is locked away from
    the people who need it (§2.1), and taste — not demographics — decides
    who watches (§2.3). Name one source per sentence; do not stack stats.
-2. Paste a real pitch, or click the demo button (the cyberpunk Strong
+2. Paste a real pitch, or click the demo button (the Extraction action
    case), keep or fix the word chips, and confirm the comparable
    titles.
 3. Show the live run, then the verdict. If a real pitch produced a surprise, lead with it. If none did, say so and show how the control test protects against false confidence.
