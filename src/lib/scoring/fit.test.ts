@@ -51,15 +51,9 @@ describe("scoreAudience on fixtures", () => {
     assert.deepEqual(result.matchedTags, ["slow-burn", "space"]);
     assert.deepEqual(result.zeroTags, ["solitude", "quiet"]);
     assert.deepEqual(result.noDataTags, []);
-    // Pinned slow-burn at rank 2 of 20: 2*19/20. Space at rank 5: 16/20.
-    approx(result.score, (2 * (19 / 20) + 16 / 20) / 5);
-  });
-
-  it("counts pinned must-haves double", () => {
-    const unpinned = SAMPLE_PITCH_TAGS.map((t) => ({ ...t, pinned: false }));
-    const pinned = scoreAudience(tastesFor("hyp"), SAMPLE_PITCH_TAGS).score;
-    const plain = scoreAudience(tastesFor("hyp"), unpinned).score;
-    assert.ok(pinned > plain);
+    // Slow-burn at rank 2 of 20: 19/20. Space at rank 5: 16/20.
+    // Missing tags count as zero but still contribute their weight.
+    approx(result.score, (19 / 20 + 16 / 20) / 4);
   });
 
   it("reports every tag no-data on a short list", () => {
@@ -93,8 +87,9 @@ describe("scoreAudience on fixtures", () => {
     });
     assert.deepEqual(result.matchedTags, ["slow-burn", "solitude", "quiet"]);
     assert.deepEqual(result.zeroTags, ["space"]);
-    // Solitude rank 1 of 8, slow-burn rank 4 (pinned), quiet rank 5.
-    approx(result.score, (1 + 2 * (5 / 8) + 4 / 8) / 5);
+    // Solitude rank 1 of 8, slow-burn rank 4, quiet rank 5;
+    // space is zero but still contributes its weight.
+    approx(result.score, (1 + 5 / 8 + 4 / 8) / 4);
   });
 
   it("returns 0 with empty evidence on empty pitch tags instead of throwing", () => {
@@ -132,7 +127,6 @@ describe("scoreAudienceWeighted", () => {
     const borrowed = {
       tag: "slowness",
       qlooTagId: "urn:tag:mood:media:slow_burn",
-      pinned: false,
     };
     const result = scoreAudienceWeighted(tags, [
       { tag: SAMPLE_PITCH_TAGS[0], weight: 2 },

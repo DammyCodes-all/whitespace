@@ -3,7 +3,7 @@
  *
  * Fixtures and synthetic tastes only: no Qloo calls, no LLM calls, no
  * env keys. Covers the contract: bucket weights (distant is zero),
- * cap at 4, pinned exclusion, malformed rejection, exact-only fallback
+ * cap at 4, malformed rejection, exact-only fallback
  * equivalence, discrimination (right gap widens) and determinism.
  */
 
@@ -48,7 +48,7 @@ function wrongTastes(): AudienceTastes {
 function baseWtags() {
   return [
     {
-      tag: { tag: "base-word", qlooTagId: BASE, pinned: false },
+      tag: { tag: "base-word", qlooTagId: BASE },
       weight: 1,
     },
   ];
@@ -146,28 +146,22 @@ describe("toBridges", () => {
 
 describe("selectLeftoverWords", () => {
   const tags = [
-    { tag: "held", qlooTagId: "urn:tag:held", pinned: false },
-    { tag: "free", qlooTagId: "urn:tag:free", pinned: false },
-    { tag: "must", qlooTagId: "urn:tag:must", pinned: true },
+    { tag: "held", qlooTagId: "urn:tag:held" },
+    { tag: "free", qlooTagId: "urn:tag:free" },
+    { tag: "must", qlooTagId: "urn:tag:must" },
   ];
 
-  it("returns zero-everywhere non-pinned words in pitch order", () => {
+  it("returns zero-everywhere words in pitch order", () => {
     assert.deepEqual(selectLeftoverWords(tags, new Set(["urn:tag:held"])), [
       "free",
+      "must",
     ]);
   });
 
-  it("never bridges pinned must-haves", () => {
-    const words = [
-      { tag: "held", qlooTagId: "urn:tag:held", pinned: false },
-      { tag: "must", qlooTagId: "urn:tag:must", pinned: true },
-    ];
-    assert.deepEqual(selectLeftoverWords(words, new Set(["urn:tag:held"])), []);
-  });
-
   it("skips words already given a second chance", () => {
+    const words = [{ tag: "must", qlooTagId: "urn:tag:must" }];
     assert.deepEqual(
-      selectLeftoverWords(tags, new Set(["urn:tag:held"]), new Set(["free"])),
+      selectLeftoverWords(words, new Set(), new Set(["must"])),
       [],
     );
   });
@@ -176,7 +170,6 @@ describe("selectLeftoverWords", () => {
     const many = Array.from({ length: 6 }, (_, i) => ({
       tag: `w${i}`,
       qlooTagId: `urn:tag:free${i}`,
-      pinned: false,
     }));
     assert.equal(selectLeftoverWords(many, new Set()).length, 4);
   });
@@ -203,7 +196,6 @@ describe("bridgesToWeightedTags", () => {
     const out = bridgesToWeightedTags(bridges, names);
     assert.equal(out[0]?.weight, 0.75);
     assert.equal(out[1]?.weight, 0);
-    assert.equal(out[0]?.tag.pinned, false);
   });
 
   it("caps at MAX_BRIDGES", () => {
