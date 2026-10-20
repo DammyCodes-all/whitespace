@@ -390,7 +390,7 @@ only); docs record aggregates and conclusions.
 
 | Component | Responsibility |
 |---|---|
-| Qloo | Looking up titles and tags, audience tastes, related items, entity-seeded title suggestions, title tag labels. The source of every number, tag and title |
+| Qloo | Looking up titles and tags, audience tastes, related items, entity-seeded title suggestions, title tag labels. The source of every title, tag and input rank; scores are computed from those ranks |
 | The AI | Reads the pitch into words and type; picks which similar-labels fit the pitch (filters, never invents scoring tags); points leftover words at fetched tastes when bridges are on; writes chatbot prose; rewrites reach prose from the run's fact sheet |
 | Our code | Gates, rival discovery assembly, scoring, the control ceiling, the verdict, grounding, and the deterministic reach draft |
 

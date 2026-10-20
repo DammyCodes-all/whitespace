@@ -22,6 +22,12 @@ picked because the spec demo story is a film pitch (App. A), the film tag
 scope (`genre:media` + `keyword:media`) got the deeper probe, and mood-word
 pitches are film-shaped. Music stays a viable second domain.
 
+> **Reading this document (2026-10-20):** this is a chronological lab log, not
+> a single current state. Some early sections record states that were later
+> changed. Current: margins v1 are set at 0.05; the zero-ceiling guard shipped;
+> the rival re-plan shipped. Still outstanding: the 4-pitch live re-probe of
+> the re-plan (see the final section).
+
 ## Integration fixes the run forced (all in `src/lib/qloo/`)
 
 1. **Tastes: `filter.type=urn:tag` is required.** Without it the API silently
@@ -90,7 +96,12 @@ no surprise — the guess was right).
 3. **Show the guess**: confirm panel now states hypothesis titles, rival
    readings, and words with "is that your crowd?" before the run.
 
-## Day 10 Q status (2026-10-06)
+## Day 10 Q status (2026-10-06, historical)
+
+> **Status note (2026-10-20):** this section records the state before the key
+> landed. Margins v1 were set on 2026-10-09 (see "Margins v1" above), and the
+> zero-ceiling guard and rival re-plan have since shipped. The location call
+> and dead v2 modules were removed.
 
 1. **Location call (removed 2026-10-19, dead code).** The hackathon
    developer guide lists no city-concentration signal or filter for
@@ -101,16 +112,16 @@ no surprise — the guess was right).
    `/v2/insights?filter.type=urn:entity:place&signal.interests.entities=...`
    plus the city filter — if results do not attribute to the city, keep
    the map cut.
-2. **Margins v1 stay stubbed.** No live key is available in this
-   working tree, so the §6.7 calibration protocol has not run. The
-   protocol is ready: run 4+ pitches (the Day 8 pack) through
+2. **Margins v1 were stubbed at this point.** No live key was available in
+   this working tree, so the §6.7 calibration protocol had not run. The
+   protocol was ready: run 4+ pitches (the Day 8 pack) through
    `runPipeline` in one process — the new cache and quota guard
-   (§11) make the call counts meaningful — and record the observed
-   hypothesis-vs-control and hypothesis-vs-rival margins as S's
-   constants in `src/lib/policy/verdict.ts`. Until a key lands, the
-   tracker row must not claim margins are set; `verdict.ts` keeps its
-   explicit stub comments (§6.7: exact margins are decided week 1 on
-   real pitches, they are not findings).
+   (§11) made the call counts meaningful — and record the observed
+   hypothesis-vs-control and hypothesis-vs-rival margins as constants in
+   `src/lib/policy/verdict.ts`. Until a key landed, the tracker row was not
+   to claim margins were set; `verdict.ts` kept explicit stub comments
+   (§6.7: exact margins are decided week 1 on real pitches, they are not
+   findings).
 3. **`resetQuota()` per run** is wired (teammate, same day): the
    pipeline resets the quota counter at the start of each live run so
    the 150-call cap is per-run, not per-process.
@@ -283,8 +294,8 @@ was correct given degraded inputs. 14–16/20 controls at judged 0 is
 NORMAL for niche tags, so the guard must trigger on
 ceiling-is-0-with-empty-top-tagHits, not on "many zeros".
 
-Fix queued (not built): all-zero opposition → provisional, never
-Strong (§6.7, §10 #4).
+Fix shipped (2026-10-20): a judgeable ceiling of exactly 0.00 now
+returns Inconclusive/no-signal, never Strong (§6.7, §10 #4).
 
 ## AI word-bridge scoring (2026-10-13, no live calls)
 
@@ -368,6 +379,10 @@ answer instead. One extra attempt (3 domain calls), then an honest "no rivals".
   found nothing related: no request ran, so no claim was made.
 
 ### Live probe OWED (needs a key, run before submission)
+
+**Status 2026-10-20: still outstanding.** Minimum check: the three
+zero-rival pitches (mystery-noir, folk-horror, heist-crime) plus cyberpunk
+as the regression case; run all six if quota allows.
 
 Re-run the 6-pitch table above with the re-plan on and record:
 
