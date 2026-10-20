@@ -308,3 +308,79 @@ in code, so the AI points and our code scores — determinism (§10 #7)
 and grounding (§8, §6.12) survive. Acceptance bar: bridges must widen
 gaps (right audience rises, wrong ones stay), never inflate everyone
 together — re-check on the 6-pitch table.
+
+## Rival discovery re-plan (2026-10-20, code shipped, live probe OWED)
+
+### What the logs showed
+
+Two earlier runs in this file record the same failure, and it is not a data
+gap:
+
+- "Folk-horror and mystery-noir discovered zero rivals (all 3 domain calls
+  same status) — rival absence is honest (run continues, verdict Weak) but
+  narrows those runs to hyp-vs-ceiling." (Flow-path live Strong hunt)
+- "Heist discovery still returns 0 rivals (tag-seeded, all 3 domain calls
+  same shape)." (LLM-path re-run)
+
+Three of the six probe pitches found no rival audience at all. The headline
+case the product is built for — "your best fit is not the audience you named"
+— could not fire for them, because there were no rivals to beat.
+
+### The cause
+
+Discovery asked the graph with the pitch's matched tags:
+`GET /v2/insights?filter.type=urn:entity:<type>&signal.interests.tags=<8 ids>`.
+That is an intersection across every matched tag. On a niche pitch no work
+satisfies all eight adjectives at once, so the answer is empty even though
+the catalog is full. The entity question — `signal.interests.entities` with
+the ids of the titles the user named — asks a different thing ("what is
+related to Moon and Aftersun?"), and the code has never sent it live: the
+cyberpunk rival ("Fans of Mute", 0.10) came from the **tag** question, because
+tags-first was the only path the code had. Whether the entity question answers
+is exactly what the owed probe below is for.
+
+Note the code and the spec had drifted apart: spec §6.3 said rivals were
+"seeded from the named audience's entities when they exist, else from the
+pitch's matched tags", while `rival-discovery.ts` preferred the tags and only
+fell back to entities. Because the chip step almost always produces matched
+tags, the entity path was never taken. Spec §6.3 now describes what ships.
+
+### What shipped
+
+When the tag-seeded attempt **answers and returns nothing at all**, and the
+user named titles, the run asks the same graph from those titles and uses that
+answer instead. One extra attempt (3 domain calls), then an honest "no rivals".
+
+- The re-plan fires on an empty answer only. A partial result is a real
+  result — Qloo returning fewer rivals than asked for is allowed by §6.3, and
+  the re-plan does not fire for it.
+- A failed call is not an empty answer. `discoverRivals` now reports whether
+  any domain actually answered, so a timeout or 5xx on every discovery call
+  does not trigger a second attempt. Before that guard, an outage spent three
+  more calls on the same failing dependency and then said the pitch words
+  "found nothing related" — a claim the graph never made.
+- The second answer replaces the first wholesale, so the rivals and the
+  strangers baseline are cut from the same ranking.
+- Both attempts stay in the evidence drawer, each with its own seed, and the
+  run steps and the result both say the plan changed. A rival's citation
+  opens the attempt that produced it, not the empty one before it.
+- Keyless runs say "not searched, no Qloo key" rather than claiming the graph
+  found nothing related: no request ran, so no claim was made.
+
+### Live probe OWED (needs a key, run before submission)
+
+Re-run the 6-pitch table above with the re-plan on and record:
+
+| Pitch | Rivals before | Rivals after | Verdict before | Verdict after |
+|---|---|---|---|---|
+| cyberpunk | | | | |
+| space-survival | | | | |
+| mystery-noir | 0 | | | |
+| folk-horror | 0 | | | |
+| heist-crime | 0 | | | |
+| western-revenge | | | | |
+
+Pass conditions: the three zero-rival pitches now find rivals; cyberpunk's
+Strong survives (the re-plan did not disturb a working case); the call count
+on a healthy pitch is unchanged (the re-plan is not paid for when it is not
+needed). Publish the misses too.

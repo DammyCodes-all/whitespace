@@ -1,6 +1,6 @@
 # Devpost submission text
 
-Status: draft, 2026-10-19. Deadline **2026-10-30, 11:45pm EDT**
+Status: draft, 2026-10-20. Deadline **2026-10-30, 11:45pm EDT**
 (confirmed from the hackathon page). Judging criteria, confirmed the same
 day: **technological implementation**, **design**, **potential impact**,
 **quality of the idea**.
@@ -9,7 +9,14 @@ Every figure below is traced in [`impact-evidence.md`](impact-evidence.md).
 Before pasting, re-check that file — a misquoted number is the one thing
 that can sink the whole submission.
 
-Placeholders to fill: `DEMO_URL`, `REPO_URL`.
+Placeholders: **none left.** `DEMO_URL` → <https://whitespace-ecru.vercel.app/>
+(live on Vercel, verified 2026-10-20), `REPO_URL` →
+<https://github.com/DammyCodes-all/whitespace>.
+
+Deployment notes for the judges: the live demo needs no login and no
+sign-up. The static sample (`/demo/result`) renders the same result page
+from fixtures and makes no network calls, so the demo survives a dead
+network or an exhausted Qloo quota.
 
 ---
 
@@ -58,7 +65,9 @@ name the comparable titles the industry already asks you for. Then it runs:
    taste graph.
 2. **Rival audiences** — discovered from Qloo's related-entity graph, never
    proposed by a model. These are the audiences your work could have reached
-   instead of the one you named.
+   instead of the one you named. When the pitch's own words find nothing
+   related, the agent re-asks the graph from the titles you named and says so
+   in the run log.
 3. **Control audiences** — ~20 fixed other-genre audiences in the same domain,
    cached and scored identically. They are the bar your idea has to clear.
 4. **The verdict** — Strong / Mixed / Weak / Inconclusive, with the ranked
@@ -72,11 +81,25 @@ name the comparable titles the industry already asks you for. Then it runs:
 7. **The evidence drawer** — every Qloo call of the run: request, response
    summary, status, cache hit.
 
-The headline case is the one the product is built for: **"Your best fit is not
-the audience you named."** A filmmaker who thinks their film is for the fans
-of *Moonlight* and *Aftersun* may find out, measured, that the people who
-over-index on its actual themes are somewhere else entirely — and that the
-audience they named scores no better than unrelated strangers.
+**Most of the time your comparables are right.** That is the point of them —
+the whole trade markets a film by naming the films it is like, and the
+premise is that the comp's audience transfers. Nobody, though, measures how
+well it transfers. That is the service: the same guess, checked against
+twenty unrelated audiences, with the trace behind it.
+
+And when the rare case happens — the comps point somewhere the data does not
+support — the tool says so rather than agreeing with you. *"Your best fit is
+not the audience you named."* It is deliberately hard to earn: a rival has to
+beat your comparables by a clear margin, not just tie them.
+
+There is a second output that matters just as much, and it arrives on every
+run: **the crowd you did not name.** In a live back-test of *Get Out* —
+pitched as if unreleased, with *12 Years a Slave* and *Rosemary's Baby* as
+comps — the top rival Qloo surfaced was a documentary about African
+American history, and the second was a documentary about a Black woman's
+murder and the failure of the justice system. Neither had anything to do
+with the comps. Your comparables won, and the tool still handed you two
+audiences worth testing that you had not thought of.
 
 ### Why comps are the right input
 
@@ -125,6 +148,33 @@ invents a tag, a title, a score, an audience, an entity or a ranking. Scoring
 is code: rank `r` of `N` scores `(N − r + 1) / N`, raw strengths discarded,
 every audience scored as a weighted mean over one shared tag list.
 
+### It is an agentic tool
+
+The rules ask for a project that "functions as an agentic tool." This one does,
+in the strict sense: you give it a goal in plain language and it works out
+what to look up and in what order.
+
+The Qloo endpoints are its tools. It decides which to call, with what
+parameters, based on what it has already learned — seed rival discovery from
+your pitch's words, and when that answer comes back empty, notice that eight
+words at once is too narrow a question and ask again from the titles you named;
+build a strangers baseline only when the discovery ranking leaves one over;
+spend the reach calls only when an audience actually clears the control bar;
+and switch the verdict's baseline from the strangers to the other-genre control
+field when only one of them can be judged. A pitch about a software tool
+instead of a story is refused before the run makes a single taste call.
+
+Then it checks itself. After the output is assembled, every title, entity ID
+and scoring tag about to be shown is compared against the IDs Qloo returned in
+that run. Anything ungrounded is stripped and named in the run steps. That
+check runs at runtime, every run, and it is why a judge can open the evidence
+drawer and see that what they're judging is not a hallucination with a
+progress bar.
+
+The language model is one tool the agent uses, and a narrow one. We chose
+determinism on purpose: a tool that always agrees with the user's guess is
+worthless, and one that improvises its own judgment cannot be checked.
+
 **Three properties we built on purpose.**
 
 - *No data is never a low score.* A tag missing from a long enough taste list
@@ -152,10 +202,24 @@ every audience scored as a weighted mean over one shared tag list.
   lists return cross-domain noise (credit-card and restaurant tags for a
   movie audience), and unscoped tag search matches unrelated names
   (`slow-burn` → `specialty_dish:place`). Both now scope per work type.
+- **Our first discovery query was too narrow.** We seeded the taste graph with
+  the pitch's own words — eight tags at once. On a niche pitch that returns
+  nothing: no film satisfies all eight adjectives at the same time, so the
+  search came back with nothing and the run had no rival audiences to compare
+  against. It was not a data gap; it was the wrong question.
+  So the agent noticed the empty result, worked out that the pitch words were
+  the problem rather than the catalog, and re-ran the same search seeded from
+  the titles you'd named instead — *"what's related to Moon and Aftersun?"*
+  Same graph, sharper question, rivals appear. The run log shows both attempts,
+  and each rival's citation opens the search that produced it. It costs three
+  extra calls and only fires when the first answer is empty — an outage is
+  reported as an outage, not mistaken for an empty result.
 - **The verdict is a trap if you let the user's guess win by default.** The
   first working version made the named audience the favourite whenever scores
   were close. The control test, the surprise margin and the hold-out rounds
-  exist because a tool that agrees with you is worthless.
+  exist because a tool that *always* agrees with you is worthless. A tool
+  that agrees with you when the data supports it, and says so when it does
+  not, is the whole product.
 - **Free-tier AI and a monthly Qloo quota are both real constraints.** Every
   LLM call has a bounded timeout with a provider fallback; the reach prose
   falls back per section to a deterministic draft built from the same facts;
@@ -227,9 +291,9 @@ nextjs, typescript, tailwindcss, react, node.js, qloo-api
 
 ## Links
 
-- Live demo: `DEMO_URL`
-- Repository: `REPO_URL`
-- Static sample (no network needed): `DEMO_URL/demo/result`
+- Live demo: <https://whitespace-ecru.vercel.app/>
+- Repository: <https://github.com/DammyCodes-all/whitespace>
+- Static sample (no network needed): <https://whitespace-ecru.vercel.app/demo/result>
 
 ## Sources
 
