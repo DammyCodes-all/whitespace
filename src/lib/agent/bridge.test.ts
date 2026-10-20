@@ -244,10 +244,10 @@ describe("proposeBridges with a stubbed transport", () => {
       },
     ];
     const exact = scoreAllWeighted(tastes, [
-      { tag: { tag: "x", qlooTagId: "urn:tag:x", pinned: false }, weight: 1 },
+      { tag: { tag: "x", qlooTagId: "urn:tag:x" }, weight: 1 },
     ]);
     const fallback = scoreAllWeighted(tastes, [
-      { tag: { tag: "x", qlooTagId: "urn:tag:x", pinned: false }, weight: 1 },
+      { tag: { tag: "x", qlooTagId: "urn:tag:x" }, weight: 1 },
       ...bridgesToWeightedTags([], new Map()),
     ]);
     assert.deepEqual(fallback, exact);
@@ -293,7 +293,7 @@ describe("proposeBridges with a stubbed transport", () => {
 
 describe("usableBridges", () => {
   const weighted = (qlooTagId: string, weight: number): WeightedTag => ({
-    tag: { tag: qlooTagId, qlooTagId, pinned: false },
+    tag: { tag: qlooTagId, qlooTagId },
     weight,
     label: qlooTagId,
   });

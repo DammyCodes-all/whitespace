@@ -50,18 +50,10 @@ verdict and scores (§10 #7).
 
 ## Findings for Day 10 calibration (not fixed here)
 
-- **Exclusion subtract flattens generic matches.** Demo `nothingLike`
-  "Fast franchise action" fuzzy-resolves to Fast & Furious 6, whose tastes
-  include `genre:media:fiction`; subtraction then removes `fiction` from
-  every audience. Spec §6.6 flags exactly this: if it behaves badly, fall
-  back to an overlap warning. Test on real pitches before locking.
 - **Mood words rarely intersect top-50 tastes.** `solitude`/`quiet` match
   real tags but no tested audience over-indexes them; genre words carry the
   score. The Day 6.5 propose prompt already asks for genre/mood/setting
   words — weight toward genre/theme when calibrating.
-- **Demo `nothingLike` should be concrete titles.** A descriptive phrase
-  ("Fast franchise action") resolves fuzzily and distorts exclusion; Day 8
-  fixtures must use real titles.
 
 ## Margins v1 (set 2026-10-09, live)
 
@@ -71,11 +63,11 @@ surprise observed yet). Basis, all live on hackathon Qloo, film:
 
 | Input (words) | Top | Best control | Gap |
 |---|---|---|---|
-| space, mid-specificity (alien/survival/dystopia/scientist, alien pinned) | hyp 0.744 | Sci-fi epic 0.644 | **0.100** |
+| space, mid-specificity (alien/survival/dystopia/scientist) | hyp 0.744 | Sci-fi epic 0.644 | **0.100** |
 | space, broad genre (science-fiction/fiction/dystopia/space) | rival-amb 0.488 | Horror 0.488 | 0.028 |
 | horror, mid-specificity (horror/folk-horror/grief/ghost) | hyp 0.160 | Fantasy 0.180 | -0.020 |
 | Day 8 pack, all 4 entries (mood-level words) | — | — | 0 (all zeros / Inconclusive) |
-| user space pitch, same 4 words + auto-expansion | hyp 0.360 | Horror 0.262 | **0.098 → Strong** |
+| user space pitch, same 4 words + AI bridge | hyp 0.360 | Horror 0.262 | **0.098 → Strong** |
 
 0.05 sits between observed noise (≤0.03) and observed signal (0.10).
 Companion fixes shipped the same day: tag resolve prefers the
@@ -91,29 +83,24 @@ no surprise — the guess was right).
    Qloo calls instead of a fake all-zeros Weak. Rule: tool-creation or
    utility-behavior signal without creative-work framing. A film ABOUT a
    bot stays in scope (framing wins).
-2. **Concept audience** (`src/lib/qloo/concept.ts`): `signal.interests.tags`
-   on `/v2/insights` verified live (sci-fi tag signal → 200, tag affinities).
-   Scored as a contender beside movie-fan audiences. Live: space run stays
-   **Strong** (hyp 0.360 vs Horror 0.262) with concept at 0.000 — the idea
-   gets tested without circularity inflation. Horror run: concept no-data
-   (short list), verdict unchanged Weak.
+2. **Concept audience (removed 2026-10-19, dead code).** Used to call
+   `signal.interests.tags` on `/v2/insights` and score a concept contender
+   beside movie-fan audiences. The module was never reachable from a live
+   route, so it was deleted along with its test.
 3. **Show the guess**: confirm panel now states hypothesis titles, rival
    readings, and words with "is that your crowd?" before the run.
 
 ## Day 10 Q status (2026-10-06)
 
-1. **Location call: ship the guard, hide the map.** No live key in the
-   working tree for a city probe, and the hackathon developer guide
-   lists no city-concentration signal or filter for `/v2/insights` —
-   so `src/lib/qloo/location.ts` ships the §6.8 thin-data guard
-   (`MIN_PLACES_FOR_MAP = 5`), but `fetchLocation` fails closed and always returns `hidden` with a
-   machine-readable reason until a verified city-scoping parameter
-   exists. The map UI stays unwired; per §12 city map is cut first, so
-   "hidden with reason" is the shipped state, not a TODO. When a key
-   verifies a real city filter, the candidate-word probe is:
+1. **Location call (removed 2026-10-19, dead code).** The hackathon
+   developer guide lists no city-concentration signal or filter for
+   `/v2/insights`, so the old module could only return `hidden`; it was
+   never reachable from a live route. The city map stays cut and no
+   location call runs. If a key ever verifies a real city filter, the
+   candidate probe is
    `/v2/insights?filter.type=urn:entity:place&signal.interests.entities=...`
-   plus the city filter — if results do not attribute to the city,
-   keep hiding.
+   plus the city filter — if results do not attribute to the city, keep
+   the map cut.
 2. **Margins v1 stay stubbed.** No live key is available in this
    working tree, so the §6.7 calibration protocol has not run. The
    protocol is ready: run 4+ pitches (the Day 8 pack) through
@@ -314,7 +301,7 @@ Qloo calls; the bridge generalizes it to true semantic links
 Locked rules (spec refs §6.6, §7, §8): the AI only points leftover
 words at already-fetched taste ids plus a bucket — strong 0.75,
 related 0.5, distant 0 (considered, not counted). Max 4 bridges per
-run; pinned must-haves stay exact-only; buckets-only output or the
+run; buckets-only output or the
 run continues on exact matches; AI failure falls back silently;
 every bridge renders as `word→Tag (AI: bucket)`. Fixed weights live
 in code, so the AI points and our code scores — determinism (§10 #7)

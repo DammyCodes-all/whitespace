@@ -24,15 +24,88 @@ never as a low score.
 
 ## 2. Problem
 
-You make something for months. Friends say it's great. It launches, and the people who show up are the ones who already liked your last thing. You picked an audience, then checked it only against people who already liked you. Nobody compared it with the other audiences it could have fit, and nobody told you where to find them.
+Every figure below is other people's research, cited in full in
+`docs/impact-evidence.md`. None of it is a Whitespace measurement, and §4
+still binds: the product never predicts size, reach or success.
 
-This is a scenario, not a finding. Nothing in this section is backed by a statistic yet. If the team finds a source, add it here. Until then the wording stays soft.
+### 2.1 The audience data exists — and it is locked away from the people who need it
+
+Independent film operates outside the system that commissions the $192B US
+film industry, and its audience research sits behind the same firms that sell
+to it. The Harvard Kennedy School's Shorenstein Center, after surveying
+14,421 US adults and combining that with Nielsen, Parrot Analytics and The
+Numbers, put it plainly: *"Data is not publicly available to small
+independent film businesses or independent creators, which puts this sector at
+a disadvantage compared to the large, tech enabled businesses dominating the
+US media."* The BFI found the same wall in the UK, where audience research on
+individual titles was *"prohibitively expensive for independent
+distributors"*.
+
+### 2.2 The gap between interest and reach is measured, and large
+
+The same Shorenstein study estimates a **76.3M** addressable audience for US
+independent film against **36.7M** people who actually watched one in
+2022–23 — roughly 40M in between. The shortfall is a discovery problem, not
+an appetite problem: per-title viewing is low *"due to the lack of marketing
+to bring attention to small titles"*, and 90% of Netflix viewers never leave
+the home page to decide what to watch. The supply side tells the same story:
+Nollywood produces roughly **2,500 films a year** (UNESCO), with no
+comparable public audience data to match them against demand.
+
+### 2.3 Creators already do the right thing — by hand
+
+They are not sitting on this problem. The trade's own ritual is the input
+Whitespace uses. Sundance's pitch deck guidelines require comparable films,
+because *"a creative comp shows audience interest for your film (no
+figures)"*. A comp is how the industry says "this is who it is for". What no
+one gives a creator is what stands *behind* those comps — the audience,
+measured against the audiences the same work could have reached instead.
+
+There is a second reason the guess is hard to check by eye: taste, not
+demographics, decides what people watch. In a peer-reviewed study of 3,204
+viewers rating 209 films, NYU's Wallisch and Whritner found *"the industry's
+targeting of film goers by broad demographic categories seems off the mark"*
+— age and gender explained little agreement between viewers — and their
+prescription was to slice audiences into **taste clusters**. Whitespace
+compares audiences by taste against a control set because the research says
+that is the axis that carries signal.
+
+### 2.4 The cost of guessing wrong lands on people who can least afford it
+
+**54%** of independent musicians name *"getting music heard"* as their
+biggest challenge (Musician's Census 2024, n=300). Discoverability is the
+single biggest barrier for **35.8%** of independent rappers (Rap Report 2026,
+n=1,595), with ~70% naming discovery or promotion among their biggest
+struggles. **74%** of 5,039 independent artists earned under $1,000 from
+music in the past year (Ditto 2026). These three surveys are run by
+companies that sell to artists — primary testimony from a biased sample, and
+they agree on the ranking.
+
+### 2.5 The gap Whitespace closes
+
+The creator's guess stays; it just stops being the only guess. Whitespace
+takes the *"similar to"* titles the creator already writes, scores the
+audience behind them, discovers rival audiences from the same data, scores
+both against unrelated control audiences, and says which one actually fits —
+or says the evidence is not there. It never says how many people are in the
+audience, and it never says the work will succeed.
+
+### 2.6 What the evidence does not say
+
+- The film figures are **US-only**, and the UK confirmation is a separate
+  institution, not an extrapolation.
+- The music figures come from **vendor-run surveys of their own users** —
+  useful as testimony, not as a market size.
+- None of it shows that creators *cannot* pick an audience, only that they
+  cannot check the pick with data they do not have.
+- None of it shows anyone will pay for this. See §3.1.
 
 ## 3. Users
 
 User and buyer: the creator who chooses their own audience. Examples are an indie filmmaker, a musician, an author, a small game studio, or a restaurant concept owner. The creator uses the product directly and is the person it is built to serve.
 
 Whether creators will pay has not been checked. Authors are known to pay for research tools (Publisher Rocket is one example), and artist-data tools like Chartmetric exist, but nobody on the team has asked creators in the chosen domain. The cheapest check is to show a sample result to three or four of them and ask what they would do the next morning.
+
 
 ## 4. Goals, non-goals and claims we will not make
 
@@ -55,6 +128,9 @@ Claims we will not make
 2. That it knows how many people are in an audience. Qloo shows what an audience likes, not headcounts, as far as we know.
 3. That a market is empty or unserved. The name Whitespace should be explained as the audience you did not know your work fit.
 4. That anyone is using it or that buyers will pay.
+5. That it closes the ~40M gap between the addressable and the actual audience for US independent film (§2.2). That gap is evidence the problem is real and worth money, not a promise about what the product does.
+6. That the research in §2 is ours, or that the three music surveys describe the whole music industry. They are other people's studies of their own users, cited as such.
+7. That creators are bad at picking an audience. The claim is that they cannot *check* the pick with data they do not have (§2.1).
 
 ## 5. User journey
 
@@ -85,8 +161,7 @@ checking is on demand). The run re-resolves every title live and
 reports misses as not found, so the pre-check is informational
 and the run stays the source of truth. With no title the run
 stays disabled: title-grounded tags need a title to ground in.
-There is no "nothing like" input on the flow path: exclusion is
-unwired.
+There is no "nothing like" input on the flow path.
 
 ### 6.2 Named audience
 
@@ -221,8 +296,7 @@ it may rephrase but may not add an entity, number or claim. A
 deterministic draft is built first and remains the fallback for any
 section the model cannot ground. Rank order lives in the prose.
 Gaps — what the winner loves that the pitch lacks — come from taste
-display names. The city map is cut: the map UI stays unwired and
-location calls fail closed.
+display names. The city map is cut, and no location call runs.
 
 ### 6.10 Output pages
 
@@ -299,7 +373,9 @@ bridges are on) — everything else is code and deterministic.
 
 Length: about 90 seconds.
 
-1. State the problem in two sentences.
+1. State the problem in two sentences: the audience data is locked away from
+   the people who need it (§2.1), and taste — not demographics — decides
+   who watches (§2.3). Name one source per sentence; do not stack stats.
 2. Paste a real pitch, keep or fix the word chips, tap a suggested title.
 3. Show the live run, then the verdict. If a real pitch produced a surprise, lead with it. If none did, say so and show how the control test protects against false confidence.
 4. Open the reach card: one vertical prose block per audience, written
@@ -338,8 +414,10 @@ Test 3 is a decision gate, not a pass or fail on shipping. A tool that always ag
 | Reach prose invents an entity or relationship | Fictional demo entities make world knowledge unreliable, and the product promises it does not make things up | Model writes only from the run's fact sheet; validation rejects unknown names, new numbers, rank drift and speculation; deterministic draft fallback |
 | Verdicts swing on wording near the margins | Re-runs read inconsistently | The user locks the word set before the run; close-call flag |
 | Book/game taste data is thin | Scores read 0.00 that may be missing data, not dislike | Both on hold; film first, music second |
-| Location data is thin for the chosen city | The city map would mislead | Cut. Fails closed with a reason |
-| Whether creators will pay is unverified | Judges ask who pays | Show the sample result to a few creators in the target group |
+| Location data is thin for the chosen city | The city map would mislead | Cut. No location call runs |
+| Whether creators will pay is unverified | Judges ask who pays | Show the sample result to a few creators in the target group; run the §3.1 back-test and free-run offers until at least one real creator has reacted |
+| The impact evidence is other people's research | Judges check sources; one misquoted figure costs the whole case | Every figure traced to a primary source in `docs/impact-evidence.md`; the caveats (US-only, vendor-run samples) travel with the number into the write-up |
+| No creator has used the product | "Potential impact" needs a real audience, and none has confirmed one | §3.1. Until a real reaction exists, the claim stops at "the problem is documented" and says so |
 | The name suggests gap finding | Judges may expect a market-gap tool | Explain the name in the pitch and make no unserved-market claims |
 | Close neighbors on the hackathon list | Entries like CultureFit Guard, SponsorScout, CulturePilot and TasteCritic overlap in part | Lead with rivals and the control test |
 
@@ -355,10 +433,10 @@ evidence drawer, static sample page.
 Cut: city map, printable audience case, second-domain support
 (book/game on hold).
 
-Deliberately unwired on the flow path: exclusion ("nothing like"),
-tag-expansion retry, concept audience, pinned must-have words.
-Each is a live option with a known shape (see `docs/qloo-coverage.md`)
-if a future test earns it back.
+Removed from the codebase, not parked behind a flag: exclusion
+("nothing like"), tag-expansion retry, concept audience, pinned
+must-have words, and the city-map, concept-audience and
+LLM-proposed-rival modules.
 
 ## 13. Competition
 
@@ -370,28 +448,40 @@ These descriptions come from the vendors' own materials and have not been indepe
 | Greenlight Essentials | Screenplay analysis that identifies core audiences for indie filmmakers | Whitespace tests the user's guess against rivals and a control, and gives a reach plan |
 | Chartmetric, Viberate, Soundcharts | Artist audience data by city | These start from an artist. Whitespace starts from an idea |
 | Publisher Rocket | Amazon keyword and category research for authors | Amazon data only. No cross-domain taste |
+| Parrot Analytics | Audience-demand measurement for film and TV, sold to studios and distributors; a contributor to the Shorenstein study (§2.1) | Parrot measures demand for **released** work. Whitespace scores a work that does not exist yet, against its rivals, and says who it fits |
+| BFI audience tracker | Public audience data for UK indie releases, funded as a public good (§2.1) | A sector-wide tracker for released films. Whitespace is per-pitch, per-creator, and cross-domain |
+| A plain chatbot | Answers "who is this for and where do I find them" from model weights | No measured data, no control, no trace. The app shows both answers side by side (§6.11) |
 
 What sets Whitespace apart is the rival audiences, the control test, honest "no data" handling, and recorded Qloo calls behind every run.
+
+The gap the incumbents leave is not features, it is *timing and cost*: the
+research in §2.1 says independent creators are the group the audience data
+is locked away from, and every tool above either works on released work or
+sits behind an enterprise price. The input Whitespace asks for — comparable
+titles — is the artifact a creator already produces for a pitch deck (§2.3).
 
 ## 14. Open decisions
 
 1. Re-running the 6-pitch table to confirm bridges discriminate (widens gaps) rather than inflate.
-2. Whether the city map ever ships (currently cut, fails closed).
-3. Whether exclusion, expansion, concept or pinning earn their way back onto the flow path.
+2. Whether the city map ever ships (currently cut; no location call runs).
+3. Whether any of the removed options (exclusion, expansion, concept or pinning) are ever rebuilt onto the flow path.
 4. Final re-calibration of verdict margins once bridges are in the live mix.
-5. Whether any other sponsor technology or extra judging criteria on the Devpost page carry points. Check the page again before building.
+5. ~~Whether any other sponsor technology or extra judging criteria on the Devpost page carry points. Check the page again before building.~~ Checked 2026-10-19: the four judging criteria are technological implementation, design, potential impact, and quality of the idea. No extra sponsor technology is required.
 6. ~~Repository license.~~ Decided 2026-10-19: MIT (`LICENSE` at the repo
    root, so GitHub shows it in the repo About section).
-7. The deadline's time zone.
-8. Required Devpost fields complete, per the current rules on the page.
+7. The deadline's time zone. Confirmed 2026-10-19: 2026-10-30, 11:45pm EDT.
+8. ~~Required Devpost fields complete, per the current rules on the page.~~ The page requires: a live functional demo URL, a public repo, a text description, external hosting, and an open-source licence visible in the repo About section. The description text is drafted in `docs/devpost-description.md`; the rest are §15.
+9. Where the demo is hosted. The page requires external hosting and no deploy config exists in the repo yet (no Vercel/Netlify/Railway file). Needs a real public URL before submission, and the `DEMO_URL` placeholder in `docs/devpost-description.md` filled in.
 
 ## 15. Submission checklist
 
 1. The live demo loads with no login.
 2. Public repository with a README covering setup, the Qloo calls used and the grounding check.
-3. Description text that matches the brief, with no claims about outcomes or users.
+3. Description text that matches the brief, with no claims about outcomes or users — `docs/devpost-description.md`.
 4. Static sample result included (`/demo/result`, no Qloo calls).
 5. Required Devpost fields complete, per the current rules on the page.
+6. README carries the same sourced problem statement as §2, with a Sources section pointing at `docs/impact-evidence.md`.
+7. Every figure quoted in the description and the README matches `docs/impact-evidence.md` exactly, caveats included.
 
 ## Appendix A. Illustrative example (invented, not Qloo output)
 
