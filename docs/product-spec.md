@@ -163,6 +163,14 @@ and the run stays the source of truth. With no title the run
 stays disabled: title-grounded tags need a title to ground in.
 There is no "nothing like" input on the flow path.
 
+One worked example is one click from the live landing: the demo
+button beside the primary action loads the cyberpunk pitch and comps
+that produced the Strong result in the 6-pitch hunt. It hands over the
+pitch and its comparable titles; the titles arrive prefilled in the
+titles leg and still go through Check and the run's own live
+resolution. The demo creates no special path — same gates, same Qloo
+calls, same evidence.
+
 ### 6.2 Named audience
 
 The user-confirmed similar titles (at least 1) are resolved
@@ -249,8 +257,17 @@ Qloo describes each audience as a taste list ranked by strength. The
 app keeps the order and discards the raw strengths (ranks only,
 never counts): rank r of N scores (N − r + 1) / N. Each audience's
 fit is the weighted mean across one shared tag list, 0 to 1. There
-is no pinning on the flow path: every exact tag weighs 1. The
-circular fix is hold-out rounds: a full-set round plus one round
+is no pinning on the flow path: every exact tag weighs 1.
+
+Scores stay 0–1 in the pipeline. Every surface that shows one renders
+it as a **fit index** out of 100 (rounded once at display), defined in
+place as relative to the audiences measured in that run and explicitly
+not a probability. No score is ever shown with a percent sign, and the
+result headline never says "matches your idea". The targeting brief
+carries the same definition, because a pasted brief travels without the
+screen around it.
+
+The circular fix is hold-out rounds: a full-set round plus one round
 per gifting title, each round rescoring every audience — named,
 rivals, controls, strangers — on the same reduced set. The verdict
 uses full-set scores; hold-out deltas render beside the named row
@@ -360,8 +377,8 @@ display names. The city map is cut, and no location call runs.
 ### 6.10 Output pages
 
 The flow result page carries the verdict band, ranked bars with
-scores, the reach card (one vertical prose block per audience), and
-the chatbot comparison, followed by the evidence drawer. The
+the fit index, the reach card (one vertical prose block per audience),
+and the chatbot comparison, followed by the evidence drawer. The
 header's sample result is a static showcase page rendering the same
 components over fixtures — it uses fixture reach prose and makes no
 Qloo or AI calls. (The old printable audience-case page was removed
@@ -440,7 +457,9 @@ Length: about 90 seconds.
 1. State the problem in two sentences: the audience data is locked away from
    the people who need it (§2.1), and taste — not demographics — decides
    who watches (§2.3). Name one source per sentence; do not stack stats.
-2. Paste a real pitch, keep or fix the word chips, tap a suggested title.
+2. Paste a real pitch, or click the demo button (the cyberpunk Strong
+   case), keep or fix the word chips, and confirm the comparable
+   titles.
 3. Show the live run, then the verdict. If a real pitch produced a surprise, lead with it. If none did, say so and show how the control test protects against false confidence.
 4. Open the reach card: one vertical prose block per audience, written
    from the measured names, ranks, descriptions and gaps.
@@ -489,8 +508,9 @@ Test 3 is a decision gate, not a pass or fail on shipping. A tool that always ag
 
 ## 12. Ship status
 
-Shipped (flow path): idea entry with detected type, tag chips with
-live match status and the matched-tag gate, named audience plus
+Shipped (flow path): idea entry with detected type, a one-click demo
+pitch (Strong) that carries its comps, tag chips with live match
+status and the matched-tag gate, named audience plus
 Qloo-discovered rivals with the re-plan when the pitch's words find
 nothing (§6.3), cached controls with pitch-aware ceiling,
 rank scoring with AI bridges, verdict with guards, reach card with

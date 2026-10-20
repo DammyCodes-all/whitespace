@@ -1,8 +1,9 @@
 import type { ChatbotView } from "@/components/chatbot-preview";
 import { ChatbotTitles, verdictBand } from "@/components/compare-shared";
-import { buildCopy, pct } from "@/lib/compare/copy";
+import { buildCopy } from "@/lib/compare/copy";
 import type { FlowResult } from "@/lib/flow/contract";
 import { barRows } from "@/lib/flow/contract";
+import { fitIndex } from "@/lib/scoring/fit-index";
 import type { Verdict } from "@/lib/types";
 
 /**
@@ -71,7 +72,7 @@ export function FlowCompareView({
     top !== undefined &&
     result.ceiling !== null &&
     (verdict === "Strong" || verdict === "Mixed")
-      ? pct(top.score - result.ceiling)
+      ? fitIndex(top.score - result.ceiling)
       : null;
   const reach = result.reach?.[0] ?? null;
   const reachInterests = (reach?.interests ?? []).slice(0, 3);
@@ -126,7 +127,8 @@ export function FlowCompareView({
           ))}
           {gapPoints !== null && (
             <p className="mt-2 text-sm font-medium leading-relaxed text-ink">
-              Clears strangers by {gapPoints} points. That gap is the verdict.
+              Clears strangers by {gapPoints} fit-index points. That gap is the
+              verdict.
             </p>
           )}
           {reachInterests.length > 0 && reach !== null && (

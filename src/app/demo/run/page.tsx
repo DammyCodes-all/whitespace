@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DemoRun } from "@/components/demo/demo-run";
+import { startTitles } from "@/lib/flow/start-pitch";
 
 export const metadata: Metadata = {
   title: "Demo run: Whitespace",
@@ -11,7 +12,12 @@ export const metadata: Metadata = {
  * Demo mirror of /run: blank page, orb work happens here, every route
  * answered from fixtures. Enter via /demo/flow.
  */
-export default function DemoRunPage() {
+export default async function DemoRunPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = (await searchParams) ?? {};
   return (
     <main id="main-content" className="page-enter flex flex-1 flex-col">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-6 pt-6 sm:px-8">
@@ -20,7 +26,7 @@ export default function DemoRunPage() {
         </p>
       </div>
       <Suspense>
-        <DemoRun />
+        <DemoRun initialSimilarTitles={startTitles(params)} />
       </Suspense>
     </main>
   );

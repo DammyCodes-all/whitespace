@@ -22,7 +22,7 @@ One-line read: this product is a sharp-eyed friend with opinions. It is not a la
 
 Voice: plain words, short sentences, contractions, a bit of attitude. "Here's who it's actually for." The one place the attitude stops is uncertainty. Say "not measured", never "hmm, couldn't find that!". A joke about missing data reads as a dodge.
 
-Motion is short. Bars grow from zero over about 300ms with ease-out when a result lands. Fit scores count up over about 200ms. The ranked list re-orders with FLIP so the margin change is visible, and the control line slides if it moves. The surprise block pops in from 96% scale over 220ms. Nothing else animates, and a not-measured state never animates into a number. Everything goes still under `prefers-reduced-motion`.
+Motion is short. Bars grow from zero over about 300ms with ease-out when a result lands. Fit index values count up over about 200ms. The ranked list re-orders with FLIP so the margin change is visible, and the control line slides if it moves. The surprise block pops in from 96% scale over 220ms. Nothing else animates, and a not-measured state never animates into a number. Everything goes still under `prefers-reduced-motion`.
 
 ## 2. The one graphic that is the product
 
@@ -92,7 +92,7 @@ Bricolage Grotesque, Figtree and IBM Plex Mono. All three are on Google Fonts, s
 
 - Bricolage Grotesque: headlines, the verdict sentence, audience names, the surprise banner, and the one-line idea on the case page. Use weights 600 to 800 at 28px and up, with tight leading. It has attitude without turning into a gimmick.
 - Figtree: all UI and body text at 15 to 16px, leading around 1.5, measure capped near 68ch.
-- IBM Plex Mono: every number that changes while a run streams, coverage fractions, and the raw Qloo payloads in the evidence drawer (13px, tight, scrollable). Request 400 and 500 and nothing heavier. Its tabular numerals are explicit and reliable, so streaming scores don't jitter. A final score that no longer updates, such as the hero number on the case page, can be set in Bricolage at display size.
+- IBM Plex Mono: every number that changes while a run streams, coverage fractions, and the raw Qloo payloads in the evidence drawer (13px, tight, scrollable). Request 400 and 500 and nothing heavier. Its tabular numerals are explicit and reliable, so streaming fit-index numbers don't jitter. A final fit index that no longer updates, such as the hero number on the case page, can be set in Bricolage at display size.
 
 When the chatbot's ungrounded output sits next to ours (§6.11), mono makes it look raw: same weight as our panel, visibly unprocessed. Our side is colored and labeled, theirs is plain text with no citations, and the comparison makes the point on its own.
 
