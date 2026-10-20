@@ -3,9 +3,9 @@
 > Before you ship, find out who it's actually for.
 
 **Live demo:** <https://whitespace-ecru.vercel.app/> (no login) ·
-[Static sample result](https://whitespace-ecru.vercel.app/demo/result)
-(fixtures only — no Qloo or AI calls, the fallback when the network or the
-Qloo quota is down).
+[Recorded sample result](https://whitespace-ecru.vercel.app/demo/result)
+(one real live run replayed with its evidence — no Qloo or AI calls now, so
+it survives a dead network or an exhausted Qloo quota).
 
 Whitespace is an agent that tells a creator which audience their idea fits, how
 strongly, and where to find those people. Paste an idea — a film, an album, a
@@ -14,7 +14,7 @@ lets you confirm the words and name similar titles, then scores your named
 audience plus rival audiences it discovers against ~20 unrelated control
 audiences using [Qloo](https://qloo.com) taste data.
 
-Every title, tag and entity ID in the result is grounded in a recorded Qloo
+Every title, tag and entity ID in a live result is grounded in a recorded Qloo
 call; scores are computed in code from Qloo's ranked tastes, and every Qloo
 call is in the evidence drawer — so the reasoning can be checked, not just
 read.
@@ -163,9 +163,10 @@ scores on exact Qloo matches.
   Nothing is invented to fill the gap: the run reads no-data or Inconclusive.
 - No LLM key → tag extraction and the chatbot comparison degrade to their
   honest empty states; the scored run still works on exact matches.
-- [`/demo/result`](http://localhost:3000/demo/result) is a **static** sample
-  result page built from fixtures. It makes no Qloo or AI calls and is the
-  demo fallback if the network is down. Live copy:
+- [`/demo/result`](http://localhost:3000/demo/result) is a **static** page
+  that replays one real recorded Qloo run (96 calls, 24 audiences) with its
+  evidence drawer. It makes no Qloo or AI calls now and is the demo fallback
+  if the network is down. Live copy:
   <https://whitespace-ecru.vercel.app/demo/result>.
 
 ## Qloo calls used
@@ -253,7 +254,7 @@ run:
 ## Repository layout
 
 ```
-src/app/            routes: entry (/), run (/flow), static sample (/demo/result), API routes
+src/app/            routes: entry (/), run (/flow), recorded sample (/demo/result), API routes
 src/components/     UI: entry, flow steps, result, reach card, chatbot comparison, evidence drawer
 src/components/ui/orb/  the vendored orb widget, split by concern: the React shell (morph-orb), the runtime state machine, the timeline, the canvas renderer, the trail, the channel map
 src/lib/qloo/       Qloo boundary: client (auth/retry/cache/quota), titles, tags, tastes, rivals, controls, related
@@ -273,7 +274,9 @@ docs/               product spec, impact evidence (every sourced figure), Devpos
   their taste data is thin in the Qloo hackathon dataset, so they are on hold.
 - A pre-registered one-film back-test came out **PARTIAL**: the tool mirrored
   the comps and surfaced the crossover crowd as rivals, but the surprise
-  headline did not fire. Results are in
+  headline did not fire. The published surprise rate is **0/2 (0%)**, so the
+  default result reports the fit rather than a twist; the surprise banner is
+  a conditional finding, not the promise. Results are in
   [`docs/backtest-results.md`](docs/backtest-results.md); a second film is
   still to run.
 - The name means *the audience you did not know your work fit*, not an empty
