@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, type TestContext } from "node:test";
 import { MIN_MATCHED_TAGS } from "../config.ts";
 import { clearControlCache } from "../qloo/control-cache.ts";
 import { CONTROL_SEEDS } from "../qloo/control-seeds.ts";
@@ -17,12 +17,166 @@ const tags = (n: number) =>
     status: "matched" as const,
   }));
 
+// ── Shared transport for the rival-discovery tests ──
+//
+// Every Qloo route answers in-process; only the rival-discovery answer
+// varies. The pool comes off Moon's tastes (alpha, beta, gamma, f1..f9
+// — held by no control, so the generic cut keeps all 12), which keeps
+// the run scoreable without asserting anything about the score.
+
+const ids = (names: string[]) => names.map((id) => ({ tag_id: id, name: id }));
+
+const HYP_TAGS = [
+  "urn:tag:alpha",
+  "urn:tag:beta",
+  "urn:tag:gamma",
+  ...Array.from({ length: 9 }, (_, i) => `urn:tag:f${i + 1}`),
+  ...Array.from({ length: 38 }, (_, i) => `urn:tag:g${i}`),
+];
+
+// The re-planned rivals tie the named audience: these tests assert
+// which attempt produced them, not the score.
+const RIVAL_TAGS = [
+  "urn:tag:alpha",
+  "urn:tag:beta",
+  ...Array.from({ length: 9 }, (_, i) => `urn:tag:f${i + 1}`),
+  "urn:tag:gamma",
+  ...Array.from({ length: 38 }, (_, i) => `urn:tag:sx${i}`),
+];
+
+const LOW_TAGS = Array.from({ length: 50 }, (_, i) => `urn:tag:low${i}`);
+
+type DiscoveryAnswer = "empty" | "rivals" | "error";
+
+/**
+ * Stub the whole Qloo surface for a flow run.
+ *
+ * - `empty`: the tag-seeded attempt finds nothing, the entity-seeded
+ *   one finds rivals (the case the re-plan exists for).
+ * - `rivals`: the first attempt already succeeds.
+ * - `error`: every discovery call fails with a non-retryable 400, the
+ *   outage case that must not trigger a second attempt.
+ *
+ * Returns the discovery seeds in call order, so a test can assert how
+ * many questions were asked and which ones.
+ */
+function stubFlowFetch(t: TestContext, answer: DiscoveryAnswer): string[] {
+  const seeds: string[] = [];
+  t.mock.method(globalThis, "fetch", (async (input: unknown) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/search") {
+      const query = url.searchParams.get("query") ?? "";
+      return new Response(
+        JSON.stringify({
+          success: true,
+          results: [
+            { entity_id: `id:${query}`, name: query, type: "urn:entity:movie" },
+          ],
+        }),
+        { status: 200 },
+      );
+    }
+    const filterType = url.searchParams.get("filter.type") ?? "";
+    if (filterType === "urn:tag") {
+      const entities = (
+        url.searchParams.get("signal.interests.entities") ?? ""
+      ).split(",");
+      let tags = LOW_TAGS;
+      if (entities.includes("id:Moon")) tags = HYP_TAGS;
+      else if (entities.some((e) => e.startsWith("id:replan"))) {
+        tags = RIVAL_TAGS;
+      }
+      return new Response(
+        JSON.stringify({ success: true, results: { tags: ids(tags) } }),
+        { status: 200 },
+      );
+    }
+    if (
+      filterType === "urn:entity:podcast" ||
+      filterType === "urn:entity:person" ||
+      filterType === "urn:entity:brand" ||
+      filterType === "urn:entity:place"
+    ) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          results: [
+            {
+              entity_id: `id:reach-${filterType}`,
+              name: `Reach ${filterType}`,
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    }
+    // Discovery: own domain first, then the cross domains.
+    const seededByTags = url.searchParams.get("signal.interests.tags") !== null;
+    seeds.push(seededByTags ? "tags" : "entities");
+    if (answer === "error") {
+      return new Response("", { status: 400 });
+    }
+    if (answer === "empty" && seededByTags) {
+      return new Response(JSON.stringify({ success: true, results: [] }), {
+        status: 200,
+      });
+    }
+    const isOwn = filterType === "urn:entity:movie";
+    const count = isOwn ? 6 : 2;
+    const label = filterType.replace("urn:entity:", "");
+    const verb = answer === "empty" ? "Replan" : "Rival";
+    const idPrefix = answer === "empty" ? "replan" : "rival";
+    const entities = Array.from({ length: count }, (_, i) => ({
+      entity_id: `id:${idPrefix}-${label}-e${i + 1}`,
+      name: `${verb} ${label} ${i + 1}`,
+    }));
+    return new Response(JSON.stringify({ success: true, results: entities }), {
+      status: 200,
+    });
+  }) as typeof fetch);
+  return seeds;
+}
+
+/** Synthetic Qloo key, no model keys, clean control cache, restored after. */
+async function withQlooKey(run: () => Promise<void>): Promise<void> {
+  const savedKey = process.env.QLOO_API_KEY;
+  const savedGroq = process.env.GROQ_API_KEY;
+  const savedRouter = process.env.OPENROUTER_API_KEY;
+  process.env.QLOO_API_KEY = "synthetic-test-key";
+  delete process.env.GROQ_API_KEY;
+  delete process.env.OPENROUTER_API_KEY;
+  clearControlCache();
+  try {
+    await run();
+  } finally {
+    if (savedKey === undefined) delete process.env.QLOO_API_KEY;
+    else process.env.QLOO_API_KEY = savedKey;
+    if (savedGroq === undefined) delete process.env.GROQ_API_KEY;
+    else process.env.GROQ_API_KEY = savedGroq;
+    if (savedRouter === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = savedRouter;
+    clearControlCache();
+  }
+}
+
 describe("runFlowPitch", () => {
   const pitch = "A quiet science-fiction film about a lonely worker.";
   const base = {
     pitchText: pitch,
     workType: "film" as const,
     similarTitles: ["Moon", "Arrival", "Dune"],
+  };
+
+  /** The discovery tests need one resolved title and three matched tags. */
+  const discoveryPitch = {
+    pitchText: pitch,
+    workType: "film" as const,
+    similarTitles: ["Moon"],
+    tags: [
+      { label: "alpha", qlooId: "urn:tag:alpha", status: "matched" as const },
+      { label: "beta", qlooId: "urn:tag:beta", status: "matched" as const },
+      { label: "gamma", qlooId: "urn:tag:gamma", status: "matched" as const },
+    ],
   };
 
   it("stops as Inconclusive on the cheap check with no titles and thin tags", async () => {
@@ -64,6 +218,19 @@ describe("runFlowPitch", () => {
       out.steps.find((s) => s.id === "tags")?.detail ?? "",
       /below the \d+-tag gate/,
     );
+    // Keyless: no request ran, so the line must not claim the graph
+    // found nothing related. It says it did not search (§8, §10 #4).
+    assert.equal(
+      out.steps.find((s) => s.id === "rivals")?.detail,
+      "not searched, no Qloo key",
+    );
+    // And with no key nothing resolved, so there is nothing to re-ask
+    // the graph from: the re-plan does not fire.
+    assert.equal(
+      out.steps.find((s) => s.id === "rivals-replan"),
+      undefined,
+    );
+    assert.equal(out.result.rivalDiscovery?.rePlanned, false);
     // The thin pool is still reported, with pitch provenance.
     assert.equal(
       out.result.tags.filter((t) => t.status === "matched").length,
@@ -223,6 +390,113 @@ describe("runFlowPitch", () => {
       if (savedRouter === undefined) delete process.env.OPENROUTER_API_KEY;
       else process.env.OPENROUTER_API_KEY = savedRouter;
     }
+  });
+
+  it("re-asks the graph from the titles when the pitch words find nothing", async (t) => {
+    // The self-correction loop (§6.3). The first attempt asks the graph
+    // with the pitch's matched words — an intersection across all of
+    // them, which comes back empty on a niche pitch. The agent then
+    // asks the same graph from the titles the user named instead, and
+    // the rivals show up. Both attempts stay in the evidence.
+    await withQlooKey(async () => {
+      const seeds = stubFlowFetch(t, "empty");
+      const out = await runFlowPitch(discoveryPitch);
+
+      // The first attempt found nothing, and the run says so.
+      assert.match(
+        out.steps.find((s) => s.id === "rivals")?.detail ?? "",
+        /nothing related to the pitch words/,
+      );
+      // The second attempt is a different question, and it is reported.
+      const replanStep = out.steps.find((s) => s.id === "rivals-replan");
+      assert.equal(replanStep?.label, "Rival readings, re-tried");
+      assert.match(
+        replanStep?.detail ?? "",
+        /searched again from the titles you named — \d+ rivals, \d+ calls/,
+      );
+      // Both attempts actually reached the graph: three domains each.
+      assert.equal(seeds.filter((s) => s === "tags").length, 3);
+      assert.equal(seeds.filter((s) => s === "entities").length, 3);
+      // The rivals on screen are the ones the second attempt found.
+      const rival = out.result.audiences.find((a) => a.role === "rival");
+      assert.ok(rival !== undefined, "expected a rival from the re-plan");
+      assert.ok(rival.name.startsWith("Fans of Replan"));
+      // §6.12: the citation opens the search that produced the name,
+      // not the first attempt that came back empty.
+      const cited = out.result.evidence[rival.evidenceId ?? ""];
+      assert.ok(cited !== undefined, "rival citation must resolve");
+      assert.ok(
+        cited.request.params["signal.interests.entities"] !== undefined,
+        "rival citation must open the entity-seeded search",
+      );
+      // And the run completed: the re-plan did not break scoring.
+      assert.equal(out.stopped, false);
+      assert.equal(out.result.grounding?.ok, true);
+      // Both attempts stay in the evidence, each with its own seed.
+      const discoveryEvidence = Object.values(out.result.evidence).filter(
+        (line) =>
+          line.request.endpoint === "/v2/insights" &&
+          line.request.params["filter.type"] !== "urn:tag",
+      );
+      assert.ok(
+        discoveryEvidence.some(
+          (line) => line.request.params["signal.interests.tags"] !== undefined,
+        ),
+        "expected the tag-seeded attempt in the evidence",
+      );
+      assert.ok(
+        discoveryEvidence.some(
+          (line) =>
+            line.request.params["signal.interests.entities"] !== undefined,
+        ),
+        "expected the entity-seeded attempt in the evidence",
+      );
+    });
+  });
+
+  it("does not re-ask the graph when the first attempt found rivals", async (t) => {
+    // The loop is for an empty answer, not a thin one. When the pitch
+    // words find rivals, the run spends no second set of calls.
+    await withQlooKey(async () => {
+      const seeds = stubFlowFetch(t, "rivals");
+      const out = await runFlowPitch(discoveryPitch);
+
+      assert.equal(seeds.length, 3);
+      assert.ok(seeds.every((s) => s === "tags"));
+      assert.equal(
+        out.steps.find((s) => s.id === "rivals-replan"),
+        undefined,
+      );
+      assert.match(
+        out.steps.find((s) => s.id === "rivals")?.detail ?? "",
+        /\d+ from Qloo data/,
+      );
+    });
+  });
+
+  it("does not re-ask the graph when the first attempt never answered", async (t) => {
+    // A timeout or 5xx on every discovery call is an outage, not a
+    // too-narrow question. Re-asking would spend three more calls on
+    // the same failing dependency and then report "nothing related"
+    // about a question nobody answered.
+    await withQlooKey(async () => {
+      const seeds = stubFlowFetch(t, "error");
+      const out = await runFlowPitch(discoveryPitch);
+
+      // One attempt only.
+      assert.equal(seeds.length, 3);
+      assert.equal(
+        out.steps.find((s) => s.id === "rivals-replan"),
+        undefined,
+      );
+      // And the line says what happened, not that the graph found
+      // nothing related.
+      assert.match(
+        out.steps.find((s) => s.id === "rivals")?.detail ?? "",
+        /Qloo did not answer/,
+      );
+      assert.equal(out.result.rivalDiscovery?.rePlanned, false);
+    });
   });
 
   it("strangers set the line even when a control scores higher", async (t) => {

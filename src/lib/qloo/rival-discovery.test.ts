@@ -4,6 +4,7 @@ import { QlooError, resetQuota } from "./client.ts";
 import {
   CROSS_DOMAIN_RIVALS,
   discoverRivals,
+  shouldReplanWithEntities,
   WORK_TYPE_TO_ENTITY_TYPE,
 } from "./rival-discovery.ts";
 
@@ -103,7 +104,31 @@ describe("discoverRivals", () => {
     });
     assert.deepEqual(out.rivals, []);
     assert.equal(out.calls.length, 3);
+    // Nothing answered, so an empty result here is an outage, not a
+    // finding — the caller must not re-ask the graph from this.
+    assert.equal(out.answered, false);
     assert.ok(new QlooError("x", out.calls[0], true) instanceof QlooError);
+  });
+
+  it("marks an empty answer as answered, unlike a failed call", async () => {
+    // The distinction the re-plan rests on: the graph said "nothing
+    // matches", which is a real answer worth asking differently.
+    process.env.QLOO_API_KEY = "test-key";
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({ success: true, results: { entities: [] } }),
+        {
+          status: 200,
+        },
+      )) as typeof fetch;
+    const out = await discoverRivals({
+      tagIds: ["urn:tag:a"],
+      entityIds: [],
+      workType: "film",
+      count: 3,
+    });
+    assert.deepEqual(out.rivals, []);
+    assert.equal(out.answered, true);
   });
 
   it("makes no call without seeds", async () => {
@@ -116,6 +141,8 @@ describe("discoverRivals", () => {
     });
     assert.deepEqual(out.rivals, []);
     assert.equal(seen.length, 0);
+    // No call at all: nothing answered, and nothing was asked.
+    assert.equal(out.answered, false);
   });
 
   it("seeds discovery with every matched tag, not just the first five", async () => {
@@ -160,6 +187,140 @@ describe("discoverRivals", () => {
       CROSS_DOMAIN_RIVALS.music.every(
         (t) => t !== WORK_TYPE_TO_ENTITY_TYPE.music,
       ),
+    );
+  });
+
+  it("seed: entities asks the graph with the named titles, not the words", async () => {
+    // The second question: "what is related to Moon and Aftersun?"
+    // instead of "what matches all eight of the pitch's words?".
+    process.env.QLOO_API_KEY = "test-key";
+    const sent: { tags: string | null; entities: string | null }[] = [];
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const params = new URL(String(input)).searchParams;
+      sent.push({
+        tags: params.get("signal.interests.tags"),
+        entities: params.get("signal.interests.entities"),
+      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          results: { entities: [{ entity_id: "e1", name: "Lead" }] },
+        }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const out = await discoverRivals({
+      tagIds: ["urn:tag:a", "urn:tag:b"],
+      entityIds: ["moon-id", "arrival-id"],
+      workType: "film",
+      count: 3,
+      seed: "entities",
+    });
+    assert.equal(sent.length, 3);
+    for (const call of sent) {
+      assert.equal(call.tags, null);
+      assert.equal(call.entities, "moon-id,arrival-id");
+    }
+    assert.equal(out.seedUsed, "entities");
+    assert.ok(out.rivals.length > 0);
+  });
+
+  it("seed: entities falls back to the tags when no title resolved", async () => {
+    // The user named titles that Qloo did not know, so there is no
+    // entity signal to send. The attempt still asks something.
+    process.env.QLOO_API_KEY = "test-key";
+    const sent: { tags: string | null; entities: string | null }[] = [];
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const params = new URL(String(input)).searchParams;
+      sent.push({
+        tags: params.get("signal.interests.tags"),
+        entities: params.get("signal.interests.entities"),
+      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          results: { entities: [{ entity_id: "e1", name: "Lead" }] },
+        }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const out = await discoverRivals({
+      tagIds: ["urn:tag:a"],
+      entityIds: [],
+      workType: "film",
+      count: 3,
+      seed: "entities",
+    });
+    for (const call of sent) {
+      assert.equal(call.tags, "urn:tag:a");
+      assert.equal(call.entities, null);
+    }
+    assert.equal(out.seedUsed, "tags");
+  });
+
+  it("seed: the default asks with the pitch's words and reports the signal", async () => {
+    process.env.QLOO_API_KEY = "test-key";
+    const sent: { tags: string | null; entities: string | null }[] = [];
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const params = new URL(String(input)).searchParams;
+      sent.push({
+        tags: params.get("signal.interests.tags"),
+        entities: params.get("signal.interests.entities"),
+      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          results: { entities: [{ entity_id: "e1", name: "Lead" }] },
+        }),
+        { status: 200 },
+      );
+    }) as typeof fetch;
+    const out = await discoverRivals({
+      tagIds: ["urn:tag:a"],
+      entityIds: ["moon-id"],
+      workType: "film",
+      count: 3,
+    });
+    for (const call of sent) {
+      assert.equal(call.tags, "urn:tag:a");
+      assert.equal(call.entities, null);
+    }
+    assert.equal(out.seedUsed, "tags");
+  });
+
+  it("replan: only when the first question answered empty and titles exist", () => {
+    const base = {
+      seedUsed: "tags" as const,
+      entityCount: 2,
+      firstAttemptAnswered: true,
+    };
+    // Answered, and empty + a sharper question available → re-ask.
+    assert.equal(shouldReplanWithEntities({ ...base, rivalsFound: 0 }), true);
+    // The first question worked → no second call, no extra spend.
+    assert.equal(shouldReplanWithEntities({ ...base, rivalsFound: 1 }), false);
+    // Nobody answered: an outage is not a finding, so no second call.
+    assert.equal(
+      shouldReplanWithEntities({
+        ...base,
+        rivalsFound: 0,
+        firstAttemptAnswered: false,
+      }),
+      false,
+    );
+    // Already asked the entity question → re-asking would repeat it.
+    assert.equal(
+      shouldReplanWithEntities({
+        rivalsFound: 0,
+        seedUsed: "entities",
+        entityCount: 2,
+        firstAttemptAnswered: true,
+      }),
+      false,
+    );
+    // No resolved title to re-seed with → nothing to ask instead.
+    assert.equal(
+      shouldReplanWithEntities({ ...base, rivalsFound: 0, entityCount: 0 }),
+      false,
     );
   });
 
