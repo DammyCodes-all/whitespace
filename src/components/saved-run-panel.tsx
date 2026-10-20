@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { categoryWord, namedAudienceLabel } from "@/lib/audience-words";
 import { listRuns, loadRun } from "@/lib/demo/store";
 import { isUnjudgeable } from "@/lib/scoring/fit";
+import { fitIndexLabel } from "@/lib/scoring/fit-index";
 import type {
   Audience,
   FitScore,
@@ -76,7 +77,7 @@ function verdictClass(verdict: Verdict): string {
 
 /** §10 #4: same rule as the ranked list — never a bare 0 placeholder. */
 function scoreText(score: FitScore): string {
-  return isUnjudgeable(score) ? "not measured" : score.score.toFixed(2);
+  return isUnjudgeable(score) ? "not measured" : fitIndexLabel(score.score);
 }
 
 export function SavedRunPanel() {
@@ -198,7 +199,7 @@ export function SavedRunPanel() {
           {scoresDiffer ? (
             <div className="mt-6">
               <div className="flex items-baseline justify-between border-b border-rule pb-2 font-mono text-xs text-ink-3">
-                <span>Top audiences</span>
+                <span>Top audiences · fit index</span>
                 <span data-numeric className="tnum">
                   3 of {ranked.length}
                 </span>
@@ -213,7 +214,7 @@ export function SavedRunPanel() {
                   return (
                     <li
                       key={score.audienceId}
-                      className="grid grid-cols-[1fr_48px] items-center gap-x-6 gap-y-2 py-[13px] md:grid-cols-[190px_1fr_48px]"
+                      className="grid grid-cols-[1fr_64px] items-center gap-x-6 gap-y-2 py-[13px] md:grid-cols-[190px_1fr_64px]"
                     >
                       <span className="min-w-0 truncate font-mono text-sm text-ink">
                         {audienceName(run, score.audienceId)}
@@ -275,7 +276,7 @@ export function SavedRunPanel() {
                 return (
                   <li
                     key={score.audienceId}
-                    className="grid grid-cols-[1fr_48px] items-center gap-x-6 gap-y-2 py-[13px] md:grid-cols-[190px_1fr_48px]"
+                    className="grid grid-cols-[1fr_64px] items-center gap-x-6 gap-y-2 py-[13px] md:grid-cols-[190px_1fr_64px]"
                   >
                     <span className="min-w-0 truncate font-mono text-sm text-ink">
                       {audienceName(run, score.audienceId)}

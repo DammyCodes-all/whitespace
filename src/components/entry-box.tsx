@@ -10,15 +10,14 @@
 
 import { useTransitionRouter } from "next-view-transitions";
 import { useEffect, useId, useRef, useState } from "react";
+import { exampleById, exampleRunHref } from "@/lib/flow/examples";
 
 export const PITCH_PLACEHOLDER =
   "Tell us about your story: premise, mood, themes, and setting. More detail means better tags. Something like: a gritty but tender heist movie about loyalty and aging out.";
 
-export const EXAMPLE_PITCH =
-  "Frankie drove getaway cars for twenty years and never lost a crew — now her old crew is back with one last casino job, and her teenage nephew begs to ride along. Gritty but tender, about loyalty and aging out; a heist movie with family drama at its core, not a glossy action romp.";
-
 const STORED_KEY = "whitespace-pitch";
 const FLIGHT_KEY = "whitespace-flight";
+const DEMO_EXAMPLE = exampleById("cyberpunk-strong");
 
 export interface FlightRect {
   left: number;
@@ -94,7 +93,7 @@ export function EntryBox({
     }
   }, []);
 
-  function go(pitch: string) {
+  function go(pitch: string, href?: string) {
     const trimmed = pitch.trim();
     if (trimmed === "" || morphingRef.current) return;
     // Navigate at once — the morph happens on the run page, inside
@@ -122,10 +121,12 @@ export function EntryBox({
     } catch {
       // Storage is a convenience, never a gate.
     }
-    router.push(`${target}?pitch=${encodeURIComponent(trimmed)}`);
+    const fallback = `${target}?${new URLSearchParams({ pitch: trimmed }).toString()}`;
+    router.push(href ?? fallback);
   }
 
   const ready = value.trim() !== "";
+  const demoHref = exampleRunHref(target, DEMO_EXAMPLE);
 
   return (
     <form
@@ -160,10 +161,10 @@ export function EntryBox({
         </button>
         <button
           type="button"
-          onClick={() => go(EXAMPLE_PITCH)}
+          onClick={() => go(DEMO_EXAMPLE.pitch, demoHref)}
           className="btn-secondary inline-flex min-h-11 items-center justify-center px-6 py-3 text-sm"
         >
-          Try an example
+          Try a demo pitch
         </button>
       </div>
     </form>
