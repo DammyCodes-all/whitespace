@@ -312,7 +312,6 @@ export function toFlowResult(
   const scoresById = new Map(pipeline.scores.map((s) => [s.audienceId, s]));
 
   const evidenceIdFor = (audience: Audience): string | null => {
-    if (audience.id === "concept") return stepCallId("concept");
     if (audience.kind === "hypothesis") return stepCallId("hypothesis");
     if (audience.kind === "control")
       return stepCallId("controls") ?? stepCallId("tastes");

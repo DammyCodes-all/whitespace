@@ -1,14 +1,11 @@
 /**
  * Package B: the shipped flow orchestrator. Owned by S.
  *
- * Implements the brief's flow and nothing else. Deliberately NOT
- * wired here: exclusion (`nothingLike`), the expansion retry, the concept
- * audience, chatbot comparison and the city map. They are not described
- * in the new flow, so this path makes no Qloo calls for them — the
- * chatbot comparison lives in its own route (`/api/compare`).
+ * Implements the brief's flow and nothing else. Chatbot comparison
+ * lives in its own route (`/api/compare`).
  *
  * Scoring uses the existing scorer (`scoreAllWeighted`, equal weights
- * when bridgeless, no pinning) — one scorer in the shipped path, per the brief. The brief
+ * when bridgeless) — one scorer in the shipped path, per the brief. The brief
  * asks for a plain equal-weight membership fraction; the shipped
  * scorer is rank-based (`rankStrength`, §6.6), which is a spec
  * deviation recorded in `docs/build-tracker.md` rather than a second
@@ -17,11 +14,11 @@
  * number still comes from Qloo (§7).
  *
  * Candidate audiences: 3 to 5. One is "named", built from the user's
- * optional similar-to titles; the rest are rivals proposed by the LLM
- * as alternative readings and grounded in Qloo — a rival with no
- * resolvable title is dropped, never kept on its name. Control
- * audiences come from the Package A cache: the same cached tag sets
- * every pitch, scored fresh per run.
+ * optional similar-to titles; the rest are rivals discovered from Qloo
+ * data as alternative readings — a rival with no resolvable title is
+ * dropped, never kept on its name. Control audiences come from the
+ * Package A cache: the same cached tag sets every pitch, scored fresh
+ * per run.
  *
  * Spec ref: §6.2 (titles), §6.3 (rivals), §6.4 (controls), §6.5
  * (tags), §6.6 (scoring), §6.7 (verdict), §6.8 (reach), §6.12
@@ -211,7 +208,6 @@ export async function runFlowPitch(
     .map((t) => ({
       tag: t.label,
       qlooTagId: t.qlooId as string,
-      pinned: false,
     }));
   const notFoundWords = tagInput
     .filter((t) => t.status === "not_found")
@@ -231,7 +227,6 @@ export async function runFlowPitch(
   const baseInput: PitchInput = {
     pitchText: pitch.pitchText,
     workType: pitch.workType,
-    nothingLike: [],
   };
   const idleHypothesis: Audience = {
     id: "hyp",
@@ -497,7 +492,6 @@ export async function runFlowPitch(
     tag: {
       tag: candidate.label,
       qlooTagId: candidate.qlooTagId,
-      pinned: false,
     },
     source:
       candidate.source === "pitch"
@@ -565,9 +559,8 @@ export async function runFlowPitch(
   // AI word-bridge (bonus, never a dependency, behind
   // BRIDGES_ENABLED — off by default): leftover matched words scoring
   // zero everywhere get one narrow LLM call pointing each at an
-  // already-fetched taste id + bucket (max 4, pinned never bridged;
-  // pool tags are unpinned). Any failure falls back to the exact-match
-  // run; verdict and controls logic are untouched.
+  // already-fetched taste id + bucket (max 4). Any failure falls back
+  // to the exact-match run; verdict and controls logic are untouched.
   let bridgeWtags: WeightedTag[] = [];
   let bridgeNote = "";
   let bridgeCallId: string | undefined;

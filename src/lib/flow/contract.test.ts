@@ -47,14 +47,14 @@ function audience(
 
 function base(): PipelineResult {
   return {
-    input: { pitchText: "pitch", workType: "film", nothingLike: [] },
+    input: { pitchText: "pitch", workType: "film" },
     hypothesis: { ...audience("hyp", "hypothesis") },
     rivals: [{ ...audience("rival-1", "rival") }],
     controls: [
       { ...audience("control-1", "control") },
       { ...audience("control-2", "control") },
     ],
-    tags: [{ tag: "t1", qlooTagId: "urn:t1", pinned: false }],
+    tags: [{ tag: "t1", qlooTagId: "urn:t1" }],
     notFoundWords: ["nope"],
     coverage: 0.5,
     scores: [],
@@ -148,8 +148,8 @@ describe("toFlowResult", () => {
     const pipeline = {
       ...base(),
       tags: [
-        { tag: "t1", qlooTagId: "urn:t1", pinned: false },
-        { tag: "Slow Burn", qlooTagId: "urn:moon1", pinned: false },
+        { tag: "t1", qlooTagId: "urn:t1" },
+        { tag: "Slow Burn", qlooTagId: "urn:moon1" },
       ],
     };
     const out = toFlowResult(
