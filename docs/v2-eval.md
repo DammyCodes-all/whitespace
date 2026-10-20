@@ -1,5 +1,7 @@
 # V2 human evaluation (§7)
 
+> **Status: historical (2026-10-10).** The v2 pipeline this evaluation was written for was removed in October 2026. The empty checklist is part of the record, not an outstanding task for the shipped product.
+
 Date: 2026-10-10. Pack: `src/lib/fixtures/v2-pitch-pack.ts` (9 invented
 pitches, no Qloo output). Qloo endpoint success alone is not a quality
 test — the reviewer judges brief fidelity, bridge usefulness, and

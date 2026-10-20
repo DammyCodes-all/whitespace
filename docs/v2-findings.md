@@ -1,5 +1,7 @@
 # V2 implementation: findings log
 
+> **Status: historical (2026-10-10).** The v2 pipeline described here was removed in October 2026. Current behavior is defined by [product-spec.md](product-spec.md); this log is kept for the record.
+
 Date: 2026-10-10. Proposal: `docs/pipeline-redesign.md` (v2, adopted).
 Current behavior is defined by `docs/product-spec.md`. Earlier cut decisions below are historical: supporting retrieval, reach, comparison overlay, bounded enrichment, and client-side replay have since landed. Review hardening is recorded in `docs/v2-review.md`.
 Raw Qloo payloads are never stored in this repo (hackathon guide: private

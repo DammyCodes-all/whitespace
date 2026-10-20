@@ -16,9 +16,9 @@ One-line read: this product is a sharp-eyed friend with opinions. It is not a la
 | Surprise gets the stage. The loudest block on any screen is "Your best fit is not the audience you named": full width, coral, biggest type. The happy path stays in the calmer colors. | §6.7 |
 | Absence stays visible. Three states, not two: measured-high, measured-low, not measured. Not measured gets a hatch, a dashed border, the words "not measured", and never a number. This is a system rule so that "no data" never quietly ships as a zero. | §6.6, App. B |
 | Runs show real work. A step appears when it actually finishes, with its counts: "21 titles checked, 19 found, 2 not found". Friendly pills, no fake progress bar, no typing dots. | §5.4, §6.12 |
-| Links look like citations. A small numbered dot sits next to every claim, with a 24px minimum touch target and an underline on hover and focus. On touch the dot stays visible without hover. Tapping opens a drawer with the request and response in mono. | §6.12 |
+| Evidence is one click away. The result page carries an evidence drawer with every Qloo call, grouped by run step and linked from the step that used it. Inline per-claim dots were removed in favour of the drawer (2026-10-13); the drawer is the citation surface. | §6.12 |
 | Chunky but flat. 2px ink outlines, rounded corners, and a hard offset shadow with no blur on cards and primary buttons. No glass, no gradients, no glow. | §6.10 |
-| Light first. Soft off-white canvas, pure white cards. Judges use the demo on their own screens, and the output is a printable one-pager, so the print stylesheet is a free win. | §6.10, §9 |
+| Light first. Soft off-white canvas, pure white cards. Judges use the demo on their own screens, and the result page prints cleanly, so the print stylesheet is a free win. | §6.10, §9 |
 
 Voice: plain words, short sentences, contractions, a bit of attitude. "Here's who it's actually for." The one place the attitude stops is uncertainty. Say "not measured", never "hmm, couldn't find that!". A joke about missing data reads as a dodge.
 
@@ -37,7 +37,7 @@ Light only. Four neutrals, four verdict fills, two text-safe colors, one texture
 ```css
 :root {
   --paper:    #F7F7F4;  /* canvas, a soft off-white */
-  --surface:  #FFFFFF;  /* cards, the case page */
+  --surface:  #FFFFFF;  /* cards, the result page */
   --outline:  #17151F;  /* chunky 2px borders, same value as ink */
   --rule:     #E9DEC6;  /* decorative hairlines only */
   --ink:      #17151F;  /* 16.8:1 on paper */
@@ -84,19 +84,19 @@ Deliberately absent: red as an error color, purple or indigo gradients, glow eff
 
 No dark mode. If the schedule is tight, the time goes to the print stylesheet.
 
-Print: fills drop to white, outlines stay, shadows go, the hatch stays, and the verdict word does the work the color did on screen. The case page fits on one sheet.
+Print: fills drop to white, outlines stay, shadows go, the hatch stays, and the verdict word does the work the color did on screen. The result page fits on one sheet.
 
 ## 4. Fonts
 
 Bricolage Grotesque, Figtree and IBM Plex Mono. All three are on Google Fonts, so `next/font/google` gives zero licensing friction on a 25-day sprint with three people.
 
-- Bricolage Grotesque: headlines, the verdict sentence, audience names, the surprise banner, and the one-line idea on the case page. Use weights 600 to 800 at 28px and up, with tight leading. It has attitude without turning into a gimmick.
+- Bricolage Grotesque: headlines, the verdict sentence, audience names, the surprise banner, and the one-line idea on the result page. Use weights 600 to 800 at 28px and up, with tight leading. It has attitude without turning into a gimmick.
 - Figtree: all UI and body text at 15 to 16px, leading around 1.5, measure capped near 68ch.
-- IBM Plex Mono: every number that changes while a run streams, coverage fractions, and the raw Qloo payloads in the evidence drawer (13px, tight, scrollable). Request 400 and 500 and nothing heavier. Its tabular numerals are explicit and reliable, so streaming scores don't jitter. A final score that no longer updates, such as the hero number on the case page, can be set in Bricolage at display size.
+- IBM Plex Mono: every number that changes while a run streams, coverage fractions, and the raw Qloo payloads in the evidence drawer (13px, tight, scrollable). Request 400 and 500 and nothing heavier. Its tabular numerals are explicit and reliable, so streaming scores don't jitter. A final score that no longer updates, such as the hero number on the result page, can be set in Bricolage at display size.
 
 When the chatbot's ungrounded output sits next to ours (§6.11), mono makes it look raw: same weight as our panel, visibly unprocessed. Our side is colored and labeled, theirs is plain text with no citations, and the comparison makes the point on its own.
 
-One typeface per function. If Bricolage feels too quirky once real screens exist, drop it from everything except the surprise banner and the case page title, and let Figtree carry the rest.
+One typeface per function. If Bricolage feels too quirky once real screens exist, drop it from everything except the surprise banner and the result page title, and let Figtree carry the rest.
 
 ## 5. Where this lives in code
 
@@ -135,7 +135,7 @@ The card and button shape, so nobody improvises it:
 
 - At the mobile breakpoint (`640px`), primary and secondary actions wrap as full-width or content-width rows, and no action depends on hover.
 - Ranked bars stay horizontal and use the full available width. The control line stays solid ink at 2.5px so it still reads as a mark at narrow widths.
-- Citation dots keep a 24px hit area even though the glyph is small.
+- Evidence-drawer triggers keep a 24px hit area even when the visible label is small.
 - Evidence is a bottom sheet on mobile and an anchored drawer on larger screens. Its mono request and response content scrolls independently.
 
 No-data is always written as "not measured" next to the hatch. The hatch is supporting texture, and the words are the signal. The dashed border uses `--ink-3` and carries meaning, while hairline rules stay decorative.
@@ -144,7 +144,7 @@ No-data is always written as "not measured" next to the hatch. The hatch is supp
 
 - No screen renders a number for a value Qloo did not return enough to judge (§6.6).
 - No verdict gets a color that a reader could mistake for another verdict, and every verdict carries its word.
-- Every claim that shows a value has a citation dot next to it (§6.12).
+- Every result exposes its Qloo calls in the evidence drawer, with per-step links (§6.12).
 - Anything printed must be legible in black on white with every fill removed (§6.10).
 
 ## Verification
