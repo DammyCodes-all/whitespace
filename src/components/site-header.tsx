@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SampleRunLink } from "@/components/demo/sample-run-link";
 
 /**
  * Site shell header. Server Component, instant nav via Link.
@@ -9,6 +10,8 @@ import { usePathname } from "next/navigation";
  */
 export function SiteHeader() {
   const pathname = usePathname();
+  // The sample-run link is redundant inside the sample itself.
+  const inSampleFlow = pathname === "/demo/flow" || pathname === "/demo/run";
 
   return (
     <header className="bg-paper print:hidden">
@@ -19,7 +22,7 @@ export function SiteHeader() {
         >
           Whitespace
         </Link>
-        <nav aria-label="Primary" className="flex items-center gap-6">
+        <nav aria-label="Primary" className="flex items-center gap-2 sm:gap-5">
           {pathname !== "/" && (
             <Link
               href="/"
@@ -30,10 +33,11 @@ export function SiteHeader() {
           )}
           <Link
             href="/demo/result"
-            className="text-sm text-ink-2 transition-colors hover:text-ink"
+            className="hidden text-sm text-ink-2 transition-colors hover:text-ink sm:inline"
           >
             Read a sample result
           </Link>
+          {!inSampleFlow && <SampleRunLink />}
         </nav>
       </div>
     </header>
