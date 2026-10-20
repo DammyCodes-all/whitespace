@@ -65,8 +65,16 @@ const mockSteps: RunStep[] = [
     id: "rivals",
     label: "Rival readings",
     status: "done",
-    detail: "3 built, 0 replaced",
+    detail: "nothing related to the pitch words (1 status), 3 calls",
     callId: "call-search-2",
+  },
+  {
+    id: "rivals-replan",
+    label: "Rival readings, re-tried",
+    status: "done",
+    detail:
+      "the pitch words came back empty; searched again from the titles you named — 2 rivals, 3 calls",
+    callId: "call-search-4",
   },
   {
     id: "controls",
@@ -481,6 +489,7 @@ export const TYPE_SPECIMENS: TypeSpecimen[] = [
 const STEP_CALL_IDS: Record<string, string> = {
   "call-search-1": "ds-call-search-1",
   "call-search-2": "ds-call-related-1",
+  "call-search-4": "ds-call-related-2",
   "call-insights-1": "ds-call-tastes-2",
   "call-search-3": "ds-call-related-3",
 };
@@ -584,6 +593,9 @@ export const DEMO_FLOW_RESULT: FlowResult = {
   pitch: mockInput.pitchText,
   type: "film",
   tags: DEMO_FLOW_TAGS,
+  // §6.3: the sample run shows the agent's re-plan, so the static page
+  // demonstrates it without spending a live run.
+  rivalDiscovery: { rePlanned: true },
   audiences: [
     {
       id: "hyp",

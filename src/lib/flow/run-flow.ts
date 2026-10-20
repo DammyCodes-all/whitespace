@@ -39,10 +39,9 @@ import {
   MAX_TITLES_PER_AUDIENCE,
   MIN_MATCHED_TAGS,
 } from "../config.ts";
-import { selectReachTargets } from "../demo/reach-targets.ts";
 import { checkGrounding } from "../policy/grounding.ts";
 import { checkScope } from "../policy/scope.ts";
-import { decideVerdict } from "../policy/verdict.ts";
+import { applyFragilityCap, decideVerdict } from "../policy/verdict.ts";
 import {
   discoverRivals,
   fetchAllAudienceTastes,
@@ -51,6 +50,7 @@ import {
   loadControlTastes,
   resetQuota,
   resolveTitles,
+  shouldReplanWithEntities,
 } from "../qloo/index.ts";
 import type { RelatedResult } from "../qloo/related.ts";
 import { buildTitleTagPool, namedTasteAudiences } from "../qloo/title-tags.ts";
@@ -60,6 +60,7 @@ import {
   scoreAllWeighted,
   type WeightedTag,
 } from "../scoring/fit.ts";
+import { assessFragility, type HoldOutRound } from "../scoring/fragility.ts";
 import { eligibleControls } from "../scoring/overlap.ts";
 import {
   bridgesToWeightedTags,
@@ -85,6 +86,7 @@ import {
   relatedEntityIds,
   tasteTagIds,
 } from "./grounding-run.ts";
+import { reachTargets } from "./reach-plan.ts";
 
 export interface FlowInput extends PitchInput {
   /** Optional "similar to" titles; build the named audience (§6.2). */
@@ -142,6 +144,28 @@ function doneStep(
   callId?: string,
 ): RunStep {
   return { id, label, status: "done", detail, callId };
+}
+
+/**
+ * The rivals step, worded for what actually happened. An empty answer
+ * is only "nothing related" when a request really ran: with no Qloo
+ * key every call is a placeholder, and the honest line is that nothing
+ * was searched (§8, §10 #4).
+ */
+function rivalDetail(found: number, calls: QlooCall[]): string {
+  if (calls.length === 0) return "not searched";
+  if (calls.every((call) => call.mock === true)) {
+    return "not searched, no Qloo key";
+  }
+  const statuses = new Set(calls.map((call) => call.status)).size;
+  // Every call answered with an error: the graph never got to answer,
+  // so "nothing related" would be a claim it never made.
+  if (calls.every((call) => call.status !== 200)) {
+    return `Qloo did not answer (${statuses} status), ${calls.length} calls`;
+  }
+  return found > 0
+    ? `${found} from Qloo data (${statuses} status), ${calls.length} calls`
+    : `nothing related to the pitch words (${statuses} status), ${calls.length} calls`;
 }
 
 /** The v1 result shape the adapter consumes, minus the unwired phases. */
@@ -308,24 +332,73 @@ export async function runFlowPitch(
 
   // Rivals (step 3): suggested by Qloo data alone, never by a model —
   // the brief lets the LLM extract tags and word the verdict, nothing
-  // else. Seeded from the named audience's entities when they exist,
-  // else from the pitch's matched tags. A rival is a real Qloo entity's
-  // fan base, named after that entity, so the name is a fact.
+  // else. A rival is a real Qloo entity's fan base, named after that
+  // entity, so the name is a fact.
+  //
+  // The first attempt asks the graph with the pitch's own matched
+  // words. That is the sharper question when it works, but it is an
+  // intersection across every matched word, and a niche pitch can come
+  // back empty — not a missing catalog, a too-narrow question. So when
+  // it comes back empty and the user named titles, the agent re-asks
+  // the same graph from those titles instead ("what is related to Moon
+  // and Aftersun?"). One extra attempt, then an honest "no rivals".
   const wantedRivals = Math.max(
     0,
     CANDIDATES.min + 1 - (hypothesis === null ? 0 : 1),
   );
-  const {
-    rivals: discovered,
-    calls: rivalCalls,
-    farCandidate,
-  } = await discoverRivals({
-    tagIds: matchedTags.map((t) => t.qlooTagId),
-    entityIds: hypothesis?.titles.map((t) => t.qlooId) ?? [],
+  const seedTagIds = matchedTags.map((t) => t.qlooTagId);
+  const seedEntityIds = hypothesis?.titles.map((t) => t.qlooId) ?? [];
+  const firstAttempt = await discoverRivals({
+    tagIds: seedTagIds,
+    entityIds: seedEntityIds,
     workType: input.workType,
     count: wantedRivals,
+    seed: "tags",
   });
-  calls.push(...rivalCalls);
+  calls.push(...firstAttempt.calls);
+
+  let discovered = firstAttempt.rivals;
+  let farCandidate = firstAttempt.farCandidate;
+  let replan: {
+    rivals: number;
+    calls: number;
+    callId: string | undefined;
+  } | null = null;
+
+  if (
+    shouldReplanWithEntities({
+      rivalsFound: firstAttempt.rivals.length,
+      seedUsed: firstAttempt.seedUsed,
+      entityCount: seedEntityIds.length,
+      firstAttemptAnswered: firstAttempt.answered,
+    })
+  ) {
+    const secondAttempt = await discoverRivals({
+      tagIds: seedTagIds,
+      entityIds: seedEntityIds,
+      workType: input.workType,
+      count: wantedRivals,
+      seed: "entities",
+    });
+    calls.push(...secondAttempt.calls);
+    replan = {
+      rivals: secondAttempt.rivals.length,
+      calls: secondAttempt.calls.length,
+      // Prefer a call that answered: this id also backs the rivals'
+      // citation (§6.12), and a failed domain would open an error.
+      callId:
+        secondAttempt.calls.find((call) => call.status === 200)?.id ??
+        secondAttempt.calls[0]?.id,
+    };
+    // The second answer replaces the first wholesale: its rivals and
+    // its leftovers come from the same ranking, so the strangers
+    // baseline still matches the contenders it was cut from.
+    if (secondAttempt.rivals.length > 0) {
+      discovered = secondAttempt.rivals;
+      farCandidate = secondAttempt.farCandidate;
+    }
+  }
+
   for (const id of audienceTitleIds(discovered)) knownTitleIds.add(id);
   if (farCandidate !== null) {
     knownTitleIds.add(farCandidate.id);
@@ -337,10 +410,20 @@ export async function runFlowPitch(
     doneStep(
       "rivals",
       "Rival readings",
-      `${discovered.length} from Qloo data (${new Set(rivalCalls.map((c) => c.status)).size} status), ${rivalCalls.length} calls`,
-      rivalCalls[0]?.id,
+      rivalDetail(firstAttempt.rivals.length, firstAttempt.calls),
+      firstAttempt.calls[0]?.id,
     ),
   );
+  if (replan !== null) {
+    steps.push(
+      doneStep(
+        "rivals-replan",
+        "Rival readings, re-tried",
+        `the pitch words came back empty; searched again from the titles you named — ${replan.rivals} rivals, ${replan.calls} calls`,
+        replan.callId,
+      ),
+    );
+  }
 
   const contenders: Audience[] = [
     ...(hypothesis === null ? [] : [hypothesis]),
@@ -667,9 +750,16 @@ export async function runFlowPitch(
       : isUnjudgeable(fit)
         ? "not measured"
         : fit.score.toFixed(2);
+  /** A score the guard can read; no data is null, never a zero (§6.6). */
+  const judgedScore = (fit: FitScore | null): number | null =>
+    fit === null || isUnjudgeable(fit) ? null : fit.score;
   const hypFull = contenderScores.find((s) => s.audienceId === "hyp") ?? null;
   const topFull =
     [...contenderScores].sort((a, b) => b.score - a.score)[0] ?? null;
+  // §6.6: the same rounds are read twice — once for the deltas the
+  // ledger shows, once as the fragility test. No extra call, no extra
+  // scoring: the numbers below are the ones the rounds already made.
+  const holdOutRounds: HoldOutRound[] = [];
   giftTitleIds.forEach((titleId, index) => {
     const titleName = titleNameOf(titleId);
     const dropped = poolTags.filter(
@@ -712,6 +802,16 @@ export async function runFlowPitch(
         `without ${titleName}'s ${dropped} tag(s): named ${fmtFit(hypFull)} → ${fmtFit(hypRed)}${deltaOf(hypFull, hypRed)}, top ${fmtFit(topFull)} → ${fmtFit(topRed)}${deltaOf(topFull, topRed)}`,
       ),
     );
+    // The round as the fragility test reads it: the named audience and
+    // the field's best, full set against the same reduced set.
+    holdOutRounds.push({
+      titleName,
+      droppedTags: dropped,
+      namedFull: judgedScore(hypFull),
+      namedReduced: judgedScore(hypRed),
+      fieldFull: judgedScore(topFull),
+      fieldReduced: judgedScore(topRed),
+    });
   });
 
   // Pitch-aware comparison field, decided once scores exist. The title
@@ -768,11 +868,25 @@ export async function runFlowPitch(
     controlScores: verdictControlScores,
     coverage,
   });
+  // §6.6/§6.7: the fragility guard reads the hold-out rounds above.
+  // A fragile named audience cannot read Strong fit, so the verdict is
+  // capped at Mixed fit — with the reason (which title, what it did)
+  // in the ledger, the brief and the result card. The ranking, the
+  // scores and the reach plan stay as measured.
+  const fragility = assessFragility({
+    rounds: holdOutRounds,
+    verdict,
+    hypothesisId: "hyp",
+  });
+  const cappedVerdict = applyFragilityCap(verdict, fragility);
+  if (fragility.fragile) {
+    steps.push(doneStep("fragility", "Fragility guard", fragility.note));
+  }
   steps.push(
     doneStep(
       "verdict",
       "The verdict",
-      `${verdict.verdict}, top ${verdict.topAudienceId ?? "none"} (${lineSource})`,
+      `${cappedVerdict.verdict}, top ${cappedVerdict.topAudienceId ?? "none"} (${lineSource})`,
     ),
   );
 
@@ -812,7 +926,7 @@ export async function runFlowPitch(
       ...controlScores,
       ...(farScore === null ? [] : [farScore]),
     ],
-    verdict,
+    verdict: cappedVerdict,
     grounding: preReachGrounding,
     calls,
     steps,
@@ -829,12 +943,28 @@ export async function runFlowPitch(
   // come from already-fetched taste tags (zero calls, Package A2); the
   // other four slots use the existing related fetch.
   let reachInput: FlowReachInput = {};
-  if (verdict.clearsControl) {
+  if (cappedVerdict.clearsControl) {
     const relatedByAudienceId: Record<
       string,
       Awaited<ReturnType<typeof fetchRelated>>
     > = {};
-    const targets = selectReachTargets(verdict, result.scores, contenders);
+    // §6.8: only an audience that clears the line gets a plan. A
+    // capped verdict (fragility) is Mixed by fiat, so its runner-up —
+    // which never cleared the line — gets none and the run spends no
+    // extra call on it.
+    const judgeableLine = verdictControlScores.filter(
+      (score) => !isUnjudgeable(score),
+    );
+    const verdictCeiling =
+      judgeableLine.length === 0
+        ? null
+        : judgeableLine.reduce((best, score) => Math.max(best, score.score), 0);
+    const targets = reachTargets(
+      cappedVerdict,
+      result.scores,
+      contenders,
+      verdictCeiling,
+    );
     const tastesByAudienceId: Record<string, AudienceTastes | undefined> = {};
     const tastesCallIdsByAudienceId: Record<string, string | undefined> = {};
     const reachCalls: QlooCall[] = [];
@@ -951,7 +1081,7 @@ export async function runFlowPitch(
   );
 
   return {
-    result: toFlowResult(result, reachInput, tagSourcesOf(poolTags)),
+    result: toFlowResult(result, reachInput, tagSourcesOf(poolTags), fragility),
     steps,
     stopped: false,
   };
