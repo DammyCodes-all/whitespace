@@ -66,7 +66,6 @@ export async function POST(request: Request) {
     const out = await runFlowPitch({
       pitchText,
       workType: workType as WorkType,
-      nothingLike: [],
       similarTitles: toStrings(root.similarTitles),
       tags: toTags(root.tags),
       pickedTagIds: toStrings(root.pickedTagIds),
