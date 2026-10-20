@@ -31,6 +31,7 @@ export function FlowInputStep({
     <section aria-labelledby="flow-input-heading">
       <h1
         id="flow-input-heading"
+        tabIndex={-1}
         className="font-serif text-3xl tracking-tight text-ink"
       >
         What are you making?
@@ -51,7 +52,7 @@ export function FlowInputStep({
         rows={10}
         aria-describedby="flow-input-lede"
         placeholder="Frankie drove getaway cars for twenty years and never lost a crew. Now her old crew is back with one last job. Gritty but tender, slow-burn. About loyalty and aging out of a life, set in a present-day port town that lives off smuggling crews. A heist movie with family drama at its core."
-        className="mt-6 min-h-40 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-5 py-4 text-left text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3 transition-colors focus:outline-none focus:ring-2 focus:ring-measured/30"
+        className="mt-6 min-h-40 w-full resize-y rounded-2xl border-2 border-outline bg-surface px-5 py-4 text-left text-[15px] leading-relaxed text-ink shadow-[4px_4px_0_var(--outline)] placeholder:text-ink-3 transition-colors"
       />
       <div className="mt-4">
         <div>
