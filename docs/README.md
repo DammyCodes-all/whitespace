@@ -9,6 +9,7 @@ Current product docs (start with the spec; it is the source of truth for behavio
 - [backtest.md](backtest.md) — pre-registered back-test protocol.
 - [backtest-results.md](backtest-results.md) — Get Out results, including the PARTIAL outcome and the fixes that followed.
 - [qloo-coverage.md](qloo-coverage.md) — chronological Qloo lab log, calibration, and live probes.
+- [accessibility.md](accessibility.md) — contrast audit and the remaining manual checks.
 - [build-tracker.md](build-tracker.md) — build log.
 
 Historical documents (kept for the record; they do not describe current behavior):

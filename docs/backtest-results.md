@@ -5,8 +5,8 @@ pre-registered rules: [`backtest.md`](backtest.md). Raw payloads are not
 committed (§6.12); this file records aggregates and conclusions.
 
 **Outcome: PARTIAL** — the tool was a faithful mirror that independently
-surfaced the right flavour of rival, not an oracle. Details and the two
-real problems it exposed are below.
+surfaced the right flavour of rival, not an oracle. **Surprise rate: 0/2
+(0%).** Details and the two real problems it exposed are below.
 
 > **Post-run status (2026-10-20):** both problems below were acted on after
 > this record was written. Control exclusion now uses "any shared title"
@@ -185,7 +185,9 @@ one of its own gifts is removed should read as **fragile**, not Strong.
 
 1. **Publish this.** It is a real back-test with a real outcome, a real
    partial result, and two named problems. That is more credible than a
-   demo that always agrees with you.
+   demo that always agrees with you. Publish the **0/2** surprise rate and
+   do not lower the surprise margin to make the banner fire; the threshold
+   is calibrated against noise, not against the copy.
 2. **The rivals are the story, not the verdict.** Run A's rival set —
    *This Is Me*, *All My Rage* — is the part that shows the tool knows things
    the user did not tell it. Lead with that, not with "Strong fit".
