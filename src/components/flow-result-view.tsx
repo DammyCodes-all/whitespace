@@ -305,6 +305,24 @@ function ReachBlock({ result }: { result: FlowResult }) {
   );
 }
 
+/**
+ * §6.3: the agent's re-plan, said out loud. When the pitch's own words
+ * came back empty from the graph, the run asked again from the titles
+ * the user named — a different question, not the same one again. The
+ * result says so, because a run that quietly changed its plan is a run
+ * you cannot check. It promises nothing about the answer: the second
+ * search can come back empty too.
+ */
+function ReplanNote({ result }: { result: FlowResult }) {
+  if (result.rivalDiscovery?.rePlanned !== true) return null;
+  return (
+    <p className="mt-4 max-w-prose text-sm leading-relaxed text-ink-3">
+      The pitch&apos;s own words came back empty in Qloo, so the run asked again
+      from the titles you named.
+    </p>
+  );
+}
+
 export function FlowResultView({
   result,
   orangeVerdict = false,
@@ -315,6 +333,7 @@ export function FlowResultView({
   return (
     <div>
       <VerdictHeadline result={result} orange={orangeVerdict} />
+      <ReplanNote result={result} />
       <Bars result={result} />
       <ReachBlock result={result} />
     </div>

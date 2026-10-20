@@ -175,13 +175,31 @@ still join the hypothesis signal but get no hold-out round.
 
 ### 6.3 Rival audiences
 
-Rivals are discovered from Qloo data alone, never proposed by a
-model: seeded from the named audience's entities when they exist,
-else from the pitch's matched tags. Each rival is a real Qloo
-entity's fan base, named after that entity, so the name is a fact.
-Discovery fills contenders to four (fewer when Qloo returns fewer).
-Zero contenders — no titles and no discovered rivals — stops the run
-as Inconclusive before any control or taste call is spent.
+Rivals are discovered from Qloo data alone, never proposed by
+a model. Each rival is a real Qloo entity's fan base, named after that
+entity, so the name is a fact. Discovery fills contenders to four
+(fewer when Qloo returns fewer). Zero contenders — no titles and no
+discovered rivals — stops the run as Inconclusive before any control
+or taste call is spent.
+
+The first attempt asks the graph with the pitch's matched tags: which
+works match the creator's own words? That is the sharper question when
+it works, but it is an intersection across every matched tag, and a
+niche pitch can come back empty — not a missing catalog, a too-narrow
+question. Live runs: 3 of the 6 probe pitches found zero rivals this
+way (`docs/qloo-coverage.md`).
+
+So when the first attempt answers and returns nothing, and the user
+named titles, the agent asks the graph a different question — which
+works are related to the titles you named? — and uses that answer
+instead. One extra attempt (three domain calls), then an honest "no
+rivals". The run steps and the result both say the plan changed, and
+both attempts stay in the evidence drawer.
+
+Neither a partial result nor a failure counts as an empty answer. Qloo
+returning fewer rivals than asked for is allowed, and a call that never
+answered is reported as an outage, not as "nothing related": a failed
+request is not evidence that nothing matches.
 
 ### 6.4 Control audiences
 
@@ -197,10 +215,16 @@ baseline: the bottom-unused entities of the same live discovery
 ranking rivals come from (weakest overlap with the pitch, own
 domain first), measured with one extra taste fetch and scored
 identically. When strangers are missing or unmeasured, the ceiling
-falls back to the pitch-aware control rule (controls sharing more
-than a third of titles with the named audience are excluded; when
-every control is too close, the full set comes back so the ceiling
-never vanishes), and the step says which source set the line.
+falls back to the pitch-aware control rule (a control that shares ANY
+title with the named audience is excluded — it is not an unrelated
+field when it holds the film under test; when every control is too
+close, the full set comes back so the ceiling never vanishes), and the
+step says which source set the line. The "any shared title" rule was
+tightened on 2026-10-20 after the back-test: the Horror seed holds
+"Get Out", so naming that film used to leave the subject film's own
+crowd in the field as an independent baseline (`docs/backtest-results.md`).
+The §6.3 rival rule (more than a third overlapping) is a separate rule
+and does not change.
 
 ### 6.5 Tag pool (title-grounded)
 
@@ -231,6 +255,22 @@ per gifting title, each round rescoring every audience — named,
 rivals, controls, strangers — on the same reduced set. The verdict
 uses full-set scores; hold-out deltas render beside the named row
 (self-fit exposes itself as near-zero, real fit survives).
+
+The hold-out rounds are also read as a fragility test (added
+2026-10-20; why: `docs/backtest-results.md`, problem 2). The named
+audience is **fragile** when a round drops it FURTHER than the same
+round drops the field's best score — it leans on its own gifts more
+than the field leans on that same removal. "The field" is the
+contender field the hold-out ledger already reports: the named
+audience and its rivals, best score first (the ledger's "top" row), on
+the full set against the same reduced set. A gap smaller than one
+point at the displayed precision (0.01) is display noise, not a
+signal. The comparison is paired (same round, same reduced set), so it
+needs no margin of its own, and it uses the rounds the run already
+computes: no extra Qloo call, no extra scoring. A run with no hold-out
+rounds is never fragile. A round whose scores could not be judged
+carries no signal and is skipped — no data is never a zero — and when
+more than one round is fragile the reason names the worst one.
 
 A tag missing from a long enough list (10+ tastes) is a ZERO — the
 audience does not over-index on it. A tag missing from a short or
@@ -264,7 +304,7 @@ placeholder zeros never act as a floor.
 | Verdict | Meaning |
 |---|---|
 | Strong fit | The top audience clears control and is clearly ahead of the second |
-| Mixed fit | The top two audiences both clear control and are close together |
+| Mixed fit | The top two audiences both clear control and are close together; also the ceiling a fragile named audience is capped at |
 | Weak fit | No audience clears control |
 | Inconclusive | Coverage or no-data guards fired, or the baseline itself was unmeasured |
 
@@ -273,6 +313,25 @@ more than half the scores unjudgeable; an unjudgeable top; no
 contenders; too few pooled tags; no titles; out-of-scope pitch;
 a judgeable ceiling of exactly 0.00 (won against nothing — a real
 Strong needs a real baseline); controls exist but none judgeable.
+
+Fragility cap (added 2026-10-20; why: `docs/backtest-results.md`,
+problem 2): a fragile named audience (§6.6) cannot read Strong fit.
+The verdict is capped at Mixed fit and carries the reason with it —
+which title was removed, what it did to the named audience and to the
+field — in the run ledger, the targeting brief and the result card.
+The reason rides on the result itself, so the card states the same
+sentence the ledger and the brief carry. Silently downgrading is not
+allowed; a capped verdict never travels without its reason. The
+ranking and the scores are untouched: only the verdict word changes,
+and the reach plan stays with the top audience (the runner-up never
+cleared control, so §6.8 gives it no reach plan and the run spends no
+extra call). The cap applies to the named audience's own verdict: when
+a rival is the top audience, the verdict is about that rival's
+measurement and is not capped. A verdict that is not Strong is not
+capped either — there is no strong claim to correct, and the hold-out
+rounds in the ledger still show the deltas. The guard's finding always
+gets its own ledger line, which says what it found and, when nothing
+was capped, why not.
 
 The story leads with rivals and reads the named audience as the
 benchmark: "your comparables agree" when the named row holds,
@@ -346,13 +405,18 @@ entities you named, never from the model.
 ## 8. How the run behaves
 
 One fixed pipeline, same order every run: scope gate → cheap
-empty-check → titles resolve (≥1) → named tastes + rivals →
-controls → tag pool + pool gate → hold-out rounds → scores →
+empty-check → titles resolve (≥1) → named tastes + rivals → controls
+→ tag pool + pool gate → hold-out rounds → scores →
 verdict → reach plan only if control is cleared → reach prose (AI,
 bounded; deterministic draft fallback) → optional comparison on its
 own route. It stops early and says the cause when: the pitch is out
 of scope (tool/app, zero Qloo calls), nothing to judge, or the pooled
-tags run too thin. After assembly the run checks every title, reach
+tags run too thin. One step inside it is conditional: rival discovery
+re-asks the graph from the named titles when the pitch's own words
+found nothing (§6.3), and the run says so when it does. The hold-out
+rounds are read twice: once for the deltas the ledger shows, once for
+the fragility test that can cap the verdict (§6.6, §6.7) — same
+rounds, no extra call. After assembly the run checks every title, reach
 name and scoring tag about to be displayed against the ids Qloo
 returned in that run — resolved titles, rival, stranger and reach
 entities, every taste list, plus the chip-step tag matches. Anything
@@ -400,8 +464,10 @@ The demo domain is film first, music second (day-one coverage test). Book and ga
 | 8 | Trace | Every run's evidence drawer opens its Qloo calls |
 | 9 | Access | The live demo loads with no login and the repository is public |
 | 10 | Bridge discrimination | Bridges widen the right gap (right audience rises, wrong ones stay) and never inflate every audience together |
-| 11 | Pitch-aware ceiling | A control sharing more than a third of titles with the named audience does not set the ceiling |
+| 11 | Pitch-aware ceiling | A control sharing ANY title with the named audience does not set the ceiling; the run says how many controls were excluded |
 | 12 | Reach prose grounding | Every name in the reach prose came from that run's reach items, every gap label from that run's gaps, and every rejected model section fell back to the deterministic draft |
+| 13 | Ceiling never vanishes | When every control shares a title with the named audience, the full control set still sets the ceiling (the step says the filter fell back) and the verdict is still judged against a real baseline |
+| 14 | Fragility guard | A named audience that a hold-out round drops further than the field never reads Strong fit: when the verdict is about that named audience it is capped at Mixed fit and the reason (which title, what it did) is shown in the run ledger, the brief and the result card |
 
 Test 3 is a decision gate, not a pass or fail on shipping. A tool that always agrees with the user's guess is not worth building.
 
@@ -425,7 +491,8 @@ Test 3 is a decision gate, not a pass or fail on shipping. A tool that always ag
 
 Shipped (flow path): idea entry with detected type, tag chips with
 live match status and the matched-tag gate, named audience plus
-Qloo-discovered rivals, cached controls with pitch-aware ceiling,
+Qloo-discovered rivals with the re-plan when the pitch's words find
+nothing (§6.3), cached controls with pitch-aware ceiling,
 rank scoring with AI bridges, verdict with guards, reach card with
 grounded AI prose, chatbot comparison with Qloo marks,
 evidence drawer, static sample page.
@@ -437,6 +504,12 @@ Removed from the codebase, not parked behind a flag: exclusion
 ("nothing like"), tag-expansion retry, concept audience, pinned
 must-have words, and the city-map, concept-audience and
 LLM-proposed-rival modules.
+
+Deployed (2026-10-20): **https://whitespace-ecru.vercel.app/** — Vercel,
+production build from `main`, no login. The Qloo and LLM keys live in
+the Vercel project's env vars, so the live demo runs the same pipeline
+as `pnpm dev`; without them it would fall back to the honest mock mode
+(§11). The static sample stays as the no-network fallback (§9).
 
 ## 13. Competition
 
@@ -471,14 +544,14 @@ titles — is the artifact a creator already produces for a pitch deck (§2.3).
    root, so GitHub shows it in the repo About section).
 7. The deadline's time zone. Confirmed 2026-10-19: 2026-10-30, 11:45pm EDT.
 8. ~~Required Devpost fields complete, per the current rules on the page.~~ The page requires: a live functional demo URL, a public repo, a text description, external hosting, and an open-source licence visible in the repo About section. The description text is drafted in `docs/devpost-description.md`; the rest are §15.
-9. Where the demo is hosted. The page requires external hosting and no deploy config exists in the repo yet (no Vercel/Netlify/Railway file). Needs a real public URL before submission, and the `DEMO_URL` placeholder in `docs/devpost-description.md` filled in.
+9. ~~Where the demo is hosted.~~ Resolved 2026-10-20: deployed on Vercel at **https://whitespace-ecru.vercel.app/** — no login, no sign-up. Verified from outside the app: `/`, `/flow` and `/demo/result` all return 200, and `POST /api/tags` + `POST /api/titles/check` return live Qloo data (real tag ids, resolved entity ids), so `QLOO_API_KEY` and the LLM keys are set in the Vercel project's env vars. No deploy config file is needed: Vercel's Next.js preset builds the repo as-is, and the keys stay in Vercel settings, never in the repo. The `DEMO_URL` and `REPO_URL` placeholders in `docs/devpost-description.md` are filled.
 
 ## 15. Submission checklist
 
-1. The live demo loads with no login.
+1. The live demo loads with no login. — **done 2026-10-20**: <https://whitespace-ecru.vercel.app/> (landing, `/flow` and `/demo/result` all 200 from outside; `POST /api/tags` returns real Qloo tag ids and `POST /api/titles/check` resolves `Moonlight` and `Aftersun` to live entity ids, so the Vercel env vars are set).
 2. Public repository with a README covering setup, the Qloo calls used and the grounding check.
 3. Description text that matches the brief, with no claims about outcomes or users — `docs/devpost-description.md`.
-4. Static sample result included (`/demo/result`, no Qloo calls).
+4. Static sample result included (`/demo/result`, no Qloo calls) — live at <https://whitespace-ecru.vercel.app/demo/result>.
 5. Required Devpost fields complete, per the current rules on the page.
 6. README carries the same sourced problem statement as §2, with a Sources section pointing at `docs/impact-evidence.md`.
 7. Every figure quoted in the description and the README matches `docs/impact-evidence.md` exactly, caveats included.

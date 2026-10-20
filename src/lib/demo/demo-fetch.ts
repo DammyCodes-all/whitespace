@@ -80,7 +80,14 @@ const RUN_STEPS = [
     id: "rivals",
     label: "Rival readings",
     status: "done",
-    detail: "2 rivals from demo data",
+    detail: "nothing related to the pitch words (1 status), 3 calls",
+  },
+  {
+    id: "rivals-replan",
+    label: "Rival readings, re-tried",
+    status: "done",
+    detail:
+      "the pitch words came back empty; searched again from the titles you named — 2 rivals, 3 calls",
   },
   {
     id: "verdict",
