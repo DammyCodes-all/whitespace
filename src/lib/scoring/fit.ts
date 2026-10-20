@@ -104,8 +104,8 @@ export interface ScoreOptions {
 
 /**
  * A pitch tag with its scoring weight and display label. Base tags
- * weigh 1 (pinned must-haves 2, §6.6); expansion-retry tags
- * (`@/lib/scoring/expansion`) weigh 0.5 and render `word→Tag Name`.
+ * weigh 1; bridge tags carry their own fixed bucket weight and render
+ * `word→Tag Name`.
  */
 export interface WeightedTag {
   tag: PitchTag;
@@ -191,7 +191,7 @@ export function scoreAudience(
 ): FitScore {
   return scoreAudienceWeighted(
     tastes,
-    tags.map((tag) => ({ tag, weight: tag.pinned ? 2 : 1 })),
+    tags.map((tag) => ({ tag, weight: 1 })),
     options,
   );
 }

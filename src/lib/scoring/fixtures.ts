@@ -13,8 +13,8 @@ import type { PitchTag } from "../types.ts";
 
 /** Four matched tags; suggested six words, so coverage is 4 of 6. */
 export const SAMPLE_PITCH_TAGS: PitchTag[] = [
-  { tag: "slow-burn", qlooTagId: "urn:tag:mood:media:slow_burn", pinned: true },
-  { tag: "space", qlooTagId: "urn:tag:setting:media:space", pinned: false },
-  { tag: "solitude", qlooTagId: "urn:tag:theme:media:solitude", pinned: false },
-  { tag: "quiet", qlooTagId: "urn:tag:mood:media:quiet", pinned: false },
+  { tag: "slow-burn", qlooTagId: "urn:tag:mood:media:slow_burn" },
+  { tag: "space", qlooTagId: "urn:tag:setting:media:space" },
+  { tag: "solitude", qlooTagId: "urn:tag:theme:media:solitude" },
+  { tag: "quiet", qlooTagId: "urn:tag:mood:media:quiet" },
 ];

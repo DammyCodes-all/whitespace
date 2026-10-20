@@ -6,14 +6,12 @@
  * fixed weights below turn buckets into numbers here, so our code
  * scores and the AI never does (§7). Buckets: strong 0.75, related
  * 0.5, distant 0 — distant renders as "considered, not counted" and
- * contributes zero. At most 4 bridges per run; pinned must-haves are
- * never bridged (exact-only). Every bridged id must already sit in the
- * run's fetched tastes, so §8 grounding holds with no new Qloo call.
- * Deterministic: same input, same output (§10 #7). Server-safe: no
- * window usage.
+ * contributes zero. At most 4 bridges per run. Every bridged id must
+ * already sit in the run's fetched tastes, so §8 grounding holds with
+ * no new Qloo call. Deterministic: same input, same output (§10 #7).
+ * Server-safe: no window usage.
  *
- * Spec ref: §6.6 (weighted mean; pinned-x2 precedent for non-unit
- * weights), §7 (our code scores), §8 (grounding).
+ * Spec ref: §6.6 (weighted mean), §7 (our code scores), §8 (grounding).
  */
 
 import type { PitchTag } from "@/lib/types";
@@ -107,10 +105,9 @@ export function toBridges(
 
 /**
  * Leftover words for the bridge call: matched dictionary tags scoring
- * zero everywhere (id in no scored taste list), non-pinned (pinned
- * must-haves stay exact-only), not already given a second chance
- * (`coveredWords`, e.g. expansion words), pitch order, capped at
- * {@link MAX_BRIDGES}. Deterministic.
+ * zero everywhere (id in no scored taste list), not already given a
+ * second chance (`coveredWords`, e.g. expansion words), pitch order,
+ * capped at {@link MAX_BRIDGES}. Deterministic.
  */
 export function selectLeftoverWords(
   pitchTags: readonly PitchTag[],
@@ -121,7 +118,6 @@ export function selectLeftoverWords(
   const covered = new Set([...coveredWords].map((w) => w.toLowerCase()));
   const out: string[] = [];
   for (const tag of pitchTags) {
-    if (tag.pinned) continue;
     if (heldIds.has(tag.qlooTagId)) continue;
     if (covered.has(tag.tag.toLowerCase())) continue;
     out.push(tag.tag);
@@ -141,8 +137,8 @@ export function bridgeLabel(
 
 /**
  * Turn validated bridges into weighted tags following the
- * `WeightedTag` pattern (`fit.ts`): fixed bucket weights, pinned
- * false, label `word→Tag Name (AI: bucket)`. Distant-zero entries are
+ * `WeightedTag` pattern (`fit.ts`): fixed bucket weights, label
+ * `word→Tag Name (AI: bucket)`. Distant-zero entries are
  * kept so they render as considered-but-zero (the scorer files them
  * under `zeroTags`, never `matchedTags`). Deterministic.
  */
@@ -151,7 +147,7 @@ export function bridgesToWeightedTags(
   nameById: ReadonlyMap<string, string>,
 ): WeightedTag[] {
   return bridges.slice(0, MAX_BRIDGES).map((bridge) => ({
-    tag: { tag: bridge.word, qlooTagId: bridge.qlooTagId, pinned: false },
+    tag: { tag: bridge.word, qlooTagId: bridge.qlooTagId },
     weight: BRIDGE_WEIGHT_MAP[bridge.bucket],
     label: bridgeLabel(
       bridge.word,
