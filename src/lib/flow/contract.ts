@@ -27,11 +27,11 @@
  */
 
 import { CLOSE_CALL_GAP } from "../config.ts";
-import { selectReachTargets } from "../demo/reach-targets.ts";
 import { interestsFromTastes } from "../qloo/interests.ts";
 import type { RelatedResult } from "../qloo/related.ts";
 import type { AudienceTastes } from "../scoring/fit.ts";
 import { isUnjudgeable } from "../scoring/fit.ts";
+import type { FragilityFinding } from "../scoring/fragility.ts";
 import type { GapItem } from "../scoring/gaps.ts";
 import { countUnlabeled, findGaps, labelsForTastes } from "../scoring/gaps.ts";
 import type {
@@ -42,6 +42,7 @@ import type {
   QlooCall,
   WorkType,
 } from "../types.ts";
+import { reachTargets } from "./reach-plan.ts";
 
 export interface FlowTag {
   label: string;
@@ -154,6 +155,23 @@ export interface FlowQlooUsage {
   mock?: number;
 }
 
+/**
+ * §6.3: how rival discovery went. The agent asks the graph with the
+ * pitch's matched words; when that comes back empty it asks again from
+ * the titles the user named, because that is a different question and
+ * a sharper one. This records that, so the result says out loud that
+ * it changed its plan instead of hiding it in the run log.
+ */
+export interface FlowRivalDiscovery {
+  /**
+   * True when the first attempt came back empty and the run re-asked
+   * from the named titles. One fact only: whether the plan changed.
+   * The run ledger already carries both attempts, with their calls, so
+   * repeating the seed here would be a second copy that can drift.
+   */
+  rePlanned: boolean;
+}
+
 export interface FlowResult {
   pitch: string;
   type: WorkType;
@@ -172,11 +190,28 @@ export interface FlowResult {
   evidence: Record<string, FlowEvidence>;
   qlooCalls: FlowQlooUsage;
   /**
+   * §6.3: how rival discovery went. Absent on runs saved before the
+   * re-plan existed, so the UI treats a missing value as "one attempt".
+   */
+  rivalDiscovery?: FlowRivalDiscovery;
+  /**
    * §8 grounding result for this run. Absent on older saved runs, which
    * predate the runtime check. `ok: false` means ids were found outside
    * Qloo's results and stripped before display.
    */
   grounding?: GroundingResult;
+  /**
+   * §6.6: the named audience leaned on one of its own gift titles — a
+   * hold-out round dropped it further than the same round dropped the
+   * field's best score. Absent on runs saved before the guard existed.
+   */
+  fragile?: boolean;
+  /**
+   * §6.7: the reason the verdict was capped — which title was removed
+   * and what it did to the named audience and to the field. Absent when
+   * the run is not fragile. A capped verdict never travels without it.
+   */
+  fragilityNote?: string;
 }
 
 /** Reach data fetched outside the pipeline, keyed by audience id. */
@@ -306,16 +341,25 @@ export function toFlowResult(
   pipeline: PipelineResult,
   reachInput: FlowReachInput = {},
   tagSources: Record<string, FlowTagSource> = {},
+  fragility: FragilityFinding | null = null,
 ): FlowResult {
   const stepCallId = (id: string): string | null =>
     pipeline.steps.find((s) => s.id === id)?.callId ?? null;
+  // §6.3: the re-plan is recorded in the run ledger, so the result
+  // reads it from there rather than carrying a second copy of the fact.
+  const rivalDiscovery: FlowRivalDiscovery = {
+    rePlanned: pipeline.steps.some((s) => s.id === "rivals-replan"),
+  };
   const scoresById = new Map(pipeline.scores.map((s) => [s.audienceId, s]));
 
   const evidenceIdFor = (audience: Audience): string | null => {
     if (audience.kind === "hypothesis") return stepCallId("hypothesis");
     if (audience.kind === "control")
       return stepCallId("controls") ?? stepCallId("tastes");
-    return stepCallId("rivals");
+    // §6.12: point at the search that produced the rivals. After a
+    // re-plan that is the second attempt — the first one found nothing,
+    // so citing it would open an empty response behind a real name.
+    return stepCallId("rivals-replan") ?? stepCallId("rivals");
   };
 
   const toScore = (audience: Audience): FlowAudienceScore => {
@@ -382,10 +426,13 @@ export function toFlowResult(
   let reach: FlowReach[] | null = null;
   if (pipeline.verdict.clearsControl) {
     reach = [];
-    const targets = selectReachTargets(
+    // §6.8: only an audience that clears the line gets a plan, so a
+    // capped verdict (fragility) keeps the plan with the top audience.
+    const targets = reachTargets(
       pipeline.verdict,
       pipeline.scores,
       contenders,
+      ceiling,
     );
     for (const target of targets) {
       const fit = scoresById.get(target.id);
@@ -427,10 +474,11 @@ export function toFlowResult(
   // empty claim.
   let gaps: FlowGapGroup[] = [];
   if (pipeline.verdict.clearsControl) {
-    const targets = selectReachTargets(
+    const targets = reachTargets(
       pipeline.verdict,
       pipeline.scores,
       contenders,
+      ceiling,
     );
     gaps = targets.map((target) => {
       const tastes = reachInput.tastesByAudienceId?.[target.id];
@@ -474,7 +522,12 @@ export function toFlowResult(
     gaps,
     evidence,
     qlooCalls: { network, cached, total: pipeline.calls.length, mock },
+    rivalDiscovery,
     grounding: pipeline.grounding,
+    // §6.6/§6.7: the fragility guard's finding rides with the result,
+    // so the card can say why a verdict was capped.
+    fragile: fragility?.fragile === true,
+    fragilityNote: fragility?.fragile === true ? fragility.note : undefined,
   };
 }
 

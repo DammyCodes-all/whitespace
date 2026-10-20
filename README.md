@@ -2,6 +2,11 @@
 
 > Before you ship, find out who it's actually for.
 
+**Live demo:** <https://whitespace-ecru.vercel.app/> (no login) ·
+[Static sample result](https://whitespace-ecru.vercel.app/demo/result)
+(fixtures only — no Qloo or AI calls, the fallback when the network or the
+Qloo quota is down).
+
 Whitespace is an agent that tells a creator which audience their idea fits, how
 strongly, and where to find those people. Paste an idea — a film, an album, a
 book, a game — and the app reads the words and the work type out of the pitch,
@@ -158,7 +163,8 @@ scores on exact Qloo matches.
   honest empty states; the scored run still works on exact matches.
 - [`/demo/result`](http://localhost:3000/demo/result) is a **static** sample
   result page built from fixtures. It makes no Qloo or AI calls and is the
-  demo fallback if the network is down.
+  demo fallback if the network is down. Live copy:
+  <https://whitespace-ecru.vercel.app/demo/result>.
 
 ## Qloo calls used
 
@@ -181,6 +187,15 @@ Pipeline order: scope gate → cheap empty check → titles resolve (≥1) → n
 tastes + rivals → controls → tag pool + pool gate → hold-out rounds → scores →
 verdict → reach plan (only if control is cleared) → reach prose → chatbot
 comparison.
+
+One step in that order is conditional. Rival discovery first asks Qloo with the
+pitch's own matched tags — which works match these words? That is an
+intersection across every tag, so a niche pitch can come back empty. When it
+does, and the user named titles, the agent asks the graph a different question
+— which works are related to the titles you named? — and uses that answer. The
+run steps and the result both say the plan changed, and both attempts stay in
+the evidence drawer. It costs three extra calls and only fires on an empty
+answer — a failed call is reported as an outage, not re-asked.
 
 Control audiences (~20 fixed other-genre seeds per domain) are resolved once
 and cached for 30 minutes, so repeat runs cost far fewer calls. A run is capped
