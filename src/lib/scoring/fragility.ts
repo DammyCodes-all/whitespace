@@ -29,6 +29,7 @@
  */
 
 import type { VerdictResult } from "../types.ts";
+import { fitIndex } from "./fit-index.ts";
 
 /**
  * One hold-out round: the full set against the same set without one
@@ -86,9 +87,9 @@ export const FRAGILITY_MIN_GAP = 0.01;
 /** Float hygiene: the same 1e-9 the verdict policy uses for margins. */
 const EPSILON = 1e-9;
 
-/** Two decimals, like every other number the run shows. */
+/** Fit index points, like every score the run shows. */
 function fmt(value: number): string {
-  return value.toFixed(2);
+  return `${fitIndex(value)}`;
 }
 
 /**
@@ -193,8 +194,8 @@ export function assessFragility(input: {
 
   const note = [
     `Without ${round.titleName}'s ${round.droppedTags} gift tag(s) the named audience falls`,
-    `${fmt(round.namedFull)} → ${fmt(round.namedReduced)}, while the field's best goes`,
-    `${fmt(round.fieldFull)} → ${fmt(round.fieldReduced)} — it leans on its own gifts`,
+    `from fit index ${fmt(round.namedFull)} to ${fmt(round.namedReduced)}, while the field's best goes`,
+    `from ${fmt(round.fieldFull)} to ${fmt(round.fieldReduced)} — it leans on its own gifts`,
     "more than the field leans on that removal.",
     reason,
   ].join(" ");
