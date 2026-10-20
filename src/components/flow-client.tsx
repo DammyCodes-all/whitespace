@@ -11,6 +11,7 @@
  * Spec: §6.1, §6.2, §6.5, §6.7, §6.8, §6.11, §6.12 (copy/behavior unchanged).
  */
 
+import { useEffect, useRef } from "react";
 import { FlowInputStep } from "@/components/flow/flow-input-step";
 import { FlowResultsStep } from "@/components/flow/flow-results-step";
 import {
@@ -36,6 +37,7 @@ export function FlowClient({
   autoStart?: boolean;
 }) {
   const s = useFlowState(initialPitch);
+  const phaseRef = useRef(s.phase);
   const titleSetters = {
     setCheckResult: s.setCheckResult,
     setTitleTags: s.setTitleTags,
@@ -47,6 +49,22 @@ export function FlowClient({
   };
 
   useFlowEffects({ autoStart, initialPitch, s });
+
+  // Move focus with the phase, not just the pixels. The result view owns
+  // its own focus target (the visible verdict heading); the earlier
+  // phases focus their h1 so a screen reader hears the new step.
+  useEffect(() => {
+    if (phaseRef.current === s.phase) return;
+    phaseRef.current = s.phase;
+    if (s.phase === "done") return;
+    const id =
+      s.phase === "input"
+        ? "flow-input-heading"
+        : s.phase === "tags"
+          ? "flow-tags-heading"
+          : "flow-run-heading";
+    document.getElementById(id)?.focus({ preventScroll: true });
+  }, [s.phase]);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-12 sm:px-8">
