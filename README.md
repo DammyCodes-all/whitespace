@@ -9,8 +9,53 @@ lets you confirm the words and name similar titles, then scores your named
 audience plus rival audiences it discovers against ~20 unrelated control
 audiences using [Qloo](https://qloo.com) taste data.
 
-The result is a hypothesis, not a verdict on the work. Every number in it comes
-from a recorded Qloo call, and every Qloo call is in the evidence drawer.
+Every number in the result comes from a recorded Qloo call, and every Qloo
+call is in the evidence drawer — so the reasoning can be checked, not just
+read.
+
+---
+
+## Why this exists
+
+**The audience data exists. Creators cannot get it.** The Harvard Kennedy
+School's Shorenstein Center surveyed 14,421 US adults and combined the result
+with Nielsen, Parrot Analytics and The Numbers:
+
+> "Data is not publicly available to small independent film businesses or
+> independent creators, which puts this sector at a disadvantage compared to
+> the large, tech enabled businesses dominating the US media."
+
+The BFI found the same wall in the UK, where audience research on individual
+titles was "prohibitively expensive for independent distributors".
+
+**The gap is large.** The same Shorenstein study puts the addressable US
+audience for independent film at 76.3M and the people who actually watched one
+in 2022–23 at 36.7M — about 40M in between. Per-title viewing is low "due to
+the lack of marketing to bring attention to small titles".
+
+**Taste, not demographics, decides who watches.** In a peer-reviewed study of
+3,204 viewers rating 209 films, NYU's Wallisch and Whritner found "the
+industry's targeting of film goers by broad demographic categories seems off
+the mark" and prescribed slicing audiences into taste clusters instead.
+
+**Creators already do the right thing, by hand.** Sundance's pitch deck
+guidelines require comparable films, because "a creative comp shows audience
+interest for your film (no figures)". A comp is how the trade says "this is
+who it is for". Whitespace takes that same artifact and does the part no
+human can: it compares the audience behind your comps against the audiences
+your work could have reached instead.
+
+**And guessing wrong is expensive.** Across three separate studies of 6,800+
+independent artists: 54% of 300 independent musicians name "getting music
+heard" as their biggest challenge; discoverability is the single biggest
+barrier for 35.8% of 1,595 independent rappers; and 74% of 5,039 independent
+artists earned under $1,000 from music in the past year.
+
+Every figure above is other people's research, traced to its primary source
+in [`docs/impact-evidence.md`](docs/impact-evidence.md) — sample sizes,
+dates, and what each study does and does not cover. Whitespace makes a
+creator's own guess checkable against a measured alternative. It does not
+measure audiences, and it does not predict success.
 
 ---
 
@@ -197,7 +242,7 @@ src/components/ui/orb/  the vendored orb widget, split by concern: the React she
 src/lib/qloo/       Qloo boundary: client (auth/retry/cache/quota), titles, tags, tastes, rivals, controls, related
 src/lib/agent/      LLM seam: tag extraction, title-label pick, bridges, chatbot answer, reach prose
 src/lib/flow/       the run pipeline, contracts and view models
-docs/               product spec, coverage notes, design direction, build log
+docs/               product spec, impact evidence (every sourced figure), Devpost text, coverage notes, design direction, build log
 ```
 
 ## Limits and non-goals
@@ -205,12 +250,36 @@ docs/               product spec, coverage notes, design direction, build log
 - It does not predict revenue, success or audience size, and it does not know
   how many people are in an audience.
 - It uses aggregate taste data only. No personal data is collected or used.
-- It does not replace user research — the output is a hypothesis.
+- It is evidence for a decision, not a substitute for it. The output is a
+  hypothesis with a full trace behind it.
 - Film and music are the covered domains. Book and game are detected and
   runnable, but their taste data is thin in the Qloo hackathon dataset, so
   they are on hold.
 - The name means *the audience you did not know your work fit*, not an empty
   market.
+
+## Sources
+
+The problem statement above is other people's research. Each claim is traced
+to its primary source, with sample size, date and caveats, in
+[`docs/impact-evidence.md`](docs/impact-evidence.md). The short list:
+
+- Shorenstein Center, Harvard Kennedy School — *US Independent Film Audience
+  and Landscape Study* (Nov 2024) · <https://www.indiefilmlandscape.org/key-findings>
+- British Film Institute — *Film release audience tracker* (Nov 2023) ·
+  <https://www.bfi.org.uk/get-funding-support/bring-film-wider-audience/audience-data-learnings/film-release-audience-tracker>
+- Wallisch & Whritner (2017), *Projections* — taste is idiosyncratic and
+  demographically unlinked · <https://www.nyu.edu/about/news-publications/news/2017/may/our-taste-in-movies-is-highly-idiosyncraticand-at-odds-with-critics.html>
+- Sundance Institute — *2024 Pitch Deck Guidelines* (comps show audience
+  interest) ·
+  <https://sundance.sundancedigitalxe.org/channels/uma/images/Feature-Film-Pitch-Deck-Guidelines.pdf>
+- Ditto Music — *The Independent Music Report 2026* (n=5,039) ·
+  <https://dittomusic.com/en/independent-music-report-2026>
+- Musosoup + Right Chord Music — *The Musician's Census 2024* (n=300) ·
+  <https://musosoup.com/blog/the-musicians-census-2024>
+- Rap Fame — *The Rap Report 2026* (n=1,595) · <https://rapfame.app/report/2026>
+- UNESCO — *African film: A booming industry* (Nollywood output) ·
+  <https://www.unesco.org/en/articles/african-film-booming-industry-1>
 
 ## License
 
