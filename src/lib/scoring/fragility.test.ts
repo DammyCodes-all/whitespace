@@ -120,8 +120,8 @@ describe("assessFragility", () => {
     assert.equal(finding.capped, true);
     // The reason names the title and what it did, to both sides.
     assert.match(finding.note, /Moon/);
-    assert.match(finding.note, /0\.82 → 0\.00/);
-    assert.match(finding.note, /0\.82 → 1\.00/);
+    assert.match(finding.note, /from fit index 82 to 0/);
+    assert.match(finding.note, /from 82 to 100/);
     assert.match(finding.note, /capped at Mixed fit \(was Strong fit\)/);
   });
 
