@@ -58,6 +58,13 @@ export function buildTargetingBrief(result: FlowResult): string {
     `Strongest other-genre comparison: ${
       result.ceiling === null ? "not measured" : result.ceiling.toFixed(2)
     }`,
+    // §6.7: a capped verdict never travels without its reason — which
+    // title was removed and what it did to the named audience and the
+    // field. The brief carries the same sentence the ledger and the
+    // result card carry.
+    ...(result.fragile && result.fragilityNote
+      ? [`Fragility: ${result.fragilityNote}`]
+      : []),
     ...(isCloseCall(result)
       ? [
           "Close call: near the other-genre line — a re-run may read differently.",

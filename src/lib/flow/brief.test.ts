@@ -121,3 +121,15 @@ test("every reach slot has a word, so the brief never prints a raw key", () => {
     assert.equal(typeof VERDICT_WORDS[verdict], "string");
   }
 });
+
+test("carries the fragility reason, because a capped verdict never travels alone", () => {
+  const note =
+    "Without Moon's 12 gift tag(s) the named audience falls 0.82 → 0.00, while the field's best goes 0.82 → 1.00 — it leans on its own gifts more than the field leans on that removal. The verdict is capped at Mixed fit (was Strong fit).";
+  const brief = buildTargetingBrief(
+    fixture({ verdict: "mixed", fragile: true, fragilityNote: note }),
+  );
+  assert.match(brief, /^# Targeting brief — Mixed fit/);
+  assert.ok(brief.includes(`Fragility: ${note}`));
+  // A run that is not fragile says nothing about fragility.
+  assert.ok(!buildTargetingBrief(fixture()).includes("Fragility:"));
+});
