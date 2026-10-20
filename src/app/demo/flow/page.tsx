@@ -13,7 +13,7 @@ export const metadata: Metadata = {
  */
 export default function DemoFlowPage() {
   return (
-    <main id="main-content" className="flex flex-1 flex-col">
+    <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col">
       <div className="flex w-full flex-1 flex-col px-6 pb-24 pt-12 sm:px-8 sm:pt-16">
         <div className="mx-auto my-auto flex w-full max-w-[960px] flex-col items-center">
           <h1 className="mx-auto max-w-[calc(100vw-3rem)] text-balance text-center font-serif text-[clamp(1.6rem,4.2vw,2.75rem)] leading-[1.15] tracking-tight">

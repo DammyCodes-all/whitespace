@@ -1,20 +1,23 @@
-"use client";
-
 import { evidenceCache, evidenceStatus } from "@/components/evidence-label";
 import type { FlowEvidence } from "@/lib/flow/contract";
 
 /**
- * Evidence drawer block. Small enough to stay its own module.
+ * Evidence drawer block. Small enough to stay its own module, and
+ * deliberately free of hooks so the static recorded-run page can render
+ * it on the server instead of shipping every response to the client.
  * Spec: §6.12 (structure unchanged; mock rows never read as cache hits).
  */
 export function FlowEvidenceBlock({
   steps,
   evidence,
   totalCalls,
+  note,
 }: {
   steps: { id: string; label: string; detail?: string }[];
   evidence: Record<string, FlowEvidence>;
   totalCalls: number;
+  /** Optional provenance note, e.g. "responses trimmed for the sample". */
+  note?: string;
 }) {
   const rows = Object.values(evidence);
   const mockOnly = rows.length > 0 && rows.every((line) => line.mock === true);
@@ -26,6 +29,9 @@ export function FlowEvidenceBlock({
             ? `Evidence · ${rows.length} mock traces, no Qloo key`
             : `Evidence · ${totalCalls} calls`}
         </summary>
+        {note !== undefined && (
+          <p className="mt-2 max-w-prose text-sm text-ink-3">{note}</p>
+        )}
         {steps.length > 0 && (
           <details className="mt-3">
             <summary className="cursor-pointer font-mono text-xs text-ink-3">
@@ -52,7 +58,7 @@ export function FlowEvidenceBlock({
                   {evidenceCache(line)}
                   {line.truncated ? " · truncated" : ""}
                 </summary>
-                <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-all bg-paper p-3 font-mono text-xs text-ink-2">
+                <pre className="mt-2 whitespace-pre-wrap break-all bg-paper p-3 font-mono text-xs text-ink-2">
                   {JSON.stringify(line.request.params)}
                   {"\n"}
                   {line.response}
