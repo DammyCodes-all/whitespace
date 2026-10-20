@@ -52,7 +52,7 @@ test("names the verdict word, the pitch and the call counts", () => {
     brief,
     /- Slow science-fiction \(named\): 0\.61 \[evidence: call-tastes-1\]/,
   );
-  assert.match(brief, /Strongest other-genre comparison: 0\.33/);
+  assert.match(brief, /Comparison line: 0\.33/);
   assert.match(brief, /Qloo data calls: 2 live, 9 from cache/);
 });
 
@@ -74,7 +74,7 @@ test("writes not measured instead of a zero for absent reach slots", () => {
 
 test("says the ceiling is not measured when no control was judgeable", () => {
   const brief = buildTargetingBrief(fixture({ ceiling: null }));
-  assert.match(brief, /Strongest other-genre comparison: not measured/);
+  assert.match(brief, /Comparison line: not measured/);
   assert.ok(!brief.includes("comparison: 0.00"));
 });
 
@@ -103,7 +103,7 @@ test("warns on a close call, because a re-run may read differently", () => {
   });
   assert.match(
     buildTargetingBrief(close),
-    /Close call: near the other-genre line — a re-run may read differently\./,
+    /Close call: near the comparison line — a re-run may read differently\./,
   );
   assert.ok(!buildTargetingBrief(fixture()).includes("Close call"));
 });
